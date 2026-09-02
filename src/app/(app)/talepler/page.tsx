@@ -361,7 +361,7 @@ export default async function TaleplerPage({
                             </div>
                             <div>
                               <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
-                                {a.isci.ad}
+                                <a href={`/isci-havuzu/${a.isci.id}`} className="hover:text-indigo-600">{a.isci.ad}</a>
                                 {a.durum === 'iptal' && <Badge tone="red">İptal</Badge>}
                                 {sms ? (
                                   sms.gonderimDurum ? (

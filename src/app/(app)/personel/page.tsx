@@ -72,7 +72,7 @@ export default async function PersonelPage() {
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-50 text-xs font-semibold text-violet-600">
                           {p.ad.split(' ').map((x) => x[0]).slice(0, 2).join('')}
                         </div>
-                        <div className="font-medium text-slate-900">{p.ad}</div>
+                        <a href={`/personel/${p.id}`} className="font-medium text-slate-900 hover:text-indigo-600">{p.ad}</a>
                       </div>
                     </Td>
                     <Td>

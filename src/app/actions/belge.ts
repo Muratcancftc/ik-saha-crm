@@ -25,12 +25,34 @@ export async function createBelge(_prev: BelgeState, formData: FormData): Promis
   })
   revalidatePath('/belge-sgk')
   revalidatePath('/isci-havuzu')
+  revalidatePath(`/isci-havuzu/${isciId}`)
   return { ok: true }
 }
 
 export async function silBelge(formData: FormData) {
   await requireRoles(['patron', 'operasyon'])
   await prisma.belge.delete({ where: { id: Number(formData.get('id')) } })
+  revalidatePath('/belge-sgk')
+  revalidatePath('/isci-havuzu')
+  return
+}
+
+// Profil sayfasında düz form ile belge ekleme
+export async function belgeEkle(formData: FormData) {
+  await requireRoles(['patron', 'operasyon'])
+  const isciId = Number(formData.get('isciId'))
+  const tip = String(formData.get('tip') ?? '').trim()
+  const bitis = String(formData.get('bitisTarihi') ?? '')
+  if (!isciId || !tip || !bitis) return
+  await prisma.belge.create({
+    data: {
+      isciId,
+      tip,
+      verilisTarihi: new Date(),
+      bitisTarihi: new Date(`${bitis}T23:59:00`),
+    },
+  })
+  revalidatePath(`/isci-havuzu/${isciId}`)
   revalidatePath('/belge-sgk')
   revalidatePath('/isci-havuzu')
   return

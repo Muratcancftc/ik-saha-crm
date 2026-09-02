@@ -152,6 +152,7 @@ model Isci {
   gunlukUcretBeklentisi Decimal   @db.Decimal(10, 2)
   durum                 IsciDurum @default(aktif)
   tercihBolgeler        String[]
+  not                   String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -413,6 +414,36 @@ model Personel {
   izinBakiyesi Int           @default(0)
   durum        PersonelDurum @default(aktif)
   createdAt    DateTime      @default(now())
+
+  izinler Izin[]
+  gecmis  PersonelGecmisi[]
+}
+
+model Izin {
+  id         Int      @id @default(autoincrement())
+  personelId Int
+  tarih      DateTime
+  gun        Int
+  tip        String // izin | rapor
+  not        String?
+  createdAt  DateTime @default(now())
+
+  personel Personel @relation(fields: [personelId], references: [id], onDelete: Cascade)
+
+  @@index([personelId])
+}
+
+model PersonelGecmisi {
+  id         Int      @id @default(autoincrement())
+  personelId Int
+  tarih      DateTime @default(now())
+  alan       String // departman | rol | maas
+  eskiDeger  String
+  yeniDeger  String
+
+  personel Personel @relation(fields: [personelId], references: [id], onDelete: Cascade)
+
+  @@index([personelId])
 }
 
 // ============================================================

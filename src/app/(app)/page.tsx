@@ -1,6 +1,9 @@
-import Link from 'next/link'
 import { requireUser } from '@/lib/dal'
 import { getMaliVeri, getBugunAtamalar, getUyarilar, getAcilTalepler, getOperasyonOzeti } from '@/lib/queries'
+import { getDashboardRapor, getAylikTrend } from '@/lib/profil-queries'
+import { donemAralik, donemEtiket } from '@/lib/donem'
+import { DonemSecici } from '@/components/donem-secici'
+import Link from 'next/link'
 import { tl, dateLong, num } from '@/lib/format'
 import { daysUntil } from '@/lib/dates'
 import { StatCard, Card, CardHeader, Badge } from '@/components/ui'
@@ -9,14 +12,23 @@ import { Icon } from '@/components/icons'
 
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ donem?: string; bas?: string; bit?: string }>
+}) {
   const user = await requireUser()
-  const [mali, atamalar, uyarilar, talepler, ops] = await Promise.all([
+  const sp = await searchParams
+  const donem = donemAralik(sp)
+
+  const [mali, atamalar, uyarilar, talepler, ops, rapor, trend] = await Promise.all([
     getMaliVeri(),
     getBugunAtamalar(user),
     getUyarilar(user),
     getAcilTalepler(user),
     getOperasyonOzeti(user),
+    getDashboardRapor(user, donem.bas, donem.bit),
+    getAylikTrend(),
   ])
 
   const bugunAtamaSayisi = atamalar.length
@@ -32,7 +44,8 @@ export default async function DashboardPage() {
           </h2>
           <p className="mt-0.5 text-sm text-slate-500">{dateLong(new Date())}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <DonemSecici />
           <Link
             href="/talepler"
             className="rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500"
@@ -106,6 +119,83 @@ export default async function DashboardPage() {
           tone="red"
         />
       </div>
+
+      {/* Rapor bölümü */}
+      <Card>
+        <CardHeader
+          title={`Dönem Raporu — ${donemEtiket(donem)}`}
+          desc="Seçili döneme göre yeniden hesaplanır"
+        />
+        <div className="grid grid-cols-1 gap-5 px-5 py-4 lg:grid-cols-2">
+          {/* Trend */}
+          <div>
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Aylık Ciro – Gider – Net Kâr</h4>
+            <div className="flex h-40 items-end gap-3">
+              {trend.map((m) => {
+                const max = Math.max(...trend.map((x) => Math.max(x.ciro, x.gider, 1)))
+                return (
+                  <div key={m.etiket} className="flex flex-1 flex-col items-center gap-1">
+                    <div className="flex w-full flex-1 items-end justify-center gap-1">
+                      <div className="w-3 rounded-t bg-indigo-500" style={{ height: `${(m.ciro / max) * 100}%` }} title={`Ciro ${tl(m.ciro)}`} />
+                      <div className="w-3 rounded-t bg-amber-400" style={{ height: `${(m.gider / max) * 100}%` }} title={`Gider ${tl(m.gider)}`} />
+                      <div className="w-3 rounded-t bg-emerald-500" style={{ height: `${(Math.max(m.netKar, 0) / max) * 100}%` }} title={`Net ${tl(m.netKar)}`} />
+                    </div>
+                    <span className="text-[10px] text-slate-400">{m.etiket}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="mt-1 flex gap-3 text-[10px] text-slate-400">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-indigo-500" />Ciro</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-amber-400" />Gider</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-emerald-500" />Net</span>
+            </div>
+
+            {/* Dönem oranları */}
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <OranKutu label="Devamsızlık Oranı" deger={`%${num(rapor.devamsizlikOrani)}`} tone={rapor.devamsizlikOrani <= 10 ? 'text-emerald-600' : 'text-red-600'} />
+              <OranKutu label="Talep Doluluk Oranı" deger={`%${num(rapor.dolulukOrani)}`} tone={rapor.dolulukOrani >= 80 ? 'text-emerald-600' : 'text-amber-600'} />
+            </div>
+          </div>
+
+          {/* En kârlı firmalar */}
+          <div>
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">En Kârlı Firmalar (marj)</h4>
+            {rapor.enKarliFirmalar.length === 0 ? (
+              <p className="text-xs text-slate-400">Bu dönemde hakediş yok</p>
+            ) : (
+              <ul className="space-y-2">
+                {rapor.enKarliFirmalar.map((f, i) => (
+                  <li key={f.id} className="flex items-center justify-between text-sm">
+                    <Link href={`/musteri-firmalar/${f.id}`} className="flex items-center gap-2 text-slate-700 hover:text-indigo-600">
+                      <span className="w-5 text-xs text-slate-400">#{i + 1}</span>
+                      <span className="font-medium">{f.ad}</span>
+                    </Link>
+                    <span className="tabular-nums text-emerald-600">{tl(f.marj)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <h4 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-400">En Çok Çalışan İşçiler</h4>
+            {rapor.enCokCalisan.length === 0 ? (
+              <p className="text-xs text-slate-400">Bu dönemde atama yok</p>
+            ) : (
+              <ul className="space-y-2">
+                {rapor.enCokCalisan.map((i) => (
+                  <li key={i.id} className="flex items-center justify-between text-sm">
+                    <Link href={`/isci-havuzu/${i.id}`} className="font-medium text-slate-700 hover:text-indigo-600">{i.ad}</Link>
+                    <span className="flex items-center gap-2">
+                      <span className="tabular-nums text-slate-500">{i.gun} gün</span>
+                      {i.noshow > 0 && <Badge tone="red">{i.noshow} no-show</Badge>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Bugünkü atamalar */}
@@ -251,6 +341,15 @@ export default async function DashboardPage() {
           </table>
         </div>
       </Card>
+    </div>
+  )
+}
+
+function OranKutu({ label, deger, tone }: { label: string; deger: string; tone: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+      <div className={`text-lg font-semibold tabular-nums ${tone}`}>{deger}</div>
+      <div className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{label}</div>
     </div>
   )
 }

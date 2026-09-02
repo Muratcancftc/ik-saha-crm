@@ -127,3 +127,37 @@ export async function isciDetay(id: number) {
   const { getIsciDetay } = await import('@/lib/queries')
   return getIsciDetay(id)
 }
+
+export async function isciNotGuncelle(formData: FormData) {
+  await requireRoles(['patron', 'operasyon'])
+  const id = Number(formData.get('id'))
+  const not = String(formData.get('not') ?? '')
+  await prisma.isci.update({ where: { id }, data: { not: not || null } })
+  revalidatePath(`/isci-havuzu/${id}`)
+  revalidatePath('/isci-havuzu')
+  return
+}
+
+export async function avansEkle(formData: FormData) {
+  await requireRoles(['patron', 'operasyon'])
+  const isciId = Number(formData.get('isciId'))
+  const tutar = Number(formData.get('tutar'))
+  if (!isciId || !tutar || tutar <= 0) return
+  await prisma.avans.create({
+    data: { isciId, tutar, tarih: formData.get('tarih') ? new Date(String(formData.get('tarih'))) : new Date(), durum: 'verildi' },
+  })
+  revalidatePath(`/isci-havuzu/${isciId}`)
+  revalidatePath('/isci-havuzu')
+  return
+}
+
+export async function avansMahsup(formData: FormData) {
+  await requireRoles(['patron', 'operasyon'])
+  const id = Number(formData.get('id'))
+  const a = await prisma.avans.findUnique({ where: { id } })
+  if (!a) return
+  await prisma.avans.update({ where: { id }, data: { durum: 'mahsup' } })
+  revalidatePath(`/isci-havuzu/${a.isciId}`)
+  revalidatePath('/isci-havuzu')
+  return
+}

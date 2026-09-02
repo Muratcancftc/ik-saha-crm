@@ -88,8 +88,12 @@ export default async function HakedisPage() {
                 {hakedisler.map((h) => (
                   <tr key={h.id} className="hover:bg-slate-50/60">
                     <Td>{date(h.donemBas)} → {date(h.donemBitis)}</Td>
-                    <Td className="font-medium text-slate-900">{h.isci.ad}</Td>
-                    <Td>{h.firma.ad}</Td>
+                    <Td className="font-medium text-slate-900">
+                      <a href={`/isci-havuzu/${h.isci.id}`} className="hover:text-indigo-600">{h.isci.ad}</a>
+                    </Td>
+                    <Td>
+                      <a href={`/musteri-firmalar/${h.firma.id}`} className="hover:text-indigo-600">{h.firma.ad}</a>
+                    </Td>
                     <Td className="text-right tabular-nums">{num(h.gun)}</Td>
                     <Td className="text-right tabular-nums">{tl(h.yevmiye)}</Td>
                     <Td className="text-right tabular-nums">{tl(h.avansToplam)}</Td>

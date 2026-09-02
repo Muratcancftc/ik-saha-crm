@@ -315,7 +315,8 @@ async function main() {
   // ---- Geçmiş (kapandı) talepler + atamalar + puantaj + hakediş ----
   const gecmisTalepler: Array<{ talep: typeof bugunTalep1; isciler: typeof isciler; meslekAd: string }> = []
 
-  for (let gun = 14; gun >= 1; gun -= 2) {
+  // 3 aylık geçmiş talepler (firma1: depo)
+  for (let gun = 85; gun >= 1; gun -= 2) {
     const t = await prisma.talep.create({
       data: {
         firmaId: firma1.id,
@@ -332,7 +333,8 @@ async function main() {
     gecmisTalepler.push({ talep: t, isciler: secilen, meslekAd: 'depo' })
   }
 
-  for (let gun = 15; gun >= 2; gun -= 3) {
+  // 3 aylık geçmiş talepler (firma2: paketleme)
+  for (let gun = 86; gun >= 2; gun -= 3) {
     const t = await prisma.talep.create({
       data: {
         firmaId: firma2.id,
@@ -347,6 +349,29 @@ async function main() {
     talepler.push({ id: t.id, lokasyonId: f2lok1.id, firmaId: firma2.id, tarih: atMidnight(-gun) })
     const secilen = isciler.filter((w) => w.ad !== 'Sinan Özdemir').slice(4, 6)
     gecmisTalepler.push({ talep: t, isciler: secilen, meslekAd: 'paketleme' })
+  }
+
+  // 3 aylık geçmiş talepler (firma3: inşaat/kaynak)
+  for (let gun = 84; gun >= 3; gun -= 4) {
+    const t = await prisma.talep.create({
+      data: {
+        firmaId: firma3.id,
+        lokasyonId: f3lok1.id,
+        tarih: atMidnight(-gun),
+        vardiya: 'gunduz',
+        aciliyet: 'normal',
+        durum: 'kapandi',
+        kalemler: {
+          create: [
+            { meslekId: meslekler['insaat'].id, adet: 2 },
+            { meslekId: meslekler['kaynak'].id, adet: 1 },
+          ],
+        },
+      },
+    })
+    talepler.push({ id: t.id, lokasyonId: f3lok1.id, firmaId: firma3.id, tarih: atMidnight(-gun) })
+    const secilen = isciler.filter((w) => w.ad !== 'Sinan Özdemir').slice(8, 11)
+    gecmisTalepler.push({ talep: t, isciler: secilen, meslekAd: 'insaat' })
   }
 
   // Bugünkü atamalar (atandi/onaylandi)
@@ -433,13 +458,24 @@ async function main() {
     }
   }
 
-  // ---- Faturalar + Tahsilat ----
-  const faturaData = [
-    { firmaId: firma1.id, no: 'IKR-2026-001', donem: '2026-08', araToplam: 45000, vade: -3 },
+  // ---- Faturalar + Tahsilat (3 aylık geçmiş) ----
+  const faturaData: Array<{ firmaId: number; no: string; donem: string; araToplam: number; vade: number; odendi?: boolean }> = [
+    { firmaId: firma1.id, no: 'IKR-2026-001', donem: '2026-08', araToplam: 45000, vade: -3, odendi: true },
     { firmaId: firma1.id, no: 'IKR-2026-002', donem: '2026-08', araToplam: 38000, vade: 12 },
     { firmaId: firma2.id, no: 'IKR-2026-003', donem: '2026-08', araToplam: 27500, vade: 8 },
     { firmaId: firma3.id, no: 'IKR-2026-004', donem: '2026-08', araToplam: 61000, vade: -1 },
     { firmaId: firma4.id, no: 'IKR-2026-005', donem: '2026-07', araToplam: 15200, vade: -20 },
+    // geçmiş aylar (yaşlandırma + trend için)
+    { firmaId: firma1.id, no: 'IKR-2026-006', donem: '2026-07', araToplam: 42000, vade: -35 },
+    { firmaId: firma1.id, no: 'IKR-2026-007', donem: '2026-07', araToplam: 41000, vade: -45 },
+    { firmaId: firma2.id, no: 'IKR-2026-008', donem: '2026-07', araToplam: 26000, vade: -55 },
+    { firmaId: firma3.id, no: 'IKR-2026-009', donem: '2026-07', araToplam: 58000, vade: -70 },
+    { firmaId: firma1.id, no: 'IKR-2026-010', donem: '2026-06', araToplam: 40000, vade: -80, odendi: true },
+    { firmaId: firma2.id, no: 'IKR-2026-011', donem: '2026-06', araToplam: 24000, vade: -95, odendi: true },
+    { firmaId: firma4.id, no: 'IKR-2026-012', donem: '2026-06', araToplam: 14000, vade: -105 },
+    { firmaId: firma1.id, no: 'IKR-2026-013', donem: '2026-05', araToplam: 39000, vade: -120, odendi: true },
+    { firmaId: firma3.id, no: 'IKR-2026-014', donem: '2026-05', araToplam: 55000, vade: -130 },
+    { firmaId: firma2.id, no: 'IKR-2026-015', donem: '2026-05', araToplam: 23000, vade: -140, odendi: true },
   ]
   for (const f of faturaData) {
     const kdv = Math.round(f.araToplam * 0.2 * 100) / 100
@@ -454,30 +490,34 @@ async function main() {
         kdvTutar: kdv,
         genelToplam: genel,
         vadeTarihi: atMidnight(f.vade),
-        durum: f.vade < 0 ? 'gecikti' : 'vadede',
+        durum: f.odendi ? 'odendi' : f.vade < 0 ? 'gecikti' : 'vadede',
       },
     })
-    if (f.no === 'IKR-2026-001') {
-      await prisma.tahsilat.create({ data: { faturaId: fatura.id, tutar: 45000, tarih: atMidnight(-8) } })
-      await prisma.fatura.update({ where: { id: fatura.id }, data: { durum: 'odendi' } })
-    }
-    if (f.no === 'IKR-2026-005') {
+    if (f.odendi) {
+      await prisma.tahsilat.create({ data: { faturaId: fatura.id, tutar: genel, tarih: atMidnight(f.vade + 5) } })
+    } else if (f.no === 'IKR-2026-005') {
       await prisma.tahsilat.create({ data: { faturaId: fatura.id, tutar: 6000, tarih: atMidnight(-10) } })
     }
   }
 
-  // ---- Giderler ----
+  // ---- Giderler (3 aylık) ----
   const giderPlan: Array<[GiderKategori, number, string]> = [
-    ['isci_yevmiye', 124500, 'Ağustos saha işçi yevmiyeleri'],
-    ['personel_bordro', 42000, 'Ağustos iç kadro maaşları'],
+    ['isci_yevmiye', 124500, 'Saha işçi yevmiyeleri'],
+    ['personel_bordro', 42000, 'İç kadro maaşları'],
     ['kira', 18000, 'Merkez ofis kirası'],
     ['ulasim', 6500, 'Servis ve yol giderleri'],
     ['yakit', 8400, 'Araç yakıtı'],
     ['sarf_malzeme', 3200, 'Eldiven, maske, KKD'],
     ['diger', 2100, 'Genel giderler'],
   ]
-  for (const [kategori, tutar, aciklama] of giderPlan) {
-    await prisma.gider.create({ data: { kategori, tutar, aciklama, tarih: atMidnight(-6 - Math.floor(rnd() * 15)) } })
+  for (let ay = 0; ay < 3; ay++) {
+    for (const [kategori, tutar, aciklama] of giderPlan) {
+      const ayinBas = new Date()
+      ayinBas.setDate(1)
+      ayinBas.setMonth(ayinBas.getMonth() - ay)
+      ayinBas.setDate(3 + Math.floor(rnd() * 20))
+      await prisma.gider.create({ data: { kategori, tutar, aciklama, tarih: ayinBas } })
+    }
   }
 
   // ---- Resmi Ödemeler ----
@@ -506,7 +546,7 @@ async function main() {
     ['Aylin Duru', 'İK', 'İK Asistanı', 28000, 'Aktif SGK', 6],
   ]
   for (const [ad, departman, rol, maas, sgkDurum, izin] of personelPlan) {
-    await prisma.personel.create({
+    const p = await prisma.personel.create({
       data: {
         ad,
         departman,
@@ -519,6 +559,37 @@ async function main() {
         durum: 'aktif',
       },
     })
+    // izin geçmişi
+    const izinSayisi = Math.floor(rnd() * 3)
+    for (let i = 0; i < izinSayisi; i++) {
+      await prisma.izin.create({
+        data: {
+          personelId: p.id,
+          tarih: atMidnight(-Math.floor(rnd() * 90)),
+          gun: 1 + Math.floor(rnd() * 2),
+          tip: rnd() > 0.8 ? 'rapor' : 'izin',
+          not: rnd() > 0.5 ? 'Planlı izin' : null,
+        },
+      })
+    }
+    // departman/rol/maaş geçmişi
+    await prisma.personelGecmisi.createMany({
+      data: [
+        { personelId: p.id, tarih: atMidnight(-400 - Math.floor(rnd() * 200)), alan: 'departman', eskiDeger: 'Giriş', yeniDeger: departman },
+        { personelId: p.id, tarih: atMidnight(-250 - Math.floor(rnd() * 150)), alan: 'rol', eskiDeger: 'Stajyer', yeniDeger: rol },
+        { personelId: p.id, tarih: atMidnight(-120 - Math.floor(rnd() * 100)), alan: 'maas', eskiDeger: `${Math.round(maas * 0.85)}`, yeniDeger: `${maas}` },
+      ],
+    })
+  }
+
+  // ---- İşçi notları ----
+  const isciNotlari: Array<[number, string]> = [
+    [0, 'Forklift ehliyeti güçlü, son 2 ayda 2 no-show. Uyarıldı.'],
+    [5, 'Sürekli ilk tercih — vardiya değişikliklerine uyumlu.'],
+    [20, 'Devamsızlık riski yüksek, kara listeye alınabilir.'],
+  ]
+  for (const [idx, not] of isciNotlari) {
+    await prisma.isci.update({ where: { id: isciler[idx].id }, data: { not } })
   }
 
   // ---- Kullanıcılar (şimdilik tek admin) ----

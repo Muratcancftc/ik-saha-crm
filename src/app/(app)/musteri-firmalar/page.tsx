@@ -48,7 +48,9 @@ export default async function MusteriFirmalarPage() {
                 <div className="border-b border-slate-100 px-5 py-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-900">{f.ad}</h3>
+                      <h3 className="text-sm font-semibold text-slate-900">
+                        <a href={`/musteri-firmalar/${f.id}`} className="hover:text-indigo-600">{f.ad}</a>
+                      </h3>
                       <p className="mt-0.5 text-xs text-slate-500">
                         {f.vergiNo ? `Vergi No: ${f.vergiNo}` : ''}
                         {f.telefon ? ` · ${f.telefon}` : ''}

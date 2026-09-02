@@ -76,3 +76,40 @@ export async function togglePersonelDurum(formData: FormData) {
   revalidatePath('/personel')
   return
 }
+
+export async function izinEkle(formData: FormData) {
+  await requireRoles(['patron', 'muhasebe'])
+  const personelId = Number(formData.get('personelId'))
+  const gun = Number(formData.get('gun'))
+  const tip = String(formData.get('tip') ?? 'izin')
+  const tarih = String(formData.get('tarih') ?? '')
+  if (!personelId || !gun || gun <= 0 || !tarih) return
+
+  const personel = await prisma.personel.findUnique({ where: { id: personelId } })
+  if (!personel) return
+
+  await prisma.$transaction([
+    prisma.izin.create({
+      data: {
+        personelId,
+        tarih: new Date(`${tarih}T00:00:00`),
+        gun,
+        tip,
+        not: String(formData.get('not') ?? '') || null,
+      },
+    }),
+    // izin kullanımı bakiyeden düşer; rapor düşmez
+    ...(tip === 'izin'
+      ? [
+          prisma.personel.update({
+            where: { id: personelId },
+            data: { izinBakiyesi: Math.max(0, personel.izinBakiyesi - gun) },
+          }),
+        ]
+      : []),
+  ])
+
+  revalidatePath(`/personel/${personelId}`)
+  revalidatePath('/personel')
+  return
+}

@@ -9,6 +9,7 @@ import { Icon } from '@/components/icons'
 import { IsciForm } from './isci-form'
 import { IsciDetayModal } from './isci-detay-modal'
 import { toggleIsciDurum } from '@/app/actions/isci'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -116,12 +117,12 @@ export default async function IsciHavuzuPage({
           >
             Filtrele
           </button>
-          <a
+          <Link
             href="/isci-havuzu"
             className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100"
           >
             Temizle
-          </a>
+          </Link>
         </form>
       </Card>
 
@@ -163,7 +164,9 @@ export default async function IsciHavuzuPage({
                           {i.ad.split(' ').map((p) => p[0]).slice(0, 2).join('')}
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-slate-900">{i.ad}</div>
+                          <Link href={`/isci-havuzu/${i.id}`} className="text-sm font-medium text-slate-900 hover:text-indigo-600">
+                            {i.ad}
+                          </Link>
                           <div className="text-xs text-slate-500">{i.telefon}</div>
                         </div>
                       </div>
