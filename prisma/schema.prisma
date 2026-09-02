@@ -1,0 +1,436 @@
+// İK + saha işgücü CRM / ön muhasebe veri modeli
+// Konvansiyon: çekirdek modeller Türkçe, enum sabitleri küçük harf.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Rol {
+  patron
+  operasyon
+  muhasebe
+  saha_sorumlusu
+}
+
+enum IsciDurum {
+  aktif
+  pasif
+  kara_liste
+}
+
+enum MusaitlikDurum {
+  aktif
+  yenilenecek
+}
+
+enum Vardiya {
+  gunduz
+  gece
+}
+
+enum Aciliyet {
+  normal
+  acil
+}
+
+enum TalepDurum {
+  acik
+  kismi
+  dolu
+  kapandi
+}
+
+enum AtamaDurum {
+  atandi
+  onaylandi
+  tamamlandi
+  iptal
+}
+
+enum PuantajDurum {
+  geldi
+  gec
+  gelmedi
+  yarim
+}
+
+enum AvansDurum {
+  verildi
+  mahsup
+}
+
+enum FaturaDurum {
+  vadede
+  odendi
+  gecikti
+}
+
+enum GiderKategori {
+  isci_yevmiye
+  personel_bordro
+  kira
+  ulasim
+  yakit
+  sarf_malzeme
+  diger
+}
+
+enum OdemeTip {
+  kdv
+  muhtasar_sgk
+  maas
+  gecici_vergi
+}
+
+enum ResmiOdemeDurum {
+  beklemede
+  odendi
+  gecikti
+}
+
+enum PersonelDurum {
+  aktif
+  pasif
+}
+
+enum BildirimTur {
+  belge
+  sgk
+  fatura
+  vergi
+  talep
+}
+
+// ============================================================
+// ÇOKTAN-ÇOĞA BAĞLANTILAR
+// ============================================================
+
+model IsciMeslek {
+  isciId   Int
+  meslekId Int
+  isci     Isci   @relation(fields: [isciId], references: [id], onDelete: Cascade)
+  meslek   Meslek @relation(fields: [meslekId], references: [id], onDelete: Cascade)
+
+  @@unique([isciId, meslekId])
+}
+
+// ============================================================
+// MESLEK / İŞÇİ / BELGE / MÜSAİTLİK / AVANS
+// ============================================================
+
+model Meslek {
+  id             Int           @id @default(autoincrement())
+  ad             String        @unique
+  isciler        IsciMeslek[]
+  talepKalemleri TalepKalemi[]
+  firmaFiyatlar  FirmaFiyat[]
+}
+
+model Isci {
+  id                    Int       @id @default(autoincrement())
+  ad                    String
+  telefon               String
+  tcKimlik              String // AES-256-GCM şifreli
+  ilce                  String
+  iban                  String // AES-256-GCM şifreli
+  dogumTarihi           DateTime
+  puan                  Int       @default(50)
+  gunlukUcretBeklentisi Decimal   @db.Decimal(10, 2)
+  durum                 IsciDurum @default(aktif)
+  tercihBolgeler        String[]
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  meslekler    IsciMeslek[]
+  belgeler     Belge[]
+  musaitlikler Musaitlik[]
+  avanslar     Avans[]
+  hakedisler   Hakedis[]
+  atamalar     Atama[]
+}
+
+model Belge {
+  id            Int      @id @default(autoincrement())
+  isciId        Int
+  tip           String // ör: "Kimlik", "SGK", "Adli Sicil", "Vardiya Belgesi"
+  verilisTarihi DateTime
+  bitisTarihi   DateTime
+
+  isci Isci @relation(fields: [isciId], references: [id], onDelete: Cascade)
+
+  @@index([isciId, bitisTarihi])
+}
+
+model Musaitlik {
+  id                Int            @id @default(autoincrement())
+  isciId            Int
+  tarih             DateTime // sözleşme/eVadesi geçerlilik tarihi
+  eVadesiGun        Int            @default(30)
+  sozlesmeBaslangic DateTime?
+  sozlesmeBitis     DateTime?
+  durum             MusaitlikDurum @default(aktif)
+
+  isci Isci @relation(fields: [isciId], references: [id], onDelete: Cascade)
+
+  @@index([isciId])
+}
+
+model Avans {
+  id     Int        @id @default(autoincrement())
+  isciId Int
+  tutar  Decimal    @db.Decimal(10, 2)
+  tarih  DateTime   @default(now())
+  durum  AvansDurum @default(verildi)
+
+  isci Isci @relation(fields: [isciId], references: [id], onDelete: Cascade)
+
+  @@index([isciId, durum])
+}
+
+// ============================================================
+// MÜŞTERİ FİRMALAR
+// ============================================================
+
+model MusteriFirma {
+  id        Int      @id @default(autoincrement())
+  ad        String
+  vergiNo   String?
+  telefon   String?
+  email     String?
+  adres     String?
+  createdAt DateTime @default(now())
+
+  yetkililer  Yetkili[]
+  lokasyonlar Lokasyon[]
+  fiyatlar    FirmaFiyat[]
+  talepler    Talep[]
+  faturalar   Fatura[]
+  hakedisler  Hakedis[]
+}
+
+model Yetkili {
+  id      Int     @id @default(autoincrement())
+  firmaId Int
+  ad      String
+  unvan   String?
+  telefon String?
+
+  firma MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+}
+
+model Lokasyon {
+  id      Int     @id @default(autoincrement())
+  firmaId Int
+  ad      String
+  adres   String?
+
+  firma        MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+  talepler     Talep[]
+  kullanicilar Kullanici[]
+}
+
+model FirmaFiyat {
+  id           Int     @id @default(autoincrement())
+  firmaId      Int
+  meslekId     Int
+  kisiGunFiyat Decimal @db.Decimal(10, 2)
+
+  firma  MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+  meslek Meslek       @relation(fields: [meslekId], references: [id], onDelete: Cascade)
+
+  @@unique([firmaId, meslekId])
+}
+
+// ============================================================
+// TALEP / ATAMA / PUANTAJ
+// ============================================================
+
+model Talep {
+  id         Int        @id @default(autoincrement())
+  firmaId    Int
+  lokasyonId Int
+  tarih      DateTime
+  vardiya    Vardiya    @default(gunduz)
+  aciliyet   Aciliyet   @default(normal)
+  durum      TalepDurum @default(acik)
+  not        String?
+  createdAt  DateTime   @default(now())
+
+  firma    MusteriFirma  @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+  lokasyon Lokasyon      @relation(fields: [lokasyonId], references: [id], onDelete: Cascade)
+  kalemler TalepKalemi[]
+  atamalar Atama[]
+
+  @@index([tarih])
+}
+
+model TalepKalemi {
+  id       Int @id @default(autoincrement())
+  talepId  Int
+  meslekId Int
+  adet     Int
+
+  talep  Talep  @relation(fields: [talepId], references: [id], onDelete: Cascade)
+  meslek Meslek @relation(fields: [meslekId], references: [id], onDelete: Cascade)
+}
+
+model Atama {
+  id            Int        @id @default(autoincrement())
+  talepId       Int
+  isciId        Int
+  tarih         DateTime
+  durum         AtamaDurum @default(atandi)
+  sgkBildirildi Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+
+  talep   Talep    @relation(fields: [talepId], references: [id], onDelete: Cascade)
+  isci    Isci     @relation(fields: [isciId], references: [id], onDelete: Cascade)
+  puantaj Puantaj?
+
+  // İş kuralı 1: aynı işçi aynı güne yalnızca bir atama
+  @@unique([isciId, tarih])
+  @@index([tarih, durum])
+}
+
+model Puantaj {
+  id            Int          @id @default(autoincrement())
+  atamaId       Int          @unique
+  girisSaat     DateTime?
+  cikisSaat     DateTime?
+  calisilanSaat Decimal      @default(0) @db.Decimal(5, 2)
+  mesaiSaat     Decimal      @default(0) @db.Decimal(5, 2)
+  durum         PuantajDurum @default(geldi)
+
+  atama Atama @relation(fields: [atamaId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// HAKEDİŞ / FATURA / GELİR-GİDER
+// ============================================================
+
+model Hakedis {
+  id           Int      @id @default(autoincrement())
+  isciId       Int
+  firmaId      Int
+  donemBas     DateTime
+  donemBitis   DateTime
+  gun          Int
+  yevmiye      Decimal  @db.Decimal(10, 2) // işçinin günlüğü
+  avansToplam  Decimal  @default(0) @db.Decimal(10, 2)
+  kesinti      Decimal  @default(0) @db.Decimal(10, 2)
+  isciNet      Decimal  @db.Decimal(10, 2) // gun*yevmiye - avans - kesinti
+  musteriTutar Decimal  @db.Decimal(10, 2) // gun * FirmaFiyat (meslek bazlı)
+  marj         Decimal  @db.Decimal(10, 2) // musteriTutar - gun*yevmiye
+  createdAt    DateTime @default(now())
+
+  isci  Isci         @relation(fields: [isciId], references: [id], onDelete: Cascade)
+  firma MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+
+  @@index([isciId])
+  @@index([firmaId])
+}
+
+model Fatura {
+  id          Int         @id @default(autoincrement())
+  firmaId     Int
+  no          String      @unique
+  donem       String // "2026-08"
+  araToplam   Decimal     @db.Decimal(10, 2)
+  kdvOran     Decimal     @default(0.20) @db.Decimal(4, 2)
+  kdvTutar    Decimal     @db.Decimal(10, 2)
+  genelToplam Decimal     @db.Decimal(10, 2)
+  vadeTarihi  DateTime
+  durum       FaturaDurum @default(vadede)
+  createdAt   DateTime    @default(now())
+
+  firma       MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+  tahsilatlar Tahsilat[]
+}
+
+model Tahsilat {
+  id       Int      @id @default(autoincrement())
+  faturaId Int
+  tarih    DateTime @default(now())
+  tutar    Decimal  @db.Decimal(10, 2)
+
+  fatura Fatura @relation(fields: [faturaId], references: [id], onDelete: Cascade)
+}
+
+model Gider {
+  id       Int           @id @default(autoincrement())
+  kategori GiderKategori @default(diger)
+  aciklama String?
+  tutar    Decimal       @db.Decimal(10, 2)
+  tarih    DateTime      @default(now())
+
+  @@index([kategori, tarih])
+}
+
+model ResmiOdeme {
+  id             Int             @id @default(autoincrement())
+  tip            OdemeTip
+  tutar          Decimal         @db.Decimal(10, 2)
+  sonOdemeTarihi DateTime
+  odemeTarihi    DateTime?
+  durum          ResmiOdemeDurum @default(beklemede)
+  createdAt      DateTime        @default(now())
+
+  @@index([tip, sonOdemeTarihi])
+}
+
+// ============================================================
+// PERSONEL (iç kadro)
+// ============================================================
+
+model Personel {
+  id           Int           @id @default(autoincrement())
+  ad           String
+  departman    String
+  rol          String
+  iseGiris     DateTime
+  maas         Decimal       @db.Decimal(10, 2)
+  iban         String // AES-256-GCM şifreli
+  sgkDurum     String
+  izinBakiyesi Int           @default(0)
+  durum        PersonelDurum @default(aktif)
+  createdAt    DateTime      @default(now())
+}
+
+// ============================================================
+// KULLANICI (giriş + RBAC) / BİLDİRİM
+// ============================================================
+
+model Kullanici {
+  id         Int      @id @default(autoincrement())
+  ad         String
+  email      String   @unique
+  sifreHash  String
+  rol        Rol      @default(operasyon)
+  lokasyonId Int? // yalnızca saha_sorumlusu için
+  createdAt  DateTime @default(now())
+
+  lokasyon    Lokasyon?  @relation(fields: [lokasyonId], references: [id], onDelete: SetNull)
+  bildirimler Bildirim[]
+}
+
+model Bildirim {
+  id          Int         @id @default(autoincrement())
+  kullaniciId Int?
+  tur         BildirimTur
+  mesaj       String
+  ilgiliId    Int?
+  tarih       DateTime    @default(now())
+  okundu      Boolean     @default(false)
+
+  kullanici Kullanici? @relation(fields: [kullaniciId], references: [id], onDelete: Cascade)
+
+  @@index([kullaniciId, okundu])
+}
