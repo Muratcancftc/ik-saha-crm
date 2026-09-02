@@ -1,4 +1,4 @@
-import { PrismaClient, IsciDurum, GiderKategori, OdemeTip } from '@prisma/client'
+import { PrismaClient, IsciDurum, GiderKategori, OdemeTip, PuantajDurum } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs'
 import { encrypt } from '../src/lib/crypto'

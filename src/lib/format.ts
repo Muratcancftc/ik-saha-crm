@@ -1,3 +1,10 @@
+type Numeric = number | string | { toNumber(): number }
+
+function toNum(n: Numeric): number {
+  if (typeof n === 'object' && n !== null && typeof n.toNumber === 'function') return n.toNumber()
+  return Number(n)
+}
+
 const TRY = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
 const NUM = new Intl.NumberFormat('tr-TR')
 const DATE = new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -16,12 +23,12 @@ const DATETIME = new Intl.DateTimeFormat('tr-TR', {
 })
 const TIME = new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' })
 
-export function tl(n: number | string): string {
-  return TRY.format(Number(n))
+export function tl(n: Numeric): string {
+  return TRY.format(toNum(n))
 }
 
-export function num(n: number | string): string {
-  return NUM.format(Number(n))
+export function num(n: Numeric): string {
+  return NUM.format(toNum(n))
 }
 
 export function date(d: Date | string | null | undefined): string {
@@ -45,6 +52,6 @@ export function time(d: Date | string | null | undefined): string {
 }
 
 // tabular hizalama için sabit genişlikli yardımcı
-export function tab(n: number | string, width = 12): string {
+export function tab(n: Numeric, width = 12): string {
   return tl(n).padStart(width)
 }
