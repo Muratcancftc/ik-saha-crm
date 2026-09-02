@@ -197,9 +197,14 @@ export function EmptyState({
   )
 }
 
-export function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
+export function Th({
+  children,
+  className,
+  colSpan,
+}: { children?: React.ReactNode; className?: string; colSpan?: number }) {
   return (
     <th
+      colSpan={colSpan}
       className={cn(
         'whitespace-nowrap px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500',
         className
@@ -210,6 +215,17 @@ export function Th({ children, className }: { children?: React.ReactNode; classN
   )
 }
 
-export function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
-  return <td className={cn('whitespace-nowrap px-4 py-3 text-sm text-slate-700', className)}>{children}</td>
+export function Td({
+  children,
+  className,
+  colSpan,
+}: { children?: React.ReactNode; className?: string; colSpan?: number }) {
+  return (
+    <td
+      colSpan={colSpan}
+      className={cn('whitespace-nowrap px-4 py-3 text-sm text-slate-700', className)}
+    >
+      {children}
+    </td>
+  )
 }
