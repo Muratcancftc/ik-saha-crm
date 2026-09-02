@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { decrypt, deleteSession, SESSION_COOKIE } from './auth'
+import { decrypt, SESSION_COOKIE } from './auth'
 import { prisma } from './db'
 import type { Rol } from '@prisma/client'
 
@@ -23,11 +23,10 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
     where: { id: session.userId },
     select: { id: true, ad: true, email: true, rol: true, lokasyonId: true },
   })
-  // Bayat/silinmiş kullanıcı: çerezi temizle → /giris'e kısır döngü olmadan dönülür
-  if (!user) {
-    await deleteSession()
-    return null
-  }
+  // Bayat/silinmiş kullanıcı: render sırasında çerez silinmez (yalnızca Server Action/Route
+  // Handler'da silinebilir). Sadece null dön; /giris artık /'ye yönlendirilmediği için döngü olmaz.
+  // Kullanıcı yeniden giriş yapınca çerez zaten üzerine yazılır.
+  if (!user) return null
   return user
 })
 
