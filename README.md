@@ -56,10 +56,7 @@ npm run dev              # http://localhost:3000
 
 ## Demo Giriş (şifre: `123123`)
 
-- `patron@ikcrm.com` — her şey
-- `operasyon@ikcrm.com` — işçi havuzu / talep / atama
-- `muhasebe@ikcrm.com` — fatura / hakediş / vergi / bordro
-- `saha@ikcrm.com` — yalnızca Pendik lokasyonu puantajı
+- `admin@ikcrm.com` — tek admin hesabı (tüm yetkiler)
 
 ## Komutlar
 

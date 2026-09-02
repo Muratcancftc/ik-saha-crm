@@ -18,7 +18,7 @@ export default function LoginForm() {
           type="email"
           autoComplete="email"
           required
-          placeholder="patron@ikcrm.com"
+          placeholder="admin@ikcrm.com"
           className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
         />
       </div>
@@ -52,9 +52,9 @@ export default function LoginForm() {
       </button>
 
       <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-        Demo hesaplar · şifre <b>123123</b>
+        Admin giriş · şifre <b>123123</b>
         <br />
-        patron@ikcrm.com · operasyon@ikcrm.com · muhasebe@ikcrm.com · saha@ikcrm.com
+        admin@ikcrm.com
       </div>
     </form>
   )

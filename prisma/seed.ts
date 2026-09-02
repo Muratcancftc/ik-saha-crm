@@ -521,14 +521,11 @@ async function main() {
     })
   }
 
-  // ---- Kullanıcılar (RBAC) ----
+  // ---- Kullanıcılar (şimdilik tek admin) ----
   const sifre = await bcrypt.hash('123123', 10)
   await prisma.kullanici.createMany({
     data: [
-      { ad: 'Patron', email: 'patron@ikcrm.com', sifreHash: sifre, rol: 'patron' },
-      { ad: 'Operasyon', email: 'operasyon@ikcrm.com', sifreHash: sifre, rol: 'operasyon' },
-      { ad: 'Muhasebe', email: 'muhasebe@ikcrm.com', sifreHash: sifre, rol: 'muhasebe' },
-      { ad: 'Saha Sorumlusu (Pendik)', email: 'saha@ikcrm.com', sifreHash: sifre, rol: 'saha_sorumlusu', lokasyonId: f1lok1.id },
+      { ad: 'Admin', email: 'admin@ikcrm.com', sifreHash: sifre, rol: 'patron' },
     ],
   })
 
@@ -545,7 +542,7 @@ async function main() {
   }
 
   console.log('✅ Seed tamamlandı.')
-  console.log('🔑 Giriş: patron@ikcrm.com / 123123 (diğerleri: operasyon@, muhasebe@, saha@ikcrm.com)')
+  console.log('🔑 Giriş: admin@ikcrm.com / 123123 (tek admin hesabı)')
 }
 
 main()
