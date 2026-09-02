@@ -7,6 +7,7 @@ import { createAtama } from '@/app/actions/talep'
 import { Icon } from '@/components/icons'
 import { tl } from '@/lib/format'
 import { AtamaPaneli } from '../talepler/atama-paneli'
+import { TalepDetayModal } from './talep-detay-modal'
 import { addDaysIso } from './takvim-utils'
 
 type KalemSeri = { meslekId: number; meslekAd: string; adet: number; atanan: number }
@@ -37,6 +38,7 @@ export function Takvim(props: Seri) {
   const [secili, setSecili] = useState<{ talepId: number; meslekId: number; meslekAd: string } | null>(null)
   const [free, setFree] = useState<FreeWorker[] | null>(null)
   const [mesaj, setMesaj] = useState<string | null>(null)
+  const [detayTalep, setDetayTalep] = useState<number | null>(null)
 
   useEffect(() => {
     const gun = props.gunler[seciliGun]
@@ -158,7 +160,7 @@ export function Takvim(props: Seri) {
                                 return (
                                   <button
                                     key={k.meslekId}
-                                    onClick={() => setSecili({ talepId: t.id, meslekId: k.meslekId, meslekAd: k.meslekAd })}
+                                    onClick={() => { setSecili({ talepId: t.id, meslekId: k.meslekId, meslekAd: k.meslekAd }); setDetayTalep(t.id) }}
                                     className={`block w-full rounded-lg border px-2 py-1.5 text-left transition ${aktif ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm' : `${renk} hover:shadow-sm`}`}
                                     title={`${k.meslekAd}: ${k.atanan}/${k.adet} — tıkla ve ata`}
                                   >
@@ -256,6 +258,10 @@ export function Takvim(props: Seri) {
           )}
         </div>
       </div>
+
+      {detayTalep && (
+        <TalepDetayModal talepId={detayTalep} acik={!!detayTalep} kapat={() => { router.refresh(); setDetayTalep(null) }} />
+      )}
     </div>
   )
 }

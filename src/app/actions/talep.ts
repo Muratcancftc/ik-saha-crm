@@ -126,6 +126,7 @@ export async function createAtama(_prev: TalepActionState, formData: FormData): 
   await talepDolulukGuncelle(talepId)
 
   revalidatePath('/talepler')
+  revalidatePath('/takvim')
   revalidatePath('/')
   return { ok: true, uyari: yaklasan ? 'Belgesi 30 gün içinde doluyor — yenilemeyi unutmayın.' : undefined }
 }
@@ -139,6 +140,7 @@ export async function cikarAtama(formData: FormData) {
   await prisma.atama.update({ where: { id }, data: { durum: 'iptal' } })
   await talepDolulukGuncelle(atama.talepId)
   revalidatePath('/talepler')
+  revalidatePath('/takvim')
   revalidatePath('/')
 }
 
@@ -157,6 +159,7 @@ export async function sgkBildir(formData: FormData) {
   const id = Number(formData.get('id'))
   await prisma.atama.update({ where: { id }, data: { sgkBildirildi: true } })
   revalidatePath('/talepler')
+  revalidatePath('/takvim')
   revalidatePath('/')
 }
 

@@ -73,6 +73,7 @@ export async function setAtamaDurumOtomatik(formData: FormData) {
   }
 
   revalidatePath('/talepler')
+  revalidatePath('/takvim')
   revalidatePath('/hakedis')
   revalidatePath('/puantaj')
 }

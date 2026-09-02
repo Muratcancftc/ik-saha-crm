@@ -4,6 +4,53 @@ import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { startOfDay, daysUntil } from '@/lib/dates'
 
+// Takvimde bir talebin detayı (hücreye girince)
+export async function takvimTalepDetay(talepId: number) {
+  await requireRoles(['patron', 'operasyon', 'saha_sorumlusu'])
+
+  const talep = await prisma.talep.findUnique({
+    where: { id: talepId },
+    include: {
+      firma: true,
+      lokasyon: true,
+      kalemler: { include: { meslek: true } },
+      atamalar: {
+        where: { durum: { not: 'iptal' } },
+        include: { isci: true, puantaj: true },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+  })
+  if (!talep) return null
+
+  return {
+    id: talep.id,
+    firma: talep.firma.ad,
+    lokasyon: talep.lokasyon.ad,
+    tarih: talep.tarih.toISOString().slice(0, 10),
+    vardiya: talep.vardiya,
+    aciliyet: talep.aciliyet,
+    durum: talep.durum,
+    not: talep.not,
+    kalemler: talep.kalemler.map((k) => ({
+      id: k.id,
+      meslekId: k.meslekId,
+      meslekAd: k.meslek.ad,
+      adet: k.adet,
+      atanan: talep.atamalar.filter((a) => a.meslekId === k.meslekId).length,
+    })),
+    atamalar: talep.atamalar.map((a) => ({
+      id: a.id,
+      isciId: a.isci.id,
+      isciAd: a.isci.ad,
+      meslekId: a.meslekId,
+      durum: a.durum,
+      puantaj: a.puantaj?.durum ?? null,
+      sgkBildirildi: a.sgkBildirildi,
+    })),
+  }
+}
+
 // Belirli bir günde boşta olan (ataması olmayan) aktif işçiler
 export async function musaitIsciler(tarihIso: string, meslekId?: number) {
   await requireRoles(['patron', 'operasyon', 'saha_sorumlusu'])
