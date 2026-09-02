@@ -159,7 +159,12 @@ export default async function TaleplerPage({
             <span className="text-xs font-semibold text-slate-600">
               {num(talepler.length)} talep
             </span>
-            {isOperasyon && <TalepForm firmalar={firmalar} meslekler={meslekler} />}
+            {isOperasyon && (
+              <TalepForm
+                firmalar={firmalar.map((f) => ({ id: f.id, ad: f.ad, lokasyonlar: f.lokasyonlar.map((l) => ({ id: l.id, ad: l.ad })) }))}
+                meslekler={meslekler.map((m) => ({ id: m.id, ad: m.ad }))}
+              />
+            )}
           </div>
 
           <div className="flex-1 space-y-4 overflow-y-auto px-3 py-3">
@@ -230,56 +235,57 @@ export default async function TaleplerPage({
         ) : (
           <div className="space-y-5">
             {/* Özet */}
-            <Card>
-              <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-base font-semibold text-slate-900">{secili.firma.ad}</h2>
-                    <TalepBadge durum={secili.durum} />
-                    <AciliyetBadge aciliyet={secili.aciliyet} />
-                    {secili.sablon && <Badge tone="violet">Şablon {secili.tekrar ? `(${secili.tekrar === 'gunluk' ? 'Günlük' : 'Haftalık'})` : ''}</Badge>}
+            <Card className="overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-5 py-4 text-white">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-base font-semibold">{secili.firma.ad}</h2>
+                      <TalepBadge durum={secili.durum} />
+                      <AciliyetBadge aciliyet={secili.aciliyet} />
+                      {secili.sablon && <Badge tone="violet" className="bg-white/15 text-white ring-white/20">Şablon {secili.tekrar ? `(${secili.tekrar === 'gunluk' ? 'Günlük' : 'Haftalık'})` : ''}</Badge>}
+                    </div>
+                    <p className="mt-1 text-sm text-indigo-100">
+                      {secili.lokasyon.ad} · {dateLong(secili.tarih)} · {secili.vardiya === 'gunduz' ? 'Gündüz' : 'Gece'}
+                      {daysUntil(secili.tarih) === 0 && <span className="font-semibold text-white"> · Bugün</span>}
+                    </p>
+                    {secili.not && <p className="mt-1 text-xs text-indigo-200">Not: {secili.not}</p>}
                   </div>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {secili.lokasyon.ad} · {dateLong(secili.tarih)} · {secili.vardiya === 'gunduz' ? 'Gündüz' : 'Gece'}
-                    {daysUntil(secili.tarih) === 0 && <span className="text-indigo-600"> · Bugün</span>}
-                  </p>
-                  {secili.not && <p className="mt-1 text-xs text-slate-400">Not: {secili.not}</p>}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {secili.durum !== 'kapandi' ? (
-                    <form action={talepDurumDegistir}>
-                      <input type="hidden" name="id" value={secili.id} />
-                      <input type="hidden" name="durum" value="kapandi" />
-                      <Button variant="secondary" size="sm" type="submit">Talep Kapat</Button>
-                    </form>
-                  ) : (
-                    <form action={talepDurumDegistir}>
-                      <input type="hidden" name="id" value={secili.id} />
-                      <input type="hidden" name="durum" value="acik" />
-                      <Button variant="secondary" size="sm" type="submit">Tekrar Aç</Button>
-                    </form>
-                  )}
+                  <div className="flex gap-2">
+                    {secili.durum !== 'kapandi' ? (
+                      <form action={talepDurumDegistir}>
+                        <input type="hidden" name="id" value={secili.id} />
+                        <input type="hidden" name="durum" value="kapandi" />
+                        <Button variant="secondary" size="sm" type="submit" className="bg-white/90 ring-white">Talep Kapat</Button>
+                      </form>
+                    ) : (
+                      <form action={talepDurumDegistir}>
+                        <input type="hidden" name="id" value={secili.id} />
+                        <input type="hidden" name="durum" value="acik" />
+                        <Button variant="secondary" size="sm" type="submit" className="bg-white/90 ring-white">Tekrar Aç</Button>
+                      </form>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* İhtiyaç + doluluk */}
-              <div className="border-t border-slate-100 px-5 py-4">
+              <div className="px-5 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="text-xs font-medium uppercase tracking-wide text-slate-400">İhtiyaç</div>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">İhtiyaç</div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
                       {secili.kalemler.map((k) => (
-                        <Badge key={k.id} tone="indigo">
-                          {k.adet} {k.meslek.ad}
-                        </Badge>
+                        <Badge key={k.id} tone="indigo">{k.adet} {k.meslek.ad}</Badge>
                       ))}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-medium uppercase tracking-wide text-slate-400">Doluluk</div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Doluluk</div>
                     <div className="mt-1 flex items-center gap-2">
-                      <span className="text-lg font-semibold tabular-nums text-slate-900">
-                        {secili.atamalar.filter((a) => a.durum !== 'iptal').length}/{secili.kalemler.reduce((a, k) => a + k.adet, 0)}
+                      <span className="text-2xl font-bold tabular-nums text-slate-900">
+                        {secili.atamalar.filter((a) => a.durum !== 'iptal').length}
+                        <span className="text-sm font-medium text-slate-400">/{secili.kalemler.reduce((a, k) => a + k.adet, 0)}</span>
                       </span>
                     </div>
                   </div>
@@ -490,11 +496,18 @@ function filtreHref(seciliId: number, firmaId?: number, durum?: string, eksik?: 
 }
 
 function OzetKutu({ label, value, tone }: { label: string; value: number; tone: string }) {
+  const bg: Record<string, string> = {
+    'text-amber-600': 'bg-amber-50',
+    'text-blue-600': 'bg-blue-50',
+    'text-red-600': 'bg-red-50',
+    'text-indigo-600': 'bg-indigo-50',
+    'text-emerald-600': 'bg-emerald-50',
+  }
   return (
-    <Card className="px-2 py-2 text-center">
-      <div className={`text-lg font-semibold tabular-nums ${tone}`}>{num(value)}</div>
-      <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">{label}</div>
-    </Card>
+    <div className={`rounded-2xl ${bg[tone] ?? 'bg-slate-50'} px-3 py-3 text-center`}>
+      <div className={`text-xl font-bold tabular-nums ${tone}`}>{num(value)}</div>
+      <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+    </div>
   )
 }
 
@@ -520,7 +533,7 @@ function TalepGruplari({
   goster,
 }: {
   title: string
-  items: Array<{ id: number; firma: { ad: string }; lokasyon: { ad: string }; tarih: Date; durum: string; kalemler: Array<{ adet: number }>; atamalar: Array<{ durum: string }>; sablon: boolean }>
+  items: Array<{ id: number; firma: { ad: string }; lokasyon: { ad: string }; tarih: Date; durum: string; vardiya: string; aciliyet: string; kalemler: Array<{ adet: number }>; atamalar: Array<{ durum: string }>; sablon: boolean }>
   seciliId: number
   firmaId?: number
   durum?: string
@@ -537,26 +550,36 @@ function TalepGruplari({
           const toplam = t.kalemler.reduce((a, k) => a + k.adet, 0)
           const atanan = t.atamalar.filter((a) => a.durum !== 'iptal').length
           const eksikMi = atanan < toplam
+          const durumRenk =
+            t.durum === 'kapandi'
+              ? 'border-l-emerald-400'
+              : t.durum === 'dolu'
+                ? 'border-l-emerald-500'
+                : t.durum === 'kismi'
+                  ? 'border-l-amber-400'
+                  : 'border-l-red-400'
           return (
             <Link
               key={t.id}
               href={filtreHref(t.id, firmaId, durum, eksik, sablon, goster)}
-              className={`block rounded-xl border px-4 py-3 transition ${
-                seciliId === t.id
-                  ? 'border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-500/20'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
+              className={`block rounded-xl border border-l-4 bg-white px-4 py-3 shadow-sm transition ${durumRenk} ${
+                seciliId === t.id ? 'border-l-indigo-600 ring-2 ring-indigo-500/20' : 'hover:border-slate-300 hover:shadow'
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-sm font-medium text-slate-900">{t.firma.ad}</span>
-                <div className="flex items-center gap-1.5">
+                <span className="truncate text-sm font-semibold text-slate-900">{t.firma.ad}</span>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {t.aciliyet === 'acil' && <Badge tone="red">ACİL</Badge>}
+                  {t.vardiya === 'gece' && <Badge tone="slate">Gece</Badge>}
                   {t.sablon && <Badge tone="violet">Ş</Badge>}
                   <TalepBadge durum={t.durum} />
                 </div>
               </div>
-              <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-500">
+              <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-slate-500">
                 <span className="truncate">{t.lokasyon.ad} · {dateLong(t.tarih)}</span>
-                <span className={`tabular-nums ${eksikMi ? 'font-semibold text-amber-600' : 'text-emerald-600'}`}>
+                <span className={`shrink-0 rounded-lg px-1.5 py-0.5 font-semibold tabular-nums ${
+                  eksikMi ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
+                }`}>
                   {atanan}/{toplam}
                 </span>
               </div>

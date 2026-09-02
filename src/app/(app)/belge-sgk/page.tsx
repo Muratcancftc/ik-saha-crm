@@ -115,7 +115,7 @@ export default async function BelgeSgkPage({
                   Filtrele
                 </button>
               </form>
-              <BelgeForm isciler={isciler} />
+              <BelgeForm isciler={isciler.map((i) => ({ id: i.id, ad: i.ad }))} />
             </div>
           }
         />
