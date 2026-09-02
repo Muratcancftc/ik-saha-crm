@@ -78,13 +78,13 @@ export default function Sidebar({ rol, userAd }: { rol: Rol; userAd: string }) {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-6 pt-2">
+        <nav className="flex-1 space-y-7 overflow-y-auto px-3 pb-6 pt-3">
           {nav.map((group) => (
             <div key={group.label}>
-              <div className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+              <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 {group.label}
               </div>
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {group.items.map((item) => {
                   const active = isActive(item.href)
                   return (
@@ -93,14 +93,19 @@ export default function Sidebar({ rol, userAd }: { rol: Rol; userAd: string }) {
                       href={item.href}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        'flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition',
+                        'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all duration-150',
                         active
-                          ? 'bg-indigo-600 font-medium text-white shadow-sm'
-                          : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                          ? 'bg-indigo-600 font-semibold text-white shadow-sm'
+                          : 'text-slate-400 hover:bg-white/[0.06] hover:text-white'
                       )}
                     >
-                      <Icon name={item.icon as IconName} size={18} />
-                      {item.label}
+                      {active && <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-white/90" />}
+                      <Icon
+                        name={item.icon as IconName}
+                        size={18}
+                        className={cn('shrink-0 transition-colors', active ? 'text-white' : 'text-slate-500 group-hover:text-white')}
+                      />
+                      <span className="truncate">{item.label}</span>
                     </Link>
                   )
                 })}

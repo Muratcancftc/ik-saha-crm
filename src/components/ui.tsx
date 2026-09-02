@@ -78,32 +78,41 @@ export function StatCard({
   value,
   sub,
   tone = 'indigo',
+  valueTone = 'neutral',
 }: {
   icon: IconName
   label: string
   value: React.ReactNode
   sub?: React.ReactNode
-  tone?: 'indigo' | 'green' | 'red' | 'amber' | 'blue' | 'violet'
+  tone?: 'indigo' | 'green' | 'red' | 'amber' | 'blue' | 'violet' | 'slate'
+  valueTone?: 'green' | 'red' | 'amber' | 'neutral'
 }) {
-  const tones: Record<string, string> = {
-    indigo: 'bg-indigo-50 text-indigo-600',
-    green: 'bg-emerald-50 text-emerald-600',
-    red: 'bg-red-50 text-red-600',
-    amber: 'bg-amber-50 text-amber-600',
-    blue: 'bg-sky-50 text-sky-600',
-    violet: 'bg-violet-50 text-violet-600',
+  const tones: Record<string, { bar: string; icon: string; iconBg: string }> = {
+    indigo: { bar: 'bg-indigo-500', icon: 'text-indigo-600', iconBg: 'bg-indigo-50' },
+    green: { bar: 'bg-emerald-500', icon: 'text-emerald-600', iconBg: 'bg-emerald-50' },
+    red: { bar: 'bg-rose-500', icon: 'text-rose-600', iconBg: 'bg-rose-50' },
+    amber: { bar: 'bg-amber-500', icon: 'text-amber-600', iconBg: 'bg-amber-50' },
+    blue: { bar: 'bg-sky-500', icon: 'text-sky-600', iconBg: 'bg-sky-50' },
+    violet: { bar: 'bg-violet-500', icon: 'text-violet-600', iconBg: 'bg-violet-50' },
+    slate: { bar: 'bg-slate-400', icon: 'text-slate-500', iconBg: 'bg-slate-100' },
   }
+  const values: Record<string, string> = {
+    green: 'text-emerald-700',
+    red: 'text-rose-700',
+    amber: 'text-amber-700',
+    neutral: 'text-slate-900',
+  }
+  const t = tones[tone]
   return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-          <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-slate-900">
-            {value}
-          </p>
+    <Card className="relative overflow-hidden p-5">
+      <div className={`absolute inset-y-0 left-0 w-1 ${t.bar}`} />
+      <div className="flex items-start justify-between gap-3 pl-1">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+          <p className={`mt-2 truncate text-3xl font-bold tabular-nums tracking-tight ${values[valueTone]}`}>{value}</p>
           {sub && <div className="mt-1.5 text-xs text-slate-500">{sub}</div>}
         </div>
-        <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl', tones[tone])}>
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${t.iconBg} ${t.icon}`}>
           <Icon name={icon} size={20} />
         </div>
       </div>
