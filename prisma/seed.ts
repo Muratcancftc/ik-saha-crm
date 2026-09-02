@@ -353,19 +353,19 @@ async function main() {
 
   // Bugünkü atamalar (atandi/onaylandi)
   const bugunAtama1 = await prisma.atama.create({
-    data: { talepId: bugunTalep1.id, isciId: isciler[0].id, tarih: atMidnight(0), durum: 'onaylandi', sgkBildirildi: true },
+    data: { talepId: bugunTalep1.id, isciId: isciler[0].id, meslekId: meslekler['depo'].id, tarih: atMidnight(0), durum: 'onaylandi', sgkBildirildi: true },
   })
   const bugunAtama2 = await prisma.atama.create({
-    data: { talepId: bugunTalep1.id, isciId: isciler[1].id, tarih: atMidnight(0), durum: 'atandi', sgkBildirildi: false },
+    data: { talepId: bugunTalep1.id, isciId: isciler[1].id, meslekId: meslekler['depo'].id, tarih: atMidnight(0), durum: 'atandi', sgkBildirildi: false },
   })
   await prisma.atama.create({
-    data: { talepId: bugunTalep2.id, isciId: isciler[15].id, tarih: atMidnight(0), durum: 'onaylandi', sgkBildirildi: true },
+    data: { talepId: bugunTalep2.id, isciId: isciler[15].id, meslekId: meslekler['paketleme'].id, tarih: atMidnight(0), durum: 'onaylandi', sgkBildirildi: true },
   })
   await prisma.atama.create({
-    data: { talepId: bugunTalep2.id, isciId: isciler[6].id, tarih: atMidnight(0), durum: 'onaylandi', sgkBildirildi: true },
+    data: { talepId: bugunTalep2.id, isciId: isciler[6].id, meslekId: meslekler['paketleme'].id, tarih: atMidnight(0), durum: 'onaylandi', sgkBildirildi: true },
   })
   await prisma.atama.create({
-    data: { talepId: yarınTalep.id, isciId: isciler[3].id, tarih: atMidnight(1), durum: 'atandi', sgkBildirildi: false },
+    data: { talepId: yarınTalep.id, isciId: isciler[3].id, meslekId: meslekler['temizlik'].id, tarih: atMidnight(1), durum: 'atandi', sgkBildirildi: false },
   })
 
   // Geçmiş atamalar + puantaj
@@ -377,6 +377,7 @@ async function main() {
         data: {
           talepId: gt.talep.id,
           isciId: w.id,
+          meslekId: meslekler[gt.meslekAd].id,
           tarih: gt.talep.tarih,
           durum: 'tamamlandi',
           sgkBildirildi: true,

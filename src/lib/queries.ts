@@ -156,3 +156,49 @@ export async function getAcilTalepler(user: SessionUser): Promise<AcikTalep[]> {
     orderBy: [{ aciliyet: 'desc' }, { tarih: 'asc' }],
   })
 }
+
+export type TalepListeItem = Prisma.TalepGetPayload<{
+  include: {
+    firma: true
+    lokasyon: true
+    kalemler: { include: { meslek: true } }
+    atamalar: { include: { isci: { include: { belgeler: true } }, puantaj: true } }
+  }
+}>
+
+export async function getTalepler(user: SessionUser): Promise<TalepListeItem[]> {
+  return prisma.talep.findMany({
+    where: lokasyonFilter(user),
+    include: {
+      firma: true,
+      lokasyon: true,
+      kalemler: { include: { meslek: true } },
+      atamalar: {
+        include: {
+          isci: { include: { belgeler: true } },
+          puantaj: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+    orderBy: [{ tarih: 'desc' }, { createdAt: 'desc' }],
+  })
+}
+
+export async function getTalepDetay(user: SessionUser, id: number): Promise<TalepListeItem | null> {
+  return prisma.talep.findFirst({
+    where: { id, ...lokasyonFilter(user) },
+    include: {
+      firma: true,
+      lokasyon: true,
+      kalemler: { include: { meslek: true } },
+      atamalar: {
+        include: {
+          isci: { include: { belgeler: true } },
+          puantaj: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+  })
+}

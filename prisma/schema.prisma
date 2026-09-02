@@ -127,11 +127,12 @@ model IsciMeslek {
 // ============================================================
 
 model Meslek {
-  id             Int           @id @default(autoincrement())
-  ad             String        @unique
-  isciler        IsciMeslek[]
+  id          Int           @id @default(autoincrement())
+  ad          String        @unique
+  isciler     IsciMeslek[]
   talepKalemleri TalepKalemi[]
-  firmaFiyatlar  FirmaFiyat[]
+  firmaFiyatlar FirmaFiyat[]
+  atamalar    Atama[]
 }
 
 model Isci {
@@ -283,17 +284,19 @@ model TalepKalemi {
 }
 
 model Atama {
-  id            Int        @id @default(autoincrement())
-  talepId       Int
-  isciId        Int
-  tarih         DateTime
-  durum         AtamaDurum @default(atandi)
-  sgkBildirildi Boolean    @default(false)
-  createdAt     DateTime   @default(now())
+  id             Int         @id @default(autoincrement())
+  talepId        Int
+  isciId         Int
+  meslekId       Int? // atama hangi kalem/meslek için yapıldı (hakediş fiyatı için)
+  tarih          DateTime
+  durum          AtamaDurum  @default(atandi)
+  sgkBildirildi  Boolean     @default(false)
+  createdAt      DateTime    @default(now())
 
-  talep   Talep    @relation(fields: [talepId], references: [id], onDelete: Cascade)
-  isci    Isci     @relation(fields: [isciId], references: [id], onDelete: Cascade)
-  puantaj Puantaj?
+  talep          Talep       @relation(fields: [talepId], references: [id], onDelete: Cascade)
+  isci           Isci        @relation(fields: [isciId], references: [id], onDelete: Cascade)
+  meslek         Meslek?     @relation(fields: [meslekId], references: [id], onDelete: SetNull)
+  puantaj        Puantaj?
 
   // İş kuralı 1: aynı işçi aynı güne yalnızca bir atama
   @@unique([isciId, tarih])
@@ -317,12 +320,13 @@ model Puantaj {
 // ============================================================
 
 model Hakedis {
-  id           Int      @id @default(autoincrement())
-  isciId       Int
-  firmaId      Int
-  donemBas     DateTime
-  donemBitis   DateTime
-  gun          Int
+  id            Int      @id @default(autoincrement())
+  isciId        Int
+  firmaId       Int
+  atamaId       Int?     @unique // tekrarsız otomatik üretim
+  donemBas      DateTime
+  donemBitis    DateTime
+  gun           Int
   yevmiye      Decimal  @db.Decimal(10, 2) // işçinin günlüğü
   avansToplam  Decimal  @default(0) @db.Decimal(10, 2)
   kesinti      Decimal  @default(0) @db.Decimal(10, 2)
