@@ -3,6 +3,7 @@ import { getMaliVeri, getBugunAtamalar, getUyarilar, getAcilTalepler, getOperasy
 import { getDashboardRapor, getAylikTrend } from '@/lib/profil-queries'
 import { donemAralik, donemEtiket } from '@/lib/donem'
 import { DonemSecici } from '@/components/donem-secici'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { tl, dateLong, num } from '@/lib/format'
 import { daysUntil } from '@/lib/dates'
@@ -45,7 +46,7 @@ export default async function DashboardPage({
           <p className="mt-0.5 text-sm text-slate-500">{dateLong(new Date())}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <DonemSecici />
+          <Suspense fallback={null}><DonemSecici /></Suspense>
           <Link
             href="/talepler"
             className="rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500"

@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { decrypt, SESSION_COOKIE } from './auth'
+import { decrypt, deleteSession, SESSION_COOKIE } from './auth'
 import { prisma } from './db'
 import type { Rol } from '@prisma/client'
 
@@ -23,7 +23,11 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
     where: { id: session.userId },
     select: { id: true, ad: true, email: true, rol: true, lokasyonId: true },
   })
-  if (!user) return null
+  // Bayat/silinmiş kullanıcı: çerezi temizle → /giris'e kısır döngü olmadan dönülür
+  if (!user) {
+    await deleteSession()
+    return null
+  }
   return user
 })
 

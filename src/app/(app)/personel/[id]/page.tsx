@@ -7,6 +7,7 @@ import { tl, num, date, dateLong } from '@/lib/format'
 import { Card, CardHeader, Badge, Button, Th, Td, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { DonemSecici } from '@/components/donem-secici'
+import { Suspense } from 'react'
 import { izinEkle } from '@/app/actions/personel'
 
 export const dynamic = 'force-dynamic'
@@ -46,7 +47,7 @@ export default async function PersonelProfilPage({
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <DonemSecici />
+          <Suspense fallback={null}><DonemSecici /></Suspense>
           <span className="text-xs text-slate-400">{donemEtiket(donem)}</span>
         </div>
       </div>

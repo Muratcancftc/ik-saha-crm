@@ -25,10 +25,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/giris', request.url))
   }
 
-  // giriş yapmış ama /giris'te → panele
-  if (session?.userId && isPublic) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
+  // NOT: public sayfaları (/giris) oturum olsa bile /'ye yönlendirmeyin —
+  // bayat/silinmiş kullanıcı çereziyle /giris ↔ / arasında sonsuz loop oluşur.
+  // /giris her zaman render olsun; gerçek koruma DAL'da yapılır.
 
   // rol tabanlı route koruması (optimistik kontrol)
   if (session?.userId && session.rol && !canAccess(path, session.rol)) {

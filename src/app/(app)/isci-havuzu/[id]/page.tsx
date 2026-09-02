@@ -8,6 +8,7 @@ import { Card, CardHeader, Badge, Button, Th, Td, EmptyState } from '@/component
 import { IsciBadge, PuantajBadge } from '@/components/status-badge'
 import { Icon } from '@/components/icons'
 import { DonemSecici } from '@/components/donem-secici'
+import { Suspense } from 'react'
 import { isciNotGuncelle, avansEkle, avansMahsup } from '@/app/actions/isci'
 import { belgeEkle, silBelge } from '@/app/actions/belge'
 
@@ -48,7 +49,7 @@ export default async function IsciProfilPage({
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <DonemSecici />
+          <Suspense fallback={null}><DonemSecici /></Suspense>
           <span className="text-xs text-slate-400">{donemEtiket(donem)}</span>
         </div>
       </div>

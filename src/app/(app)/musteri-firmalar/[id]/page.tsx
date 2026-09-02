@@ -9,6 +9,7 @@ import { Card, CardHeader, Th, Td, EmptyState } from '@/components/ui'
 import { TalepBadge, FaturaBadge } from '@/components/status-badge'
 import { Icon } from '@/components/icons'
 import { DonemSecici } from '@/components/donem-secici'
+import { Suspense } from 'react'
 import { setFirmaFiyat } from '@/app/actions/firma'
 
 export const dynamic = 'force-dynamic'
@@ -49,7 +50,7 @@ export default async function FirmaProfilPage({
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <DonemSecici />
+          <Suspense fallback={null}><DonemSecici /></Suspense>
           <span className="text-xs text-slate-400">{donemEtiket(donem)}</span>
         </div>
       </div>
