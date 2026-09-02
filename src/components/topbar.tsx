@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { ROUTES } from '@/lib/permissions'
 import { Icon } from './icons'
 import { dateTime } from '@/lib/format'
+import { bildirimleriTara, bildirimleriOku } from '@/app/actions/belge'
 
 type Bildirim = {
   id: number
@@ -41,8 +42,20 @@ export default function Topbar({ unread, bildirimler }: { unread: number; bildir
           <>
             <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
             <div className="absolute right-0 z-20 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-              <div className="border-b border-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-500">
-                Bildirimler
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
+                <span className="text-xs font-semibold text-slate-500">Bildirimler</span>
+                <div className="flex gap-1">
+                  <form action={bildirimleriTara}>
+                    <button className="rounded-md px-2 py-1 text-[11px] font-medium text-indigo-600 hover:bg-indigo-50" type="submit">
+                      Tara
+                    </button>
+                  </form>
+                  <form action={bildirimleriOku}>
+                    <button className="rounded-md px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-100" type="submit">
+                      Okundu
+                    </button>
+                  </form>
+                </div>
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {bildirimler.length === 0 ? (

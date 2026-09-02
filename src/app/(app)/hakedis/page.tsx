@@ -34,19 +34,35 @@ export default async function HakedisPage() {
           title="Dönem Hakedişi Üret"
           desc="Tamamlanan atamalardan (puantajlı) otomatik hakediş oluşturur — meslek bazlı firma fiyatı kullanılır"
           action={
-            <form action={hakedisUret} className="flex items-end gap-2">
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-slate-500">Başlangıç</label>
-                <input name="donemBas" type="date" required className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-slate-500">Bitiş</label>
-                <input name="donemBitis" type="date" required className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-indigo-500" />
-              </div>
-              <button type="submit" className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500">
-                Üret
-              </button>
-            </form>
+            <div className="flex flex-wrap items-end gap-2">
+              <a
+                href="/api/export/hakedis"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-50"
+              >
+                <Icon name="excel" size={15} />
+                Excel İcmal
+              </a>
+              <a
+                href="/icmal/hakedis"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-red-600 ring-1 ring-red-200 transition hover:bg-red-50"
+              >
+                <Icon name="pdf" size={15} />
+                PDF İcmal
+              </a>
+              <form action={hakedisUret} className="flex items-end gap-2">
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium text-slate-500">Başlangıç</label>
+                  <input name="donemBas" type="date" required className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium text-slate-500">Bitiş</label>
+                  <input name="donemBitis" type="date" required className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-indigo-500" />
+                </div>
+                <button type="submit" className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500">
+                  Üret
+                </button>
+              </form>
+            </div>
           }
         />
         <div className="overflow-x-auto">
