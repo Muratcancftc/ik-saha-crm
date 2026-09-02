@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/dal'
+import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { getMaliVeri } from '@/lib/queries'
 import { tl, num, date } from '@/lib/format'
@@ -10,8 +10,8 @@ import { Icon } from '@/components/icons'
 export const dynamic = 'force-dynamic'
 
 export default async function GelirGiderPage() {
-  const user = await requireUser()
-  const mali = await getMaliVeri(user)
+  await requireRoles(['patron', 'muhasebe'])
+  const mali = await getMaliVeri()
 
   const giderler = await prisma.gider.findMany({ orderBy: { tarih: 'desc' } })
   const tahsilatlar = await prisma.tahsilat.findMany({

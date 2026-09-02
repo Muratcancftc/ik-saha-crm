@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 export default async function DashboardPage() {
   const user = await requireUser()
   const [mali, atamalar, uyarilar, talepler] = await Promise.all([
-    getMaliVeri(user),
+    getMaliVeri(),
     getBugunAtamalar(user),
     getUyarilar(user),
     getAcilTalepler(user),

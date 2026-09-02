@@ -53,14 +53,12 @@ export async function bildirimleriTara() {
     include: { isci: true, talep: { include: { firma: true } } },
   })
 
-  let eklendi = 0
   for (const b of belgeler) {
     const durum = b.bitisTarihi < bugun ? 'süresi doldu' : '30 gün içinde doluyor'
     const mesaj = `${b.isci.ad} — ${b.tip} belgesi ${durum}.`
     const mevcut = await prisma.bildirim.findFirst({ where: { mesaj, okundu: false } })
     if (!mevcut) {
       await prisma.bildirim.create({ data: { tur: 'belge', mesaj } })
-      eklendi++
     }
   }
   for (const f of gecikenFaturalar) {
@@ -68,7 +66,6 @@ export async function bildirimleriTara() {
     const mevcut = await prisma.bildirim.findFirst({ where: { mesaj, okundu: false } })
     if (!mevcut) {
       await prisma.bildirim.create({ data: { tur: 'fatura', mesaj } })
-      eklendi++
     }
   }
   for (const a of sgkEksik) {
@@ -76,7 +73,6 @@ export async function bildirimleriTara() {
     const mevcut = await prisma.bildirim.findFirst({ where: { mesaj, okundu: false } })
     if (!mevcut) {
       await prisma.bildirim.create({ data: { tur: 'sgk', mesaj } })
-      eklendi++
     }
   }
 

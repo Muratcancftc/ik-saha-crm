@@ -95,10 +95,8 @@ export async function hakedisUret(formData: FormData) {
     },
   })
 
-  let adet = 0
   for (const a of atamalar) {
-    const h = await hakedisOlustur(a.id)
-    if (h) adet++
+    await hakedisOlustur(a.id)
   }
 
   revalidatePath('/hakedis')

@@ -1,7 +1,7 @@
 import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { tl, num } from '@/lib/format'
-import { Card, CardHeader, Badge, EmptyState } from '@/components/ui'
+import { Card, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { FirmaForm } from './firma-form'
 import { setFirmaFiyat, addLokasyon, addYetkili } from '@/app/actions/firma'

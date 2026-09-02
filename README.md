@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# İK Saha — Saha İşgücü CRM + Ön Muhasebe
 
-## Getting Started
+İnsan kaynakları ve saha işgücü (günlük işçi) firmaları için tam işlevsel CRM + ön muhasebe
+otomasyonu. Next.js (App Router) + TypeScript + Prisma + PostgreSQL, JWT oturum ve rol bazlı
+yetkilendirme (RBAC).
 
-First, run the development server:
+## Teknoloji
+
+- **Next.js 16** (App Router, Server Actions, RSC) + TypeScript
+- **Prisma 7** + PostgreSQL
+- **jose** (JWT oturum), **bcryptjs** (şifre hash)
+- **Tailwind CSS 4** (modern dashboard tasarımı)
+- Para/tarih biçimleme: `Intl.NumberFormat('tr-TR', { currency: 'TRY' })`
+
+## Roller (RBAC)
+
+| Rol | Erişim |
+| --- | --- |
+| `patron` | Her şey |
+| `operasyon` | İşçi havuzu, talepler & atama, puantaj, müşteri firmalar, belge/SGK |
+| `muhasebe` | Hakediş, gelir-gider, fatura, vergi & resmi ödemeler, personel/bordro |
+| `saha_sorumlusu` | Yalnızca kendi lokasyonunun puantajı |
+
+Her sayfa, Server Action ve API route kendi rolünü doğrular (`src/lib/dal.ts` + `src/proxy.ts`).
+
+## İş Kuralları
+
+1. **Çakışma:** `Atama(işciId, tarih)` benzersiz — aynı işçi aynı güne iki atamaya yazılamaz (P2002 yakalanır, kullanıcı uyarılır).
+2. **Belge:** `bitisTarihi <= bugün+30` uyarı listesine düşer; süresi dolmuş belgeli işçi atanamaz.
+3. **Hakediş (otomatik):** atama `tamamlandı` + puantaj olunca hakediş üretilir: işçi net = gün×yevmiye − avans − kesinti; müşteriden = gün×FirmaFiyat (meslek bazlı); brüt marj = müşteriden − gün×yevmiye.
+4. **Net kâr** (dashboard) = gelir − (saha işçi maliyeti + genel giderler + bordro + ödenen resmi ödeme); **brüt marj** ayrı gösterilir.
+5. **Fatura:** kdvTutar = araToplam×0.20; genelToplam = araToplam + kdv. Alacak = ödenmemiş fatura toplamı. Fatura KDV'si vergi ekranına aktarılır.
+6. **Vade takibi:** vadesi geçen faturalar kırmızı, 3 gün kala ödemeler amber rozetle gösterilir.
+7. **SGK:** atama yapılınca `sgkBildirildi=false`; işten 1 gün önce bildirim hatırlatılır.
+8. **Vergi/SGK:** sistem hesaplar ve hatırlatır; resmi beyanname mali müşavirde.
+9. **KVKK:** TC ve IBAN AES-256-GCM şifreli saklanır, arayüzde maskeli gösterilir.
+
+## Kurulum
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. Bağımlılıklar
+npm install
+
+# 2. Ortam değişkenleri (.env) — .env.example kopyalayın
+cp .env.example .env
+# ENCRYPTION_KEY için:  openssl rand -hex 32
+# SESSION_SECRET için: openssl rand -base64 32
+
+# 3. Veritabanı (PostgreSQL gerekir)
+npx prisma migrate dev   # migration uygula
+npm run db:seed          # demo verisi (22 işçi, 4 firma, talepler, faturalar…)
+
+# 4. Çalıştır
+npm run dev              # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Demo Giriş (şifre: `123456`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `patron@ikcrm.com` — her şey
+- `operasyon@ikcrm.com` — işçi havuzu / talep / atama
+- `muhasebe@ikcrm.com` — fatura / hakediş / vergi / bordro
+- `saha@ikcrm.com` — yalnızca Pendik lokasyonu puantajı
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Komutlar
 
-## Learn More
+```bash
+npm run dev        # geliştirme
+npm run build      # production build
+npm run start      # production sunucu
+npm run db:migrate # prisma migrate dev
+npm run db:seed    # seed
+npm run db:reset   # DB sıfırla + seed (veri silinir!)
+npm run db:studio  # Prisma Studio
+npm run lint       # eslint
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Ekranlar
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`/` Kontrol Paneli (KPI + bugünkü atama + uyarılar) · `/isci-havuzu` (filtre + arama + CRUD) ·
+`/talepler` (talep→atama, çakışma kontrolü, uygun işçi önerisi, canlı puantaj) ·
+`/puantaj` (lokasyon kapsamlı) · `/hakedis` (otomatik + Excel/PDF icmal) ·
+`/gelir-gider` (kârlılık + nakit akışı) · `/faturalar` (KDV otomatik + tahsilat) ·
+`/vergi-odemeler` (KDV/SGK/muhtasar/maaş/geçici vergi) · `/musteri-firmalar` (fiyat anlaşması,
+alacak, satış hattı) · `/personel` (iç kadro, bordro, IBAN) · `/belge-sgk` (geçerlilik + giriş bildirimi)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Notlar
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `DATABASE_URL` varsayılanı `postgresql://postgres:postgres@localhost:5432/ik_crm` (yerel docker).
+- `.env` commit edilmez; gizli anahtarlar repoda yoktur.
+- Bu proje **dev verisi** ile çalışır: `db:reset` tüm veriyi siler ve yeniden seed eder.

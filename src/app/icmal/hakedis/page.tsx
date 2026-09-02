@@ -31,7 +31,7 @@ export default async function HakedisIcmalPage() {
       `}</style>
 
       <div className="print-btn mb-5 flex items-center justify-between">
-        <a href="/hakedis" className="text-sm text-slate-500 hover:underline">← Hakediş'e dön</a>
+        <a href="/hakedis" className="text-sm text-slate-500 hover:underline">← Hakediş&apos;e dön</a>
         <PrintButton />
       </div>
 

@@ -41,8 +41,6 @@ function genIBAN(): string {
   return `TR00${s}`
 }
 
-const BOLGELER = ['Ümraniye', 'Pendik', 'Tuzla', 'Başakşehir', 'Beylikdüzü', 'Kadıköy', 'Kartal', 'Esenyurt']
-const ILCELER = ['Ümraniye', 'Üsküdar', 'Pendik', 'Kartal', 'Maltepe', 'Kadıköy', 'Beylikdüzü', 'Esenyurt', 'Başakşehir', 'Tuzla', 'Ataşehir', 'Sancaktepe']
 
 const MESLEK_ADLARI = ['forklift', 'kaynak', 'depo', 'temizlik', 'insaat', 'hamaliye', 'paketleme', 'hijyen']
 
@@ -148,9 +146,9 @@ async function main() {
   })
 
   const f1lok1 = await prisma.lokasyon.create({ data: { firmaId: firma1.id, ad: LOKASYON_ADLARI[0], adres: 'Pendik' } })
-  const f1lok2 = await prisma.lokasyon.create({ data: { firmaId: firma1.id, ad: LOKASYON_ADLARI[1], adres: 'Ümraniye' } })
+  await prisma.lokasyon.create({ data: { firmaId: firma1.id, ad: LOKASYON_ADLARI[1], adres: 'Ümraniye' } })
   const f2lok1 = await prisma.lokasyon.create({ data: { firmaId: firma2.id, ad: LOKASYON_ADLARI[2], adres: 'Tuzla' } })
-  const f2lok2 = await prisma.lokasyon.create({ data: { firmaId: firma2.id, ad: LOKASYON_ADLARI[3], adres: 'Beylikdüzü' } })
+  await prisma.lokasyon.create({ data: { firmaId: firma2.id, ad: LOKASYON_ADLARI[3], adres: 'Beylikdüzü' } })
   const f3lok1 = await prisma.lokasyon.create({ data: { firmaId: firma3.id, ad: LOKASYON_ADLARI[4], adres: 'Başakşehir' } })
   const f4lok1 = await prisma.lokasyon.create({ data: { firmaId: firma4.id, ad: LOKASYON_ADLARI[5], adres: 'Kadıköy' } })
 

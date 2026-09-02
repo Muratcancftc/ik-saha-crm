@@ -5,7 +5,6 @@ import { dateLong, num } from '@/lib/format'
 import { startOfDay, addDays, sameDay } from '@/lib/dates'
 import { Card, CardHeader, Badge, EmptyState } from '@/components/ui'
 import { PuantajBadge, AtamaBadge } from '@/components/status-badge'
-import { Icon } from '@/components/icons'
 import { updatePuantaj } from '@/app/actions/talep'
 
 export const dynamic = 'force-dynamic'

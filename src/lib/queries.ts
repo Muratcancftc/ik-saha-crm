@@ -32,7 +32,7 @@ export function atamaLokasyonFilter(user: SessionUser): Prisma.AtamaWhereInput {
 }
 
 // KPI: ciro, alacak, saha işçi maliyeti, giderler
-export async function getMaliVeri(user: SessionUser) {
+export async function getMaliVeri() {
   const [faturalar, tahsilatlar, hakedisler, giderler, personel, odemeler] = await Promise.all([
     prisma.fatura.aggregate({ _sum: { genelToplam: true } }),
     prisma.tahsilat.aggregate({ _sum: { tutar: true } }),
