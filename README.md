@@ -73,8 +73,10 @@ npm run lint       # eslint
 
 ## Ekranlar
 
-`/` Kontrol Paneli (KPI + bugünkü atama + uyarılar) · `/isci-havuzu` (filtre + arama + CRUD) ·
-`/talepler` (talep→atama, çakışma kontrolü, uygun işçi önerisi, canlı puantaj) ·
+`/` Kontrol Paneli (KPI + operasyon özeti + bugünkü atama + uyarılar) ·
+`/isci-havuzu` (filtre + arama + CRUD + işçi detay kartı: belge/müsaitlik/no-show/avans/geçmiş) ·
+`/talepler` (talep→atama, çakışma + belge kontrolü, uygunluk %'li öneri, çıkar/yerine bul,
+canlı puantaj, şablon & tekrarlayan talep, SMS/WhatsApp bildirim iskeleti) ·
 `/puantaj` (lokasyon kapsamlı) · `/hakedis` (otomatik + Excel/PDF icmal) ·
 `/gelir-gider` (kârlılık + nakit akışı) · `/faturalar` (KDV otomatik + tahsilat) ·
 `/vergi-odemeler` (KDV/SGK/muhtasar/maaş/geçici vergi) · `/musteri-firmalar` (fiyat anlaşması,

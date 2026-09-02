@@ -121,3 +121,9 @@ export async function gizliAlan(id: number) {
   if (!isci) return null
   return { tc: decrypt(isci.tcKimlik), iban: decrypt(isci.iban) }
 }
+
+export async function isciDetay(id: number) {
+  await requireRoles(['patron', 'operasyon'])
+  const { getIsciDetay } = await import('@/lib/queries')
+  return getIsciDetay(id)
+}

@@ -93,4 +93,14 @@ export async function bildirimSil(formData: FormData) {
   return
 }
 
+// SMS/WhatsApp gönderim placeholder: gerçek entegrasyon gelene kadar kayıt yeterli
+export async function bildirimGonder(formData: FormData) {
+  await requireRoles(['patron', 'operasyon'])
+  const id = Number(formData.get('id'))
+  await prisma.bildirim.update({ where: { id }, data: { gonderimDurum: true } })
+  revalidatePath('/')
+  revalidatePath('/talepler')
+  return
+}
+
 export type { BildirimTur }

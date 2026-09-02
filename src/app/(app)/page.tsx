@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { requireUser } from '@/lib/dal'
-import { getMaliVeri, getBugunAtamalar, getUyarilar, getAcilTalepler } from '@/lib/queries'
+import { getMaliVeri, getBugunAtamalar, getUyarilar, getAcilTalepler, getOperasyonOzeti } from '@/lib/queries'
 import { tl, dateLong, num } from '@/lib/format'
 import { daysUntil } from '@/lib/dates'
 import { StatCard, Card, CardHeader, Badge } from '@/components/ui'
@@ -11,11 +11,12 @@ export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const user = await requireUser()
-  const [mali, atamalar, uyarilar, talepler] = await Promise.all([
+  const [mali, atamalar, uyarilar, talepler, ops] = await Promise.all([
     getMaliVeri(),
     getBugunAtamalar(user),
     getUyarilar(user),
     getAcilTalepler(user),
+    getOperasyonOzeti(user),
   ])
 
   const bugunAtamaSayisi = atamalar.length
@@ -68,6 +69,41 @@ export default async function DashboardPage() {
             </>
           }
           tone="green"
+        />
+      </div>
+
+      {/* Operasyon özeti */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          icon="talep"
+          label="Yarın İhtiyaç"
+          value={`${num(ops.yarin.atanan)}/${num(ops.yarin.ihtiyac)}`}
+          sub={
+            <span className={ops.yarin.eksik > 0 ? 'text-red-600' : 'text-emerald-600'}>
+              {num(ops.yarin.eksik)} kişi eksik
+            </span>
+          }
+          tone="blue"
+        />
+        <StatCard
+          icon="users"
+          label="Açık Talepler"
+          value={num(ops.acik.talepSayisi)}
+          sub={
+            <span className={ops.acik.eksik > 0 ? 'text-amber-600' : 'text-emerald-600'}>
+              {num(ops.acik.adet)} ihtiyaç · {num(ops.acik.eksik)} eksik
+            </span>
+          }
+          tone="amber"
+        />
+        <StatCard
+          icon="belge"
+          label="Belge Uyarısı"
+          value={num(ops.belge.dolan + ops.belge.yaklasan)}
+          sub={
+            <span className="text-red-600">{num(ops.belge.dolan)} doldu</span>
+          }
+          tone="red"
         />
       </div>
 

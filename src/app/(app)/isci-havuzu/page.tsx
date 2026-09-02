@@ -7,6 +7,7 @@ import { Card, Badge, Select, Input, EmptyState } from '@/components/ui'
 import { IsciBadge } from '@/components/status-badge'
 import { Icon } from '@/components/icons'
 import { IsciForm } from './isci-form'
+import { IsciDetayModal } from './isci-detay-modal'
 import { toggleIsciDurum } from '@/app/actions/isci'
 
 export const dynamic = 'force-dynamic'
@@ -40,27 +41,31 @@ export default async function IsciHavuzuPage({
     include: {
       meslekler: { include: { meslek: true } },
       belgeler: true,
+      atamalar: { include: { puantaj: true } },
     },
     orderBy: { ad: 'asc' },
   })
 
-  // maskeli + gizli veriler
-  const rows = isciler.map((i) => ({
-    id: i.id,
-    ad: i.ad,
-    telefon: i.telefon,
-    tcMasked: maskTC(decrypt(i.tcKimlik)),
-    ibanMasked: maskIBAN(decrypt(i.iban)),
-    ilce: i.ilce,
-    puan: i.puan,
-    beklenti: Number(i.gunlukUcretBeklentisi),
-    durum: i.durum,
-    tercihBolgeler: i.tercihBolgeler,
-    dogumTarihi: i.dogumTarihi,
-    meslekIds: i.meslekler.map((m) => m.meslekId),
-    meslekler: i.meslekler.map((m) => m.meslek.ad),
-    belgeMin: i.belgeler.length ? Math.min(...i.belgeler.map((b) => daysUntil(b.bitisTarihi))) : null,
-  }))
+  const rows = isciler.map((i) => {
+    const noShow = i.atamalar.filter((a) => a.puantaj?.durum === 'gelmedi').length
+    return {
+      id: i.id,
+      ad: i.ad,
+      telefon: i.telefon,
+      tcMasked: maskTC(decrypt(i.tcKimlik)),
+      ibanMasked: maskIBAN(decrypt(i.iban)),
+      ilce: i.ilce,
+      puan: i.puan,
+      beklenti: Number(i.gunlukUcretBeklentisi),
+      durum: i.durum,
+      noShow,
+      tercihBolgeler: i.tercihBolgeler,
+      dogumTarihi: i.dogumTarihi,
+      meslekIds: i.meslekler.map((m) => m.meslekId),
+      meslekler: i.meslekler.map((m) => m.meslek.ad),
+      belgeMin: i.belgeler.length ? Math.min(...i.belgeler.map((b) => daysUntil(b.bitisTarihi))) : null,
+    }
+  })
 
   const aktif = rows.filter((r) => r.durum === 'aktif').length
 
@@ -180,6 +185,9 @@ export default async function IsciHavuzuPage({
                           />
                         </div>
                         <span className="text-xs tabular-nums text-slate-600">{i.puan}</span>
+                        {i.noShow > 0 && (
+                          <Badge tone="red">{i.noShow} no-show</Badge>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right text-sm tabular-nums text-slate-700">{tl(i.beklenti)}</td>
@@ -197,6 +205,7 @@ export default async function IsciHavuzuPage({
                     <td className="px-4 py-3"><IsciBadge durum={i.durum} /></td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1.5">
+                        <IsciDetayModal isciId={i.id} isciAd={i.ad} />
                         <IsciForm mode="edit" isci={i} meslekler={meslekler} bolgeler={BOLGELER} />
                         <form action={toggleIsciDurum}>
                           <input type="hidden" name="id" value={i.id} />

@@ -139,6 +139,21 @@ export function TalepForm({ firmalar, meslekler }: { firmalar: FirmaDto[]; mesle
                 <textarea name="not" rows={2} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
               </div>
 
+              <div className="flex flex-wrap items-center gap-4 rounded-xl bg-slate-50 px-3 py-2.5">
+                <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700">
+                  <input type="checkbox" name="sablon" value="on" className="rounded border-slate-300 accent-indigo-600" />
+                  Şablon olarak kaydet
+                </label>
+                <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                  Tekrar
+                  <select name="tekrar" className="rounded-lg border border-slate-300 px-2 py-1 text-xs outline-none focus:border-indigo-500">
+                    <option value="">Tekrarsız</option>
+                    <option value="gunluk">Günlük</option>
+                    <option value="haftalik">Haftalık</option>
+                  </select>
+                </label>
+              </div>
+
               {state && 'error' in state && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</div>
               )}

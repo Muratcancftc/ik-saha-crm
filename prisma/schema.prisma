@@ -109,6 +109,11 @@ enum BildirimTur {
   talep
 }
 
+enum TekrarTip {
+  gunluk
+  haftalik
+}
+
 // ============================================================
 // ÇOKTAN-ÇOĞA BAĞLANTILAR
 // ============================================================
@@ -127,12 +132,12 @@ model IsciMeslek {
 // ============================================================
 
 model Meslek {
-  id          Int           @id @default(autoincrement())
-  ad          String        @unique
-  isciler     IsciMeslek[]
+  id             Int           @id @default(autoincrement())
+  ad             String        @unique
+  isciler        IsciMeslek[]
   talepKalemleri TalepKalemi[]
-  firmaFiyatlar FirmaFiyat[]
-  atamalar    Atama[]
+  firmaFiyatlar  FirmaFiyat[]
+  atamalar       Atama[]
 }
 
 model Isci {
@@ -263,6 +268,8 @@ model Talep {
   aciliyet   Aciliyet   @default(normal)
   durum      TalepDurum @default(acik)
   not        String?
+  sablon     Boolean    @default(false) // şablon talep
+  tekrar     TekrarTip? // günlük/haftalık tekrar
   createdAt  DateTime   @default(now())
 
   firma    MusteriFirma  @relation(fields: [firmaId], references: [id], onDelete: Cascade)
@@ -284,19 +291,19 @@ model TalepKalemi {
 }
 
 model Atama {
-  id             Int         @id @default(autoincrement())
-  talepId        Int
-  isciId         Int
-  meslekId       Int? // atama hangi kalem/meslek için yapıldı (hakediş fiyatı için)
-  tarih          DateTime
-  durum          AtamaDurum  @default(atandi)
-  sgkBildirildi  Boolean     @default(false)
-  createdAt      DateTime    @default(now())
+  id            Int        @id @default(autoincrement())
+  talepId       Int
+  isciId        Int
+  meslekId      Int? // atama hangi kalem/meslek için yapıldı (hakediş fiyatı için)
+  tarih         DateTime
+  durum         AtamaDurum @default(atandi)
+  sgkBildirildi Boolean    @default(false)
+  createdAt     DateTime   @default(now())
 
-  talep          Talep       @relation(fields: [talepId], references: [id], onDelete: Cascade)
-  isci           Isci        @relation(fields: [isciId], references: [id], onDelete: Cascade)
-  meslek         Meslek?     @relation(fields: [meslekId], references: [id], onDelete: SetNull)
-  puantaj        Puantaj?
+  talep   Talep    @relation(fields: [talepId], references: [id], onDelete: Cascade)
+  isci    Isci     @relation(fields: [isciId], references: [id], onDelete: Cascade)
+  meslek  Meslek?  @relation(fields: [meslekId], references: [id], onDelete: SetNull)
+  puantaj Puantaj?
 
   // İş kuralı 1: aynı işçi aynı güne yalnızca bir atama
   @@unique([isciId, tarih])
@@ -320,13 +327,13 @@ model Puantaj {
 // ============================================================
 
 model Hakedis {
-  id            Int      @id @default(autoincrement())
-  isciId        Int
-  firmaId       Int
-  atamaId       Int?     @unique // tekrarsız otomatik üretim
-  donemBas      DateTime
-  donemBitis    DateTime
-  gun           Int
+  id           Int      @id @default(autoincrement())
+  isciId       Int
+  firmaId      Int
+  atamaId      Int?     @unique // tekrarsız otomatik üretim
+  donemBas     DateTime
+  donemBitis   DateTime
+  gun          Int
   yevmiye      Decimal  @db.Decimal(10, 2) // işçinin günlüğü
   avansToplam  Decimal  @default(0) @db.Decimal(10, 2)
   kesinti      Decimal  @default(0) @db.Decimal(10, 2)
@@ -426,13 +433,16 @@ model Kullanici {
 }
 
 model Bildirim {
-  id          Int         @id @default(autoincrement())
-  kullaniciId Int?
-  tur         BildirimTur
-  mesaj       String
-  ilgiliId    Int?
-  tarih       DateTime    @default(now())
-  okundu      Boolean     @default(false)
+  id            Int         @id @default(autoincrement())
+  kullaniciId   Int?
+  tur           BildirimTur
+  mesaj         String
+  ilgiliId      Int?
+  kanal         String? // sms | whatsapp (işçi bilgilendirme iskeleti)
+  hedef         String? // telefon
+  gonderimDurum Boolean     @default(false)
+  tarih         DateTime    @default(now())
+  okundu        Boolean     @default(false)
 
   kullanici Kullanici? @relation(fields: [kullaniciId], references: [id], onDelete: Cascade)
 

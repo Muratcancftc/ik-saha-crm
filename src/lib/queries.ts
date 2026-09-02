@@ -1,7 +1,8 @@
 import type { SessionUser } from './dal'
 import { prisma } from './db'
-import { startOfDay, addDays } from './dates'
-import type { Prisma } from '@prisma/client'
+import { startOfDay, addDays, daysUntil } from './dates'
+import { maskTC, maskIBAN, decrypt } from './crypto'
+import type { Prisma, TalepDurum } from '@prisma/client'
 
 export type BugunAtama = Prisma.AtamaGetPayload<{
   include: {
@@ -166,9 +167,35 @@ export type TalepListeItem = Prisma.TalepGetPayload<{
   }
 }>
 
-export async function getTalepler(user: SessionUser): Promise<TalepListeItem[]> {
-  return prisma.talep.findMany({
-    where: lokasyonFilter(user),
+export type TalepFiltre = {
+  durum?: string
+  firmaId?: number
+  tarihBas?: string
+  tarihBit?: string
+  sadeceEksik?: boolean
+  sablon?: boolean
+}
+
+export async function getTaleplerFiltreli(user: SessionUser, f: TalepFiltre): Promise<TalepListeItem[]> {
+  const where: Prisma.TalepWhereInput = {
+    ...lokasyonFilter(user),
+    ...(f.durum ? { durum: f.durum as TalepDurum } : {}),
+    ...(f.firmaId ? { firmaId: f.firmaId } : {}),
+    ...(f.tarihBas ? { tarih: { gte: new Date(`${f.tarihBas}T00:00:00`) } } : {}),
+    ...(f.sablon ? { sablon: true } : {}),
+  }
+  if (f.tarihBit) {
+    const bit = new Date(`${f.tarihBit}T23:59:59`)
+    where.tarih = where.tarih
+      ? { ...(where.tarih as object), lte: bit }
+      : { lte: bit }
+  }
+  if (f.sadeceEksik) {
+    where.durum = { in: ['acik', 'kismi'] }
+  }
+
+  const list = await prisma.talep.findMany({
+    where,
     include: {
       firma: true,
       lokasyon: true,
@@ -183,6 +210,7 @@ export async function getTalepler(user: SessionUser): Promise<TalepListeItem[]> 
     },
     orderBy: [{ tarih: 'desc' }, { createdAt: 'desc' }],
   })
+  return list
 }
 
 export async function getTalepDetay(user: SessionUser, id: number): Promise<TalepListeItem | null> {
@@ -201,4 +229,143 @@ export async function getTalepDetay(user: SessionUser, id: number): Promise<Tale
       },
     },
   })
+}
+
+// ---- İşçi detayı (havuzda tıklayınca açılan kart) ----
+export type IsciDetay = {
+  id: number
+  ad: string
+  telefon: string
+  tcMasked: string
+  ibanMasked: string
+  ilce: string
+  puan: number
+  noShow: number
+  guvenilirlik: number
+  beklenti: number
+  durum: string
+  tercihBolgeler: string[]
+  meslekler: string[]
+  dogumTarihi: string
+  belgeler: Array<{ id: number; tip: string; bitisTarihi: string; kalanGun: number; durum: string }>
+  musaitlik: Array<{ id: number; tarih: string; eVadesiGun: number; durum: string }>
+  avanslar: Array<{ id: number; tutar: number; tarih: string; durum: string }>
+  gecmis: Array<{ id: number; tarih: string; firma: string; lokasyon: string; durum: string; puantaj: string | null }>
+}
+
+export async function getIsciDetay(isciId: number): Promise<IsciDetay | null> {
+  const isci = await prisma.isci.findUnique({
+    where: { id: isciId },
+    include: {
+      meslekler: { include: { meslek: true } },
+      belgeler: true,
+      musaitlikler: true,
+      avanslar: true,
+      atamalar: {
+        include: {
+          puantaj: true,
+          talep: { include: { firma: true, lokasyon: true } },
+        },
+        orderBy: { tarih: 'desc' },
+        take: 20,
+      },
+    },
+  })
+  if (!isci) return null
+
+  const bugun = startOfDay()
+  const noShow = await prisma.puantaj.count({
+    where: { atama: { isciId: isci.id }, durum: 'gelmedi' },
+  })
+  const guvenilirlik = Math.max(0, Math.min(100, isci.puan - noShow * 5))
+
+  return {
+    id: isci.id,
+    ad: isci.ad,
+    telefon: isci.telefon,
+    tcMasked: maskTC(decrypt(isci.tcKimlik)),
+    ibanMasked: maskIBAN(decrypt(isci.iban)),
+    ilce: isci.ilce,
+    puan: isci.puan,
+    noShow,
+    guvenilirlik,
+    beklenti: Number(isci.gunlukUcretBeklentisi),
+    durum: isci.durum,
+    tercihBolgeler: isci.tercihBolgeler,
+    meslekler: isci.meslekler.map((m) => m.meslek.ad),
+    dogumTarihi: isci.dogumTarihi.toISOString().slice(0, 10),
+    belgeler: isci.belgeler.map((b) => ({
+      id: b.id,
+      tip: b.tip,
+      bitisTarihi: b.bitisTarihi.toISOString().slice(0, 10),
+      kalanGun: daysUntil(b.bitisTarihi),
+      durum: b.bitisTarihi < bugun ? 'doldu' : daysUntil(b.bitisTarihi) <= 30 ? 'yaklasiyor' : 'gecerli',
+    })),
+    musaitlik: isci.musaitlikler.map((m) => ({
+      id: m.id,
+      tarih: m.tarih.toISOString().slice(0, 10),
+      eVadesiGun: m.eVadesiGun,
+      durum: m.durum,
+    })),
+    avanslar: isci.avanslar.map((a) => ({
+      id: a.id,
+      tutar: Number(a.tutar),
+      tarih: a.tarih.toISOString().slice(0, 10),
+      durum: a.durum,
+    })),
+    gecmis: isci.atamalar.map((a) => ({
+      id: a.id,
+      tarih: a.tarih.toISOString().slice(0, 10),
+      firma: a.talep.firma.ad,
+      lokasyon: a.talep.lokasyon.ad,
+      durum: a.durum,
+      puantaj: a.puantaj?.durum ?? null,
+    })),
+  }
+}
+
+// ---- Operasyon özeti (dashboard) ----
+export async function getOperasyonOzeti(user: SessionUser) {
+  const bugun = startOfDay()
+  const yarin = addDays(bugun, 1)
+
+  const [yarinTalepler, acikTalepler, belgeler] = await Promise.all([
+    prisma.talep.findMany({
+      where: {
+        tarih: { gte: yarin, lt: addDays(yarin, 1) },
+        ...lokasyonFilter(user),
+      },
+      include: {
+        kalemler: true,
+        atamalar: { where: { durum: { not: 'iptal' } } },
+      },
+    }),
+    prisma.talep.findMany({
+      where: {
+        durum: { in: ['acik', 'kismi'] },
+        tarih: { gte: bugun },
+        ...lokasyonFilter(user),
+      },
+      include: { kalemler: true, atamalar: { where: { durum: { not: 'iptal' } } } },
+    }),
+    prisma.belge.findMany({
+      where: { bitisTarihi: { lte: addDays(bugun, 30) } },
+      include: { isci: true },
+    }),
+  ])
+
+  const yarinIhtiyac = yarinTalepler.reduce((a, t) => a + t.kalemler.reduce((x, k) => x + k.adet, 0), 0)
+  const yarinAtanan = yarinTalepler.reduce((a, t) => a + t.atamalar.length, 0)
+
+  const acikAdet = acikTalepler.reduce((a, t) => a + t.kalemler.reduce((x, k) => x + k.adet, 0), 0)
+  const acikAtanan = acikTalepler.reduce((a, t) => a + t.atamalar.length, 0)
+
+  const belgesiDolan = belgeler.filter((b) => b.bitisTarihi < bugun).length
+  const belgesiYaklasan = belgeler.filter((b) => b.bitisTarihi >= bugun).length
+
+  return {
+    yarin: { ihtiyac: yarinIhtiyac, atanan: yarinAtanan, eksik: yarinIhtiyac - yarinAtanan },
+    acik: { talepSayisi: acikTalepler.length, adet: acikAdet, atanan: acikAtanan, eksik: acikAdet - acikAtanan },
+    belge: { dolan: belgesiDolan, yaklasan: belgesiYaklasan },
+  }
 }

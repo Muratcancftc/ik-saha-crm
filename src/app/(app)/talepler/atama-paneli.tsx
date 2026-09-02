@@ -12,14 +12,29 @@ type Aday = {
   ad: string
   ilce: string
   puan: number
+  noShow: number
+  guvenilirlik: number
   beklenti: number
   bolgeUyum: boolean
   belgeYaklasan: boolean
-  skor: number
+  uygunluk: number
   meslekler: string[]
+  gecmisAtama: number
 }
 
-export function AtamaPaneli({ talepId, meslekId, meslekAd, tarih }: { talepId: number; meslekId: number; meslekAd: string; tarih: string }) {
+export function AtamaPaneli({
+  talepId,
+  meslekId,
+  meslekAd,
+  tarih,
+  haricId,
+}: {
+  talepId: number
+  meslekId: number
+  meslekAd: string
+  tarih: string
+  haricId?: number
+}) {
   const [adaylar, setAdaylar] = useState<Aday[] | null>(null)
   const [yukleniyor, setYukleniyor] = useState(false)
   const [secili, setSecili] = useState<number | null>(null)
@@ -30,13 +45,14 @@ export function AtamaPaneli({ talepId, meslekId, meslekAd, tarih }: { talepId: n
     if (state && 'ok' in state) {
       setUyari(state.uyari ?? null)
       setSecili(null)
+      setAdaylar(null)
     }
   }, [state])
 
   async function getir() {
     setYukleniyor(true)
     setUyari(null)
-    const list = await oneriGetir(talepId, meslekId)
+    const list = await oneriGetir(talepId, meslekId, haricId)
     setAdaylar(list)
     setYukleniyor(false)
   }
@@ -61,14 +77,10 @@ export function AtamaPaneli({ talepId, meslekId, meslekAd, tarih }: { talepId: n
       </div>
 
       {uyari && (
-        <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
-          {uyari}
-        </div>
+        <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">{uyari}</div>
       )}
       {state && 'error' in state && state.error && (
-        <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">
-          {state.error}
-        </div>
+        <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">{state.error}</div>
       )}
 
       {adaylar && adaylar.length === 0 && (
@@ -86,25 +98,33 @@ export function AtamaPaneli({ talepId, meslekId, meslekAd, tarih }: { talepId: n
               onClick={() => setSecili(a.id)}
             >
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
                   {a.ad}
                   {a.bolgeUyum && <Badge tone="green">Bölge ✓</Badge>}
                   {a.belgeYaklasan && <Badge tone="amber">Belge yakın</Badge>}
+                  {a.noShow > 0 && <Badge tone="red">{a.noShow} no-show</Badge>}
                 </div>
-                <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
+                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                   <span>{a.ilce}</span>
                   <span className="text-slate-300">·</span>
-                  <span>Puan {a.puan}</span>
+                  <span>Güv. {a.guvenilirlik}</span>
                   <span className="text-slate-300">·</span>
                   <span className="tabular-nums">{tl(a.beklenti)}/gün</span>
+                  <span className="text-slate-300">·</span>
+                  <span>{a.gecmisAtama} atama</span>
+                </div>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full ${a.uygunluk >= 80 ? 'bg-emerald-500' : a.uygunluk >= 55 ? 'bg-amber-500' : 'bg-red-400'}`}
+                      style={{ width: `${a.uygunluk}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] font-medium tabular-nums text-slate-600">Uygunluk %{a.uygunluk}</span>
                 </div>
               </div>
               {secili === a.id && (
-                <form
-                  action={formAction}
-                  onClick={(e) => e.stopPropagation()}
-                  className="shrink-0"
-                >
+                <form action={formAction} onClick={(e) => e.stopPropagation()} className="shrink-0">
                   <input type="hidden" name="talepId" value={talepId} />
                   <input type="hidden" name="isciId" value={a.id} />
                   <input type="hidden" name="meslekId" value={meslekId} />
@@ -122,7 +142,9 @@ export function AtamaPaneli({ talepId, meslekId, meslekAd, tarih }: { talepId: n
           ))}
         </ul>
       )}
-      <p className="mt-2 text-[10px] text-slate-400">Tarih: {tarih} — aynı güne atanan işçiler listelenmez.</p>
+      <p className="mt-2 text-[10px] text-slate-400">
+        Tarih: {tarih} — aynı güne atanan ve süresi dolmuş belgeli işçiler listelenmez; no-show skoru öneriyi aşağı çeker.
+      </p>
     </div>
   )
 }
