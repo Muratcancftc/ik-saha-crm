@@ -238,6 +238,8 @@ export type IsciDetay = {
   telefon: string
   tcMasked: string
   ibanMasked: string
+  tcKimlik: string
+  iban: string
   ilce: string
   puan: number
   noShow: number
@@ -285,6 +287,8 @@ export async function getIsciDetay(isciId: number): Promise<IsciDetay | null> {
     telefon: isci.telefon,
     tcMasked: maskTC(decrypt(isci.tcKimlik)),
     ibanMasked: maskIBAN(decrypt(isci.iban)),
+    tcKimlik: decrypt(isci.tcKimlik),
+    iban: decrypt(isci.iban),
     ilce: isci.ilce,
     puan: isci.puan,
     noShow,

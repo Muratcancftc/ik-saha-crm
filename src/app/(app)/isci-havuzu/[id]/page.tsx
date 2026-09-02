@@ -69,8 +69,10 @@ export default async function IsciProfilPage({
           <CardHeader title="Genel" desc="Kimlik ve çalışma bilgileri" />
           <div className="px-5 py-4">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
-              <Satir label="TC Kimlik" value={isci.tcMasked} />
-              <Satir label="IBAN" value={isci.ibanMasked} />
+              <Satir label="TC Kimlik" value={isci.tcKimlik} />
+              <Satir label="IBAN" value={isci.iban} />
+              <Satir label="Telefon" value={isci.telefon} />
+              <Satir label="İlçe" value={isci.ilce} />
               <Satir label="Doğum Tarihi" value={date(isci.dogumTarihi)} />
               <Satir label="Günlük Beklenti" value={tl(isci.beklenti)} />
               <Satir label="Puan" value={num(isci.puan)} />

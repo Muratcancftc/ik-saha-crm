@@ -70,8 +70,8 @@ export function IsciDetayModal({ isciId, isciAd }: { isciId: number; isciAd: str
                   <div className="rounded-xl bg-slate-50 p-3">
                     <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Kimlik</h4>
                     <dl className="space-y-1 text-xs text-slate-600">
-                      <div className="flex justify-between"><dt className="text-slate-400">TC</dt><dd className="tabular-nums">{d.tcMasked}</dd></div>
-                      <div className="flex justify-between"><dt className="text-slate-400">IBAN</dt><dd className="tabular-nums">{d.ibanMasked}</dd></div>
+                      <div className="flex justify-between"><dt className="text-slate-400">TC</dt><dd className="tabular-nums">{d.tcKimlik}</dd></div>
+                      <div className="flex justify-between"><dt className="text-slate-400">IBAN</dt><dd className="tabular-nums">{d.iban}</dd></div>
                       <div className="flex justify-between"><dt className="text-slate-400">Doğum</dt><dd>{d.dogumTarihi}</dd></div>
                       <div className="flex justify-between">
                         <dt className="text-slate-400">Durum</dt>

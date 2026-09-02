@@ -68,7 +68,7 @@ export default async function PersonelProfilPage({
           <div className="px-5 py-4">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
               <Satir label="İşe Giriş" value={date(personel.iseGiris)} />
-              <Satir label="IBAN" value={personel.ibanMasked} />
+              <Satir label="IBAN" value={personel.iban} />
               <Satir label="SGK Durum" value={personel.sgkDurum} />
               <Satir label="Rapor Günü" value={`${num(personel.raporGun)} gün`} />
             </dl>
