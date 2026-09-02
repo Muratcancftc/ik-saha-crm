@@ -54,7 +54,7 @@ npm run db:seed          # demo verisi (22 işçi, 4 firma, talepler, faturalar�
 npm run dev              # http://localhost:3000
 ```
 
-## Demo Giriş (şifre: `123456`)
+## Demo Giriş (şifre: `123123`)
 
 - `patron@ikcrm.com` — her şey
 - `operasyon@ikcrm.com` — işçi havuzu / talep / atama

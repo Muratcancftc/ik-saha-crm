@@ -522,7 +522,7 @@ async function main() {
   }
 
   // ---- Kullanıcılar (RBAC) ----
-  const sifre = await bcrypt.hash('123456', 10)
+  const sifre = await bcrypt.hash('123123', 10)
   await prisma.kullanici.createMany({
     data: [
       { ad: 'Patron', email: 'patron@ikcrm.com', sifreHash: sifre, rol: 'patron' },
@@ -545,7 +545,7 @@ async function main() {
   }
 
   console.log('✅ Seed tamamlandı.')
-  console.log('🔑 Giriş: patron@ikcrm.com / 123456 (diğerleri: operasyon@, muhasebe@, saha@ikcrm.com)')
+  console.log('🔑 Giriş: patron@ikcrm.com / 123123 (diğerleri: operasyon@, muhasebe@, saha@ikcrm.com)')
 }
 
 main()

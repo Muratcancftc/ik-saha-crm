@@ -52,7 +52,7 @@ export default function LoginForm() {
       </button>
 
       <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-        Demo hesaplar · şifre <b>123456</b>
+        Demo hesaplar · şifre <b>123123</b>
         <br />
         patron@ikcrm.com · operasyon@ikcrm.com · muhasebe@ikcrm.com · saha@ikcrm.com
       </div>
