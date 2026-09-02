@@ -1,5 +1,6 @@
 import { prisma } from './db'
 import { maskTC, maskIBAN, decrypt } from './crypto'
+import { getAyarSayi } from './ayar'
 import { startOfDay, daysUntil } from './dates'
 import type { SessionUser } from './dal'
 
@@ -230,7 +231,8 @@ export async function getPersonelProfil(personelId: number) {
   if (!personel) return null
 
   const maas = Number(personel.maas)
-  const sgkIsveren = Math.round(maas * 0.205)
+  const sgkOran = await getAyarSayi('SGK_ISVEREN_ORANI', 0.205)
+  const sgkIsveren = Math.round(maas * sgkOran)
   const izinKullanilan = personel.izinler.filter((i) => i.tip === 'izin').reduce((a, i) => a + i.gun, 0)
   const raporGun = personel.izinler.filter((i) => i.tip === 'rapor').reduce((a, i) => a + i.gun, 0)
 
@@ -332,6 +334,27 @@ export async function getDashboardRapor(user: SessionUser, bas: Date, bit: Date)
     enAzCalisan,
     enKarliFirmalar,
   }
+}
+
+// İşçi başına kârlılık (hakediş marjı, dönem)
+export async function getIsciKarlilik(bas: Date, bit: Date) {
+  const hakedisler = await prisma.hakedis.findMany({
+    where: { donemBitis: { gte: bas, lt: bit } },
+    include: { isci: true },
+  })
+  const map = new Map<number, { ad: string; marj: number; gun: number }>()
+  for (const h of hakedisler) {
+    const e = map.get(h.isciId)
+    if (e) {
+      e.marj += Number(h.marj)
+      e.gun += h.gun
+    } else {
+      map.set(h.isciId, { ad: h.isci.ad, marj: Number(h.marj), gun: h.gun })
+    }
+  }
+  return Array.from(map.entries())
+    .map(([id, v]) => ({ id, ...v }))
+    .sort((a, b) => b.marj - a.marj)
 }
 
 // Aylık trend (son 6 ay) — ciro/gider/net kâr

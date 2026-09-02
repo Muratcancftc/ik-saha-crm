@@ -114,6 +114,30 @@ enum TekrarTip {
   haftalik
 }
 
+enum AdayDurum {
+  basvurdu
+  gorusuldu
+  onaylandi
+  reddedildi
+}
+
+enum OdemeKaynak {
+  isci
+  personel
+}
+
+enum OdemeDurum {
+  odendi
+  bekliyor
+}
+
+enum EvrakTip {
+  firma_sozlesme
+  isci_is_sozlesme
+  kvkk_acik_riza
+  diger
+}
+
 // ============================================================
 // ÇOKTAN-ÇOĞA BAĞLANTILAR
 // ============================================================
@@ -138,6 +162,7 @@ model Meslek {
   talepKalemleri TalepKalemi[]
   firmaFiyatlar  FirmaFiyat[]
   atamalar       Atama[]
+  adaylar        Aday[]
 }
 
 model Isci {
@@ -162,6 +187,8 @@ model Isci {
   avanslar     Avans[]
   hakedisler   Hakedis[]
   atamalar     Atama[]
+  odemeler     Odeme[]
+  evraklar     Evrak[]
 }
 
 model Belge {
@@ -221,6 +248,7 @@ model MusteriFirma {
   talepler    Talep[]
   faturalar   Fatura[]
   hakedisler  Hakedis[]
+  evraklar    Evrak[]
 }
 
 model Yetkili {
@@ -415,8 +443,9 @@ model Personel {
   durum        PersonelDurum @default(aktif)
   createdAt    DateTime      @default(now())
 
-  izinler Izin[]
-  gecmis  PersonelGecmisi[]
+  izinler  Izin[]
+  gecmis   PersonelGecmisi[]
+  odemeler Odeme[]
 }
 
 model Izin {
@@ -478,4 +507,60 @@ model Bildirim {
   kullanici Kullanici? @relation(fields: [kullaniciId], references: [id], onDelete: Cascade)
 
   @@index([kullaniciId, okundu])
+}
+
+// ============================================================
+// İŞE ALIM / BORDRO-ÖDEME / EVRAK / AYARLAR
+// ============================================================
+
+model Aday {
+  id        Int       @id @default(autoincrement())
+  ad        String
+  telefon   String
+  email     String?
+  meslekId  Int?
+  durum     AdayDurum @default(basvurdu)
+  puan      Int       @default(50)
+  not       String?
+  createdAt DateTime  @default(now())
+
+  meslek Meslek? @relation(fields: [meslekId], references: [id], onDelete: SetNull)
+}
+
+model Odeme {
+  id          Int         @id @default(autoincrement())
+  tip         OdemeKaynak
+  isciId      Int?
+  personelId  Int?
+  tutar       Decimal     @db.Decimal(10, 2)
+  donem       String // "2026-08"
+  durum       OdemeDurum  @default(bekliyor)
+  odemeTarihi DateTime?
+  createdAt   DateTime    @default(now())
+
+  isci     Isci?     @relation(fields: [isciId], references: [id], onDelete: SetNull)
+  personel Personel? @relation(fields: [personelId], references: [id], onDelete: SetNull)
+
+  @@index([durum])
+}
+
+model Evrak {
+  id            Int      @id @default(autoincrement())
+  tip           EvrakTip
+  baslik        String
+  dosyaAdi      String
+  dosyaYol      String // public/uploads/evrak/...
+  ilgiliFirmaId Int?
+  ilgiliIsciId  Int?
+  yuklemeTarihi DateTime @default(now())
+
+  firma MusteriFirma? @relation(fields: [ilgiliFirmaId], references: [id], onDelete: Cascade)
+  isci  Isci?         @relation(fields: [ilgiliIsciId], references: [id], onDelete: Cascade)
+}
+
+model Ayar {
+  id       Int     @id @default(autoincrement())
+  anahtar  String  @unique
+  deger    String
+  aciklama String?
 }

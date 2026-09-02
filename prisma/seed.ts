@@ -79,6 +79,10 @@ async function main() {
   // Temizleme (FK sırası)
   await prisma.bildirim.deleteMany()
   await prisma.kullanici.deleteMany()
+  await prisma.odeme.deleteMany()
+  await prisma.evrak.deleteMany()
+  await prisma.aday.deleteMany()
+  await prisma.ayar.deleteMany()
   await prisma.resmiOdeme.deleteMany()
   await prisma.gider.deleteMany()
   await prisma.tahsilat.deleteMany()
@@ -597,6 +601,67 @@ async function main() {
   await prisma.kullanici.createMany({
     data: [
       { ad: 'Admin', email: 'admin@ikcrm.com', sifreHash: sifre, rol: 'patron' },
+    ],
+  })
+
+  // ---- Ayar (sabitler DB'ye taşındı) ----
+  await prisma.ayar.createMany({
+    data: [
+      { anahtar: 'KDV_ORANI', deger: '0.20', aciklama: 'Fatura KDV oranı' },
+      { anahtar: 'SGK_ISVEREN_ORANI', deger: '0.205', aciklama: 'SGK işveren payı' },
+      { anahtar: 'FIRMA_AD', deger: 'İK Saha A.Ş.', aciklama: 'Firma adı' },
+      { anahtar: 'FIRMA_VERGINO', deger: '1234567890', aciklama: 'Vergi no' },
+      { anahtar: 'FIRMA_TELEFON', deger: '+90 216 000 00 00', aciklama: 'Telefon' },
+      { anahtar: 'FIRMA_EMAIL', deger: 'info@iksaha.com', aciklama: 'E-posta' },
+      { anahtar: 'FIRMA_ADRES', deger: 'İstanbul', aciklama: 'Adres' },
+    ],
+  })
+
+  // ---- Aday havuzu ----
+  const adayPlan: Array<[string, string, string, number]> = [
+    ['Serkan Ateş', '+90 532 111 22 33', 'forklift', 65],
+    ['Burak Tuna', '+90 533 222 33 44', 'kaynak', 70],
+    ['Emrecan Sözen', '+90 535 333 44 55', 'depo', 60],
+    ['Deniz Aras', '+90 542 444 55 66', 'temizlik', 55],
+    ['Kaan Yüksel', '+90 536 555 66 77', 'insaat', 62],
+  ]
+  for (const [ad, telefon, meslekAd, puan] of adayPlan) {
+    await prisma.aday.create({
+      data: {
+        ad,
+        telefon,
+        email: `${ad.split(' ')[0].toLowerCase()}@mail.com`,
+        meslekId: meslekler[meslekAd].id,
+        durum: rnd() > 0.6 ? 'basvurdu' : 'gorusuldu',
+        puan,
+      },
+    })
+  }
+
+  // ---- Toplu ödemeler (mevcut dönem: hakediş net + personel maaş) ----
+  const donem = new Date().toISOString().slice(0, 7)
+  const donemBas = atMidnight(-(new Date().getDate() - 1))
+  const donemBit = atMidnight(1)
+  const haks = await prisma.hakedis.findMany({
+    where: { donemBitis: { gte: donemBas, lt: donemBit } },
+    select: { isciId: true, isciNet: true },
+  })
+  const netMap = new Map<number, number>()
+  for (const h of haks) netMap.set(h.isciId, (netMap.get(h.isciId) ?? 0) + Number(h.isciNet))
+  for (const [isciId, tutar] of netMap) {
+    await prisma.odeme.create({ data: { tip: 'isci', isciId, donem, tutar, durum: 'bekliyor' } })
+  }
+  const aktifPersonel = await prisma.personel.findMany({ where: { durum: 'aktif' } })
+  for (const p of aktifPersonel) {
+    await prisma.odeme.create({ data: { tip: 'personel', personelId: p.id, donem, tutar: p.maas, durum: 'bekliyor' } })
+  }
+
+  // ---- Evrak örnekleri (placeholder dosyalar) ----
+  await prisma.evrak.createMany({
+    data: [
+      { tip: 'firma_sozlesme', baslik: 'Artaş 2026 Hizmet Sözleşmesi', dosyaAdi: 'artas-sozlesme.pdf', dosyaYol: '/uploads/evrak/artas-sozlesme.pdf', ilgiliFirmaId: firma1.id },
+      { tip: 'kvkk_acik_riza', baslik: 'KVKK Açık Rıza — Mehmet Yılmaz', dosyaAdi: 'kvkk-mehmet.pdf', dosyaYol: '/uploads/evrak/kvkk-mehmet.pdf', ilgiliIsciId: isciler[0].id },
+      { tip: 'isci_is_sozlesme', baslik: 'İş Sözleşmesi — Ahmet Demir', dosyaAdi: 'isci-sozlesme-ahmet.pdf', dosyaYol: '/uploads/evrak/isci-sozlesme-ahmet.pdf', ilgiliIsciId: isciler[1].id },
     ],
   })
 

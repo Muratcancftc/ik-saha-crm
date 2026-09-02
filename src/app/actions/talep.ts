@@ -259,9 +259,21 @@ export async function updatePuantaj(formData: FormData) {
     },
   })
 
+  // gelmedi → no-show bildirimi
+  if (durum === 'gelmedi') {
+    const isci = await prisma.isci.findUnique({ where: { id: atama.isciId } })
+    const tarihEtiketi = atama.tarih.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })
+    const mesaj = `${isci?.ad ?? 'İşçi'} gelmedi — ${atama.talep.firmaId ? '' : ''}${tarihEtiketi} (no-show)`
+    const mevcut = await prisma.bildirim.findFirst({ where: { mesaj, okundu: false } })
+    if (!mevcut) {
+      await prisma.bildirim.create({ data: { tur: 'talep', mesaj, ilgiliId: atama.id } })
+    }
+  }
+
   revalidatePath('/talepler')
   revalidatePath('/puantaj')
   revalidatePath('/')
+  revalidatePath('/bildirimler')
 }
 
 // ---- Uygun işçi önerisi (meslek + bölge + puan + no-show, uygunluk %'li) ----

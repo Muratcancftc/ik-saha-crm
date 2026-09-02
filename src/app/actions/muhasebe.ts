@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
+import { getAyarSayi } from '@/lib/ayar'
 import type { GiderKategori, OdemeTip, ResmiOdemeDurum } from '@prisma/client'
 
 export type MuhasebeState = { error?: string; ok?: boolean } | undefined
@@ -44,8 +45,8 @@ export async function createFatura(_prev: MuhasebeState, formData: FormData): Pr
     return { error: 'Firma, net tutar, dönem ve vade zorunludur.' }
   }
 
-  // İş kuralı 5: kdvTutar = araToplam × 0.20; genelToplam = araToplam + kdv
-  const kdvOran = 0.2
+  // İş kuralı 5: kdvTutar = araToplam × kdvOran (ayarlardan); genelToplam = araToplam + kdv
+  const kdvOran = await getAyarSayi('KDV_ORANI', 0.2)
   const kdvTutar = Math.round(araToplam * kdvOran * 100) / 100
   const genelToplam = Math.round((araToplam + kdvTutar) * 100) / 100
 

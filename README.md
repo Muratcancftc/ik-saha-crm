@@ -75,6 +75,13 @@ npm run lint       # eslint
 
 `/` Kontrol Paneli (KPI + operasyon özeti + **dönem raporu**: aylık ciro/gider/net kâr trendi,
 en kârlı firmalar, en çok çalışan işçiler, devamsızlık/doluluk oranı — Bu hafta/Bu ay/Geçen ay/Özel) ·
+`/takvim` (haftalık vardiya planlama: firma/lokasyon×gün grid, hücreden atama, boştaki müsait işçiler) ·
+`/odeme` (toplu bordro/ödeme: işçi hakediş net + personel maaş, ödendi işaretle, banka CSV) ·
+`/raporlar` (grafikler: ciro-gider-net kâr trendi, en kârlı firmalar, işçi başına kârlılık, oranlar,
+dönem filtresi + PDF/Excel) · `/adaylar` (işe alım havuzu, onaylanınca işçi havuzuna aktar) ·
+`/ayarlar` (meslek/vardiya/kullanıcı-RBAC/firma/KDV-SGK oranları DB'den) ·
+`/bildirimler` (belge/SGK/fatura/no-show/resmi ödeme akışı, zil buraya bağlı) ·
+`/evrak` (firma sözleşme, işçi iş sözleşme, KVKK açık rıza — dosya yükle/sakla) ·
 `/isci-havuzu` (filtre + arama + CRUD + **profil** `/isci-havuzu/[id]`: dönem bazlı özet, belgeler,
 çalışma geçmişi, devamsızlık, avanslar, müsaitlik) ·
 `/musteri-firmalar` (satış hattı, lokasyon/yetkili, fiyat; **profil** `/musteri-firmalar/[id]`:

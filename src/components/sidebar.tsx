@@ -100,7 +100,7 @@ export default function Sidebar({ rol, userAd }: { rol: Rol; userAd: string }) {
                       )}
                     >
                       <Icon name={item.icon as IconName} size={18} />
-                      {item.href === '/' ? 'Kontrol Paneli' : item.href.replace('/', '')}
+                      {item.label}
                     </Link>
                   )
                 })}
