@@ -32,7 +32,7 @@ const AY_ADLARI = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temm
 
 export function Takvim(props: Seri) {
   const router = useRouter()
-  const bugunIso = new Date().toISOString().slice(0, 10)
+  const bugunIso = (() => { const x = new Date(); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10) })()
   const [gorunum, setGorunum] = useState<'hafta' | 'ay'>('hafta')
 
   const [seciliGun, setSeciliGun] = useState(() => {
@@ -61,9 +61,9 @@ export function Takvim(props: Seri) {
     const yil = Math.floor(props.ayBas / 100)
     const ay = props.ayBas % 100
     const hedefAy = new Date(yil, ay + offset, 1)
-    const ilk = new Date(hedefAy.getFullYear(), hedefAy.getMonth(), 1)
-    const gun = (ilk.getDay() + 6) % 7 // pazartesi=0
-    const pazartesi = addDaysIso(ilk.toISOString().slice(0, 10), -gun)
+    // hedef ayın ilk gününden sonraki ilk Pazartesi
+    const gun = (hedefAy.getDay() + 6) % 7 // pazartesi=0
+    const pazartesi = addDaysIso(hedefAy.toISOString().slice(0, 10), (7 - gun) % 7)
     router.push(`/takvim?bas=${pazartesi}`)
   }
 
@@ -118,10 +118,12 @@ export function Takvim(props: Seri) {
                 Ay
               </button>
             </div>
-            <div className="rounded-xl bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200">
-              <span className="text-slate-400">Haftalık: </span>
-              <b className="tabular-nums text-slate-900">{haftaAtanan}/{haftaIhtiyac}</b>
-            </div>
+            {gorunum === 'hafta' && (
+              <div className="rounded-xl bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200">
+                <span className="text-slate-400">Haftalık: </span>
+                <b className="tabular-nums text-slate-900">{haftaAtanan}/{haftaIhtiyac}</b>
+              </div>
+            )}
             <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <button onClick={() => git(-7)} className="px-3 py-2 text-slate-600 transition hover:bg-slate-50" title="Önceki hafta">
                 <Icon name="chevron" size={16} className="rotate-90" />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState, startTransition } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { createIsci, updateIsci, gizliAlan } from '@/app/actions/isci'
 import { Icon } from '@/components/icons'
 
@@ -34,24 +34,32 @@ export function IsciForm({
 }) {
   const [open, setOpen] = useState(false)
   const [gizli, setGizli] = useState<{ tc: string; iban: string } | null>(null)
+  const [tcVal, setTcVal] = useState('')
+  const [ibanVal, setIbanVal] = useState('')
   const [loading, setLoading] = useState(false)
 
   const action = mode === 'create' ? createIsci : updateIsci
   const [state, formAction, pending] = useActionState(action, undefined)
 
+  // KVKK: düzenlemede TC/IBAN varsayılan maskeli — tam değer yalnızca "Göster" ile yüklenir
+  async function goster(field: 'tc' | 'iban') {
+    if (!isci) return
+    setLoading(true)
+    const d = await gizliAlan(isci.id)
+    if (d) {
+      if (field === 'tc') setTcVal(d.tc)
+      else setIbanVal(d.iban)
+      setGizli(d)
+    }
+    setLoading(false)
+  }
+
   useEffect(() => {
     if (!open) return
-    if (mode === 'edit' && isci) {
-      setLoading(true)
-      startTransition(async () => {
-        const d = await gizliAlan(isci.id)
-        setGizli(d)
-        setLoading(false)
-      })
-    } else {
-      setGizli(null)
-    }
-  }, [open, mode, isci])
+    setGizli(null)
+    setTcVal('')
+    setIbanVal('')
+  }, [open])
 
   useEffect(() => {
     if (state && 'ok' in state) setOpen(false)
@@ -105,28 +113,44 @@ export function IsciForm({
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                    TC Kimlik {mode === 'edit' && <span className="text-slate-400">(mevcut: {isci?.tcMasked})</span>}
+                    TC Kimlik {mode === 'edit' && <span className="text-slate-400">(boşsa korunur · mevcut {isci?.tcMasked})</span>}
                   </label>
-                  <input
-                    name="tcKimlik"
-                    required={mode === 'create'}
-                    defaultValue={gizli?.tc ?? ''}
-                    placeholder="11 haneli TC"
-                    maxLength={11}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      name="tcKimlik"
+                      required={mode === 'create'}
+                      value={tcVal}
+                      onChange={(e) => setTcVal(e.target.value)}
+                      placeholder={mode === 'edit' ? isci?.tcMasked : '11 haneli TC'}
+                      maxLength={11}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    />
+                    {mode === 'edit' && (
+                      <button type="button" onClick={() => goster('tc')} disabled={loading} className="shrink-0 rounded-lg bg-indigo-50 px-2 py-2 text-[11px] font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:opacity-50">
+                        {gizli?.tc && tcVal === gizli.tc ? 'Gizle' : 'Göster'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                    IBAN {mode === 'edit' && <span className="text-slate-400">(mevcut: {isci?.ibanMasked})</span>}
+                    IBAN {mode === 'edit' && <span className="text-slate-400">(boşsa korunur · mevcut {isci?.ibanMasked})</span>}
                   </label>
-                  <input
-                    name="iban"
-                    required={mode === 'create'}
-                    defaultValue={gizli?.iban ?? ''}
-                    placeholder="TR00 0000 …"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      name="iban"
+                      required={mode === 'create'}
+                      value={ibanVal}
+                      onChange={(e) => setIbanVal(e.target.value)}
+                      placeholder={mode === 'edit' ? isci?.ibanMasked : 'TR00 0000 …'}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    />
+                    {mode === 'edit' && (
+                      <button type="button" onClick={() => goster('iban')} disabled={loading} className="shrink-0 rounded-lg bg-indigo-50 px-2 py-2 text-[11px] font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:opacity-50">
+                        {gizli?.iban && ibanVal === gizli.iban ? 'Gizle' : 'Göster'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">İlçe *</label>

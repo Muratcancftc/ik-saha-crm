@@ -98,7 +98,7 @@ export default async function HakedisPage() {
                     <Td className="text-right tabular-nums">{tl(h.yevmiye)}</Td>
                     <Td className="text-right tabular-nums">{tl(h.avansToplam)}</Td>
                     <Td className="text-right tabular-nums">{tl(h.kesinti)}</Td>
-                    <Td className="text-right font-medium tabular-nums text-slate-900">{tl(h.isciNet)}</Td>
+                    <Td className="text-right font-medium tabular-nums text-slate-900">{tl(h.isciNet)}{Number(h.isciNet) < 0 && <span className="ml-1 inline-block rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-700" title="Avans, kazanılandan fazla — sonraki bordrodan mahsup edilir">borçlu</span>}</Td>
                     <Td className="text-right tabular-nums">{tl(h.musteriTutar)}</Td>
                     <Td className={`text-right font-semibold tabular-nums ${Number(h.marj) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {tl(h.marj)}

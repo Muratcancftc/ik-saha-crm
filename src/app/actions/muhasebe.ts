@@ -126,7 +126,7 @@ export async function resmiOdemeDurum(formData: FormData) {
     where: { id },
     data: {
       durum,
-      ...(durum === 'odendi' ? { odemeTarihi: new Date() } : {}),
+      odemeTarihi: durum === 'odendi' ? new Date() : null,
     },
   })
   revalidatePath('/vergi-odemeler')

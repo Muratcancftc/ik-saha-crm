@@ -5,6 +5,7 @@ import { Card, CardHeader, Th, Td, Badge, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { EvrakForm } from './evrak-form'
 import { evrakSil } from '@/app/actions/evrak'
+import { SilOnayForm } from '@/components/sil-onay'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,12 +78,7 @@ export default async function EvrakPage() {
                       </Td>
                       <Td>{date(e.yuklemeTarihi)}</Td>
                       <Td className="text-right">
-                        <form action={evrakSil}>
-                          <input type="hidden" name="id" value={e.id} />
-                          <button className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Sil">
-                            <Icon name="x" size={14} />
-                          </button>
-                        </form>
+                        <SilOnayForm action={evrakSil} id={e.id} baslik={`${e.baslik} evrakı`} />
                       </Td>
                     </tr>
                   )

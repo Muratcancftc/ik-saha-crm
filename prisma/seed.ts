@@ -693,15 +693,15 @@ async function main() {
   })
 
   // ---- Bildirimler ----
-  const bildirimMesajlari = [
-    'Süresi dolan belge: Kimlik Kartı yenilenmesi gerekiyor.',
-    '3 belge 30 gün içinde süresi doluyor.',
-    'IKR-2026-004 faturası vadesi geçti.',
-    'Acil talep: Nova İnşaat 5 inşaat işçisi istiyor.',
-    'Geçici vergi ödeme tarihi yaklaşıyor.',
+  const bildirimMesajlari: Array<[string, string]> = [
+    ['belge', 'Süresi dolan belge: Kimlik Kartı yenilenmesi gerekiyor.'],
+    ['belge', '3 belge 30 gün içinde süresi doluyor.'],
+    ['fatura', 'IKR-2026-004 faturası vadesi geçti.'],
+    ['talep', 'Acil talep: Nova İnşaat 5 inşaat işçisi istiyor.'],
+    ['vergi', 'Geçici vergi ödeme tarihi yaklaşıyor.'],
   ]
-  for (const mesaj of bildirimMesajlari) {
-    await prisma.bildirim.create({ data: { tur: 'belge', mesaj } })
+  for (const [tur, mesaj] of bildirimMesajlari) {
+    await prisma.bildirim.create({ data: { tur: tur as never, mesaj } })
   }
 
   console.log('✅ Seed tamamlandı.')

@@ -25,11 +25,19 @@ type Detay = {
 
 export function TalepDetayModal({ talepId, acik, kapat, yenileAnahtari }: { talepId: number; acik: boolean; kapat: () => void; yenileAnahtari?: string }) {
   const [d, setD] = useState<Detay | null>(null)
+  const [hata, setHata] = useState(false)
 
   function yukle() {
+    setHata(false)
     setD(null)
     startTransition(async () => {
-      setD(await takvimTalepDetay(talepId))
+      try {
+        const sonuc = await takvimTalepDetay(talepId)
+        if (!sonuc) setHata(true)
+        else setD(sonuc)
+      } catch {
+        setHata(true)
+      }
     })
   }
 
@@ -74,7 +82,14 @@ export function TalepDetayModal({ talepId, acik, kapat, yenileAnahtari }: { tale
           </button>
         </div>
 
-        {!d ? (
+        {hata ? (
+          <div className="flex flex-col items-center px-6 py-16 text-center">
+            <p className="text-sm text-slate-600">Talep detayı yüklenemedi.</p>
+            <button onClick={yukle} className="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500">
+              Tekrar Dene
+            </button>
+          </div>
+        ) : !d ? (
           <div className="px-6 py-16 text-center text-sm text-slate-400">Yükleniyor…</div>
         ) : (
           <div className="space-y-4 px-6 py-5">

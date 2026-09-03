@@ -1,15 +1,18 @@
-import { requireRoles } from '@/lib/dal'
+import { requireRoles, requireUser } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { tl, num } from '@/lib/format'
 import { Card, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { FirmaForm } from './firma-form'
-import { setFirmaFiyat, addLokasyon, addYetkili } from '@/app/actions/firma'
+import { setFirmaFiyat, addLokasyon, addYetkili, silFirma } from '@/app/actions/firma'
+import { SilOnayForm } from '@/components/sil-onay'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MusteriFirmalarPage() {
+  const user = await requireUser()
   await requireRoles(['patron', 'operasyon'])
+  const isPatron = user.rol === 'patron'
 
   const firmalar = await prisma.musteriFirma.findMany({
     include: {
@@ -56,8 +59,11 @@ export default async function MusteriFirmalarPage() {
                         {f.telefon ? ` · ${f.telefon}` : ''}
                       </p>
                     </div>
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                      <Icon name="firma" size={18} />
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {isPatron && <SilOnayForm action={silFirma} id={f.id} baslik={`${f.ad} firması`} buttonClass="rounded-lg p-1.5 text-slate-300 transition hover:bg-red-50 hover:text-red-600" />}
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                        <Icon name="firma" size={18} />
+                      </div>
                     </div>
                   </div>
 

@@ -8,6 +8,7 @@ import { RESMI_ODEME_TIP } from '@/lib/labels'
 import { Icon } from '@/components/icons'
 import { OdemeForm } from './odeme-form'
 import { resmiOdemeDurum, silResmiOdeme } from '@/app/actions/muhasebe'
+import { SilOnayForm } from '@/components/sil-onay'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,7 +77,7 @@ export default async function VergiOdemelerPage() {
                       <Td><OdemeBadge durum={o.durum} /></Td>
                       <Td className="text-right">
                         <div className="flex justify-end gap-1.5">
-                          {o.durum !== 'odendi' && (
+                          {o.durum !== 'odendi' ? (
                             <form action={resmiOdemeDurum}>
                               <input type="hidden" name="id" value={o.id} />
                               <input type="hidden" name="durum" value="odendi" />
@@ -84,13 +85,16 @@ export default async function VergiOdemelerPage() {
                                 <Icon name="check" size={15} />
                               </button>
                             </form>
+                          ) : (
+                            <form action={resmiOdemeDurum}>
+                              <input type="hidden" name="id" value={o.id} />
+                              <input type="hidden" name="durum" value="beklemede" />
+                              <button type="submit" title="Geri al (beklemede yap)" className="rounded-lg p-1.5 text-amber-600 transition hover:bg-amber-50">
+                                <Icon name="chevron" size={15} className="rotate-180" />
+                              </button>
+                            </form>
                           )}
-                          <form action={silResmiOdeme}>
-                            <input type="hidden" name="id" value={o.id} />
-                            <button type="submit" title="Sil" className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600">
-                              <Icon name="x" size={15} />
-                            </button>
-                          </form>
+                          <SilOnayForm action={silResmiOdeme} id={o.id} baslik={`Resmi ödeme kaydı`} />
                         </div>
                       </Td>
                     </tr>

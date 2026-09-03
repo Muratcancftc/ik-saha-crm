@@ -34,10 +34,11 @@ export default async function FaturalarPage() {
       <Card>
         <CardHeader
           title="Faturalar"
-          desc="KDV %20 otomatik hesaplanır; fatura KDV'si vergi ekranına işlenir"
+          desc="KDV %20 otomatik hesaplanır; tahsilat işlemleri en sağdaki İşlem sütununda — tabloyu sağa kaydırın"
           action={<FaturaForm firmalar={firmalar.map((f) => ({ id: f.id, ad: f.ad }))} />}
         />
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-100/80 to-transparent" />
           {faturalar.length === 0 ? (
             <EmptyState icon="fatura" title="Fatura yok" desc="Firma seçip fatura kesin" />
           ) : (

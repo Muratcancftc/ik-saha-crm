@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState, startTransition } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { createPersonel, updatePersonel, personelGizli } from '@/app/actions/personel'
 import { Icon } from '@/components/icons'
 
@@ -20,6 +20,8 @@ type PersonelDto = {
 export function PersonelForm({ mode, personel }: { mode: 'create' | 'edit'; personel?: PersonelDto }) {
   const [open, setOpen] = useState(false)
   const [iban, setIban] = useState('')
+  const [gizli, setGizli] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const action = mode === 'create' ? createPersonel : updatePersonel
   const [state, formAction, pending] = useActionState(action, undefined)
 
@@ -28,12 +30,19 @@ export function PersonelForm({ mode, personel }: { mode: 'create' | 'edit'; pers
   }, [state])
 
   useEffect(() => {
-    if (!open || mode !== 'edit' || !personel) return
-    startTransition(async () => {
-      const g = await personelGizli(personel.id)
-      setIban(g?.iban ?? '')
-    })
-  }, [open, mode, personel])
+    if (!open) return
+    setIban('')
+    setGizli(null)
+  }, [open])
+
+  // KVKK: IBAN varsayılan maskeli — tam değer yalnızca "Göster" ile yüklenir
+  async function gosterIban() {
+    if (!personel) return
+    setLoading(true)
+    const g = await personelGizli(personel.id)
+    if (g) { setIban(g.iban); setGizli(g.iban) }
+    setLoading(false)
+  }
 
   const giris = personel ? new Date(personel.iseGiris).toISOString().slice(0, 10) : ''
 
@@ -105,13 +114,20 @@ export function PersonelForm({ mode, personel }: { mode: 'create' | 'edit'; pers
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">
                     IBAN {mode === 'edit' && <span className="text-slate-400">(şifreli saklanır)</span>}
                   </label>
-                  <input
-                    name="iban"
-                    value={iban}
-                    onChange={(e) => setIban(e.target.value)}
-                    placeholder="TR00 0000 …"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      name="iban"
+                      value={iban}
+                      onChange={(e) => setIban(e.target.value)}
+                      placeholder={mode === 'edit' ? '••••• (boşsa korunur)' : 'TR00 0000 …'}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                    />
+                    {mode === 'edit' && (
+                      <button type="button" onClick={gosterIban} disabled={loading} className="shrink-0 rounded-lg bg-indigo-50 px-2 py-2 text-[11px] font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:opacity-50">
+                        {gizli && iban === gizli ? 'Gizle' : 'Göster'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {mode === 'edit' && (
                   <div>

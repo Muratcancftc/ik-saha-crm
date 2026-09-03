@@ -2,6 +2,12 @@ import { startOfDay, addDays } from './dates'
 
 export type Donem = { bas: Date; bit: Date; etiket: string }
 
+// 'YYYY-MM-DD' → yerel gece yarısı (UTC değil — 1 gün kaymasını önler)
+export function parseLocalDate(str: string): Date {
+  const [y, m, d] = str.split('-').map(Number)
+  return new Date(y, (m || 1) - 1, d || 1)
+}
+
 export function donemAralik(sp: { donem?: string; bas?: string; bit?: string }): Donem {
   const bugun = startOfDay()
   const d = new Date(bugun)
@@ -25,11 +31,9 @@ export function donemAralik(sp: { donem?: string; bas?: string; bit?: string }):
   if (secim === 'hafta') return { bas: haftaBas, bit: haftaBit, etiket: etiketler.hafta }
   if (secim === 'gecenay') return { bas: gecenAyBas, bit: gecenAyBit, etiket: etiketler.gecenay }
   if (secim === 'ozel' && sp.bas && sp.bit) {
-    return {
-      bas: startOfDay(new Date(sp.bas)),
-      bit: addDays(new Date(sp.bit), 1),
-      etiket: `${sp.bas} — ${sp.bit}`,
-    }
+    const bas = startOfDay(parseLocalDate(sp.bas))
+    const bit = addDays(parseLocalDate(sp.bit), 1)
+    return { bas, bit, etiket: `${sp.bas} — ${sp.bit}` }
   }
   return { bas: ayBas, bit: addDays(ayBit, 1), etiket: etiketler.ay }
 }
