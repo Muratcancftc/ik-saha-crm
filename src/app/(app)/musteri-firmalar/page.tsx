@@ -132,32 +132,59 @@ export default async function MusteriFirmalarPage() {
                       Fiyat Anlaşması (kişi/gün)
                     </h4>
                     <div className="space-y-1.5">
-                      {meslekler.map((m) => {
-                        const fiyat = f.fiyatlar.find((p) => p.meslekId === m.id)
-                        return (
-                          <form key={m.id} action={setFirmaFiyat} className="flex items-center gap-2">
-                            <input type="hidden" name="firmaId" value={f.id} />
-                            <input type="hidden" name="meslekId" value={m.id} />
-                            <span className="w-24 text-xs text-slate-600">{m.ad}</span>
-                            <input
-                              name="fiyat"
-                              type="number"
-                              step="10"
-                              defaultValue={fiyat ? Number(fiyat.kisiGunFiyat) : ''}
-                              placeholder="—"
-                              className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs tabular-nums outline-none focus:border-indigo-500"
-                            />
-                            <button
-                              type="submit"
-                              title="Kaydet"
-                              className="rounded-lg p-1 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600"
-                            >
-                              <Icon name="check" size={14} />
-                            </button>
-                          </form>
-                        )
-                      })}
+                      {f.fiyatlar.map((p) => (
+                        <form key={p.meslekId} action={setFirmaFiyat} className="flex items-center gap-2">
+                          <input type="hidden" name="firmaId" value={f.id} />
+                          <input type="hidden" name="meslekId" value={p.meslekId} />
+                          <span className="w-24 text-xs text-slate-600">{p.meslek.ad}</span>
+                          <input
+                            name="fiyat"
+                            type="number"
+                            step="10"
+                            defaultValue={Number(p.kisiGunFiyat)}
+                            className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs tabular-nums outline-none focus:border-indigo-500"
+                          />
+                          <button
+                            type="submit"
+                            title="Kaydet"
+                            className="rounded-lg p-1 text-emerald-600 transition hover:bg-emerald-50"
+                          >
+                            <Icon name="check" size={14} />
+                          </button>
+                        </form>
+                      ))}
+                      {f.fiyatlar.length === 0 && (
+                        <p className="text-xs text-slate-400">Henüz fiyat anlaşması yok</p>
+                      )}
                     </div>
+                    {/* Fiyat Ekle: tanımlı olmayan mesleklerden seç */}
+                    {(() => {
+                      const eklenebilir = meslekler.filter((m) => !f.fiyatlar.some((p) => p.meslekId === m.id))
+                      if (eklenebilir.length === 0) return null
+                      return (
+                        <form action={setFirmaFiyat} className="mt-2 flex items-center gap-2 border-t border-slate-100 pt-2">
+                          <input type="hidden" name="firmaId" value={f.id} />
+                          <select name="meslekId" required className="w-24 rounded-lg border border-slate-200 px-1.5 py-1 text-xs outline-none focus:border-indigo-500">
+                            <option value="">+ Ekle</option>
+                            {eklenebilir.map((m) => (
+                              <option key={m.id} value={m.id}>{m.ad}</option>
+                            ))}
+                          </select>
+                          <input
+                            name="fiyat"
+                            type="number"
+                            step="10"
+                            min={0}
+                            required
+                            placeholder="₺"
+                            className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs tabular-nums outline-none focus:border-indigo-500"
+                          />
+                          <button type="submit" title="Fiyat ekle" className="rounded-lg p-1 text-indigo-600 transition hover:bg-indigo-50">
+                            <Icon name="plus" size={14} />
+                          </button>
+                        </form>
+                      )
+                    })()}
                   </div>
                 </div>
               </Card>

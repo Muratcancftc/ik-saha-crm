@@ -5,6 +5,7 @@ import { Card, CardHeader, Th, Td, Badge, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { AdayForm } from './aday-form'
 import { adayDurumDegistir, adayAktar, adaySil } from '@/app/actions/aday'
+import { SilOnayForm } from './sil-onay'
 
 export const dynamic = 'force-dynamic'
 
@@ -99,17 +100,12 @@ export default async function AdaylarPage() {
                             <form action={adayDurumDegistir}>
                               <input type="hidden" name="id" value={a.id} />
                               <input type="hidden" name="durum" value="reddedildi" />
-                              <button className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Reddet">
-                                <Icon name="x" size={14} />
+                              <button className="rounded-lg p-1.5 text-red-400 transition hover:bg-red-50 hover:text-red-600" title="Reddet">
+                                <Icon name="x" size={15} />
                               </button>
                             </form>
                           )}
-                          <form action={adaySil}>
-                            <input type="hidden" name="id" value={a.id} />
-                            <button className="rounded-lg p-1.5 text-slate-300 hover:bg-slate-100 hover:text-slate-600" title="Sil">
-                              <Icon name="x" size={14} />
-                            </button>
-                          </form>
+                          <SilOnayForm action={adaySil} id={a.id} baslik={`${a.ad} adayı`} />
                         </div>
                       </Td>
                     </tr>

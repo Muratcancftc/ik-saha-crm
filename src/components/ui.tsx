@@ -109,7 +109,12 @@ export function StatCard({
       <div className="flex items-start justify-between gap-3 pl-1">
         <div className="min-w-0">
           <p className="truncate text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</p>
-          <p className={`mt-2 truncate text-3xl font-bold tabular-nums tracking-tight ${values[valueTone]}`}>{value}</p>
+          <p
+            title={typeof value === 'string' ? value : undefined}
+            className={`mt-2 text-2xl font-bold tabular-nums leading-tight tracking-tight xl:text-3xl xl:leading-tight ${values[valueTone]}`}
+          >
+            {value}
+          </p>
           {sub && <div className="mt-1.5 text-xs text-slate-500">{sub}</div>}
         </div>
         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${t.iconBg} ${t.icon}`}>

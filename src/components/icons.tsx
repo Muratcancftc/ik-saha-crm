@@ -27,6 +27,8 @@ type IconName =
   | 'filter'
   | 'excel'
   | 'pdf'
+  | 'trash'
+  | 'yenile'
 
 const PATHS: Record<IconName, ReactElement> = {
   dashboard: (
@@ -163,6 +165,17 @@ const PATHS: Record<IconName, ReactElement> = {
       <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
       <path d="M14 3v5h5" />
       <path d="M12 8v8M12 8c-1 0-1.5-1.5-1.5-2.5" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M10 11v6M14 11v6" />
+    </>
+  ),
+  yenile: (
+    <>
+      <path d="M21 12a9 9 0 1 1-2.6-6.3M21 3v6h-6" />
     </>
   ),
 }

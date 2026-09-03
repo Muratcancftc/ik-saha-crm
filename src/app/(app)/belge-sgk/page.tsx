@@ -5,7 +5,7 @@ import { daysUntil, startOfDay } from '@/lib/dates'
 import { Card, CardHeader, Th, Td, Badge, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { BelgeForm } from './belge-form'
-import { silBelge } from '@/app/actions/belge'
+import { silBelge, belgeYenile } from '@/app/actions/belge'
 import { sgkBildir } from '@/app/actions/talep'
 
 export const dynamic = 'force-dynamic'
@@ -154,12 +154,22 @@ export default async function BelgeSgkPage({
                         )}
                       </Td>
                       <Td className="text-right">
-                        <form action={silBelge}>
-                          <input type="hidden" name="id" value={b.id} />
-                          <button className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Sil">
-                            <Icon name="x" size={14} />
-                          </button>
-                        </form>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <form action={belgeYenile} className="flex items-center gap-1">
+                            <input type="hidden" name="id" value={b.id} />
+                            <input name="bitisTarihi" type="date" defaultValue={b.bitisTarihi.toISOString().slice(0, 10)} className="w-28 rounded-lg border border-slate-200 px-1.5 py-1 text-[11px] outline-none focus:border-indigo-500" />
+                            <button type="submit" title="Yenile (yeni bitiş tarihi)" className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2 py-1 text-[11px] font-medium text-indigo-700 transition hover:bg-indigo-100">
+                              <Icon name="yenile" size={12} />
+                              Yenile
+                            </button>
+                          </form>
+                          <form action={silBelge}>
+                            <input type="hidden" name="id" value={b.id} />
+                            <button className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Sil">
+                              <Icon name="x" size={14} />
+                            </button>
+                          </form>
+                        </div>
                       </Td>
                     </tr>
                   )

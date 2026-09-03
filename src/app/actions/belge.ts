@@ -37,6 +37,21 @@ export async function silBelge(formData: FormData) {
   return
 }
 
+// Belgeyi tek adımda yenile (yeni bitiş tarihi)
+export async function belgeYenile(formData: FormData) {
+  await requireRoles(['patron', 'operasyon'])
+  const id = Number(formData.get('id'))
+  const bitis = String(formData.get('bitisTarihi') ?? '')
+  if (!id || !bitis) return
+  const belge = await prisma.belge.findUnique({ where: { id } })
+  if (!belge) return
+  await prisma.belge.update({ where: { id }, data: { bitisTarihi: new Date(`${bitis}T23:59:00`) } })
+  revalidatePath('/belge-sgk')
+  revalidatePath('/isci-havuzu')
+  revalidatePath(`/isci-havuzu/${belge.isciId}`)
+  return
+}
+
 // Profil sayfasında düz form ile belge ekleme
 export async function belgeEkle(formData: FormData) {
   await requireRoles(['patron', 'operasyon'])

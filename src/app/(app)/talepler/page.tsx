@@ -60,7 +60,11 @@ export default async function TaleplerPage({
       sablon: sp.sablon === '1',
     }),
     seciliId ? getTalepDetay(user, seciliId) : null,
-    prisma.musteriFirma.findMany({ include: { lokasyonlar: true }, orderBy: { ad: 'asc' } }),
+    prisma.musteriFirma.findMany({
+      where: user.rol === 'saha_sorumlusu' ? { lokasyonlar: { some: { id: user.lokasyonId ?? -1 } } } : {},
+      include: { lokasyonlar: true },
+      orderBy: { ad: 'asc' },
+    }),
     prisma.meslek.findMany({ orderBy: { ad: 'asc' } }),
   ])
 

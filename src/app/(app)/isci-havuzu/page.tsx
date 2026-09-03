@@ -158,16 +158,16 @@ export default async function IsciHavuzuPage({
               <tbody className="divide-y divide-slate-50">
                 {rows.map((i) => (
                   <tr key={i.id} className="group hover:bg-slate-50/60">
-                    <td className="px-5 py-3">
+                    <td className="whitespace-nowrap px-5 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
                           {i.ad.split(' ').map((p) => p[0]).slice(0, 2).join('')}
                         </div>
-                        <div>
-                          <Link href={`/isci-havuzu/${i.id}`} className="text-sm font-medium text-slate-900 hover:text-indigo-600">
+                        <div className="min-w-0">
+                          <Link href={`/isci-havuzu/${i.id}`} className="block max-w-44 truncate text-sm font-medium text-slate-900 hover:text-indigo-600" title={i.ad}>
                             {i.ad}
                           </Link>
-                          <div className="text-xs text-slate-500">{i.telefon}</div>
+                          <div className="whitespace-nowrap text-xs text-slate-500">{i.telefon}</div>
                         </div>
                       </div>
                     </td>
