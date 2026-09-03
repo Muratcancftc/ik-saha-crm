@@ -23,16 +23,27 @@ type Detay = {
   atamalar: Array<{ id: number; isciId: number; isciAd: string; meslekId: number | null; durum: string; puantaj: string | null; sgkBildirildi: boolean }>
 }
 
-export function TalepDetayModal({ talepId, acik, kapat }: { talepId: number; acik: boolean; kapat: () => void }) {
+export function TalepDetayModal({ talepId, acik, kapat, yenileAnahtari }: { talepId: number; acik: boolean; kapat: () => void; yenileAnahtari?: string }) {
   const [d, setD] = useState<Detay | null>(null)
 
-  useEffect(() => {
-    if (!acik) return
+  function yukle() {
     setD(null)
     startTransition(async () => {
       setD(await takvimTalepDetay(talepId))
     })
+  }
+
+  useEffect(() => {
+    if (!acik) return
+    yukle()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acik, talepId])
+
+  // Ebeveyn verisi değiştiğinde (atama yapıldığında) detayı yenile
+  useEffect(() => {
+    if (acik && yenileAnahtari) yukle()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yenileAnahtari])
 
   if (!acik) return null
 
@@ -83,7 +94,7 @@ export function TalepDetayModal({ talepId, acik, kapat }: { talepId: number; aci
             <div className="space-y-3">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Atama Yap</h4>
               {d.kalemler.map((k) => (
-                <AtamaPaneli key={k.id} talepId={d.id} meslekId={k.meslekId} meslekAd={k.meslekAd} tarih={d.tarih} />
+                <AtamaPaneli key={k.id} talepId={d.id} meslekId={k.meslekId} meslekAd={k.meslekAd} tarih={d.tarih} onSuccess={yukle} />
               ))}
             </div>
 

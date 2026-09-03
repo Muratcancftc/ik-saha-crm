@@ -28,12 +28,14 @@ export function AtamaPaneli({
   meslekAd,
   tarih,
   haricId,
+  onSuccess,
 }: {
   talepId: number
   meslekId: number
   meslekAd: string
   tarih: string
   haricId?: number
+  onSuccess?: () => void
 }) {
   const [adaylar, setAdaylar] = useState<Aday[] | null>(null)
   const [yukleniyor, setYukleniyor] = useState(false)
@@ -46,8 +48,9 @@ export function AtamaPaneli({
       setUyari(state.uyari ?? null)
       setSecili(null)
       setAdaylar(null)
+      onSuccess?.()
     }
-  }, [state])
+  }, [state, onSuccess])
 
   async function getir() {
     setYukleniyor(true)

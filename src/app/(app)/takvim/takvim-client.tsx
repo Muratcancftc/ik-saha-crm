@@ -275,6 +275,8 @@ function HaftaGorunumu({
                                 const aktif = secili?.talepId === t.id && secili?.meslekId === k.meslekId
                                 return (
                                   <button key={k.meslekId}
+                                    data-talep={t.id}
+                                    data-meslek={k.meslekId}
                                     onClick={() => { setSecili({ talepId: t.id, meslekId: k.meslekId, meslekAd: k.meslekAd }); setDetayTalep(t.id) }}
                                     className={`block w-full rounded-lg border px-2 py-1.5 text-left transition ${aktif ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm' : `${renk} hover:shadow-sm`}`}
                                     title={`${k.meslekAd}: ${k.atanan}/${k.adet} işçi — detay için tıkla`}>
@@ -374,7 +376,14 @@ function HaftaGorunumu({
         {mesaj && <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">{mesaj}</div>}
       </div>
 
-      {detayTalep && <TalepDetayModal talepId={detayTalep} acik={true} kapat={() => { router.refresh(); setDetayTalep(null) }} />}
+      {detayTalep && (
+        <TalepDetayModal
+          talepId={detayTalep}
+          acik={true}
+          yenileAnahtari={talepler.find((t) => t.id === detayTalep) ? JSON.stringify(talepler.filter((t) => t.id === detayTalep).flatMap((t) => t.kalemler.map((k) => k.atanan))) : ''}
+          kapat={() => { router.refresh(); setDetayTalep(null) }}
+        />
+      )}
     </div>
   )
 }

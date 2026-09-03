@@ -26,7 +26,7 @@ export default async function DashboardPage({
   const donem = donemAralik(sp)
 
   const [mali, atamalar, uyarilar, talepler, ops, rapor, trend, aktifIsci] = await Promise.all([
-    getMaliVeri(),
+    getMaliVeri(donem.bas, donem.bit),
     getBugunAtamalar(user),
     getUyarilar(user),
     getAcilTalepler(user),
@@ -67,8 +67,16 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {/* KPI — 8 kart, 2/3/4 sütun, dengeli */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+      {/* KPI — 8 kart, 2/3/4 sütun, dengeli (saha_sorumlusu: mali veri görmez) */}
+      {user.rol === 'saha_sorumlusu' ? (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+          <StatCard icon="puantaj" label="Bugünkü Atama" value={num(bugunAtamaSayisi)} valueTone="neutral" sub={<span><b className="text-emerald-600">{num(geldiSayisi)}</b> geldi · {num(atamalar.length - geldiSayisi)} bekliyor</span>} tone="blue" />
+          <StatCard icon="talep" label="Yarın İhtiyaç" value={`${num(ops.yarin.atanan)}/${num(ops.yarin.ihtiyac)}`} valueTone={ops.yarin.eksik > 0 ? 'amber' : 'green'} sub={<span>{num(ops.yarin.eksik)} kişi eksik</span>} tone="blue" />
+          <StatCard icon="users" label="Açık Talepler" value={num(ops.acik.talepSayisi)} valueTone="amber" sub={`${num(ops.acik.adet)} ihtiyaç · ${num(ops.acik.eksik)} eksik`} tone="amber" />
+          <StatCard icon="belge" label="Belge Uyarısı" value={num(ops.belge.dolan + ops.belge.yaklasan)} valueTone="red" sub={<span><b className="text-rose-600">{num(ops.belge.dolan)}</b> doldu · {num(ops.belge.yaklasan)} yakın</span>} tone="red" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
         <StatCard
           icon="wallet"
           label="Net Kâr"
@@ -120,8 +128,10 @@ export default async function DashboardPage({
         />
         <StatCard icon="isci" label="Aktif İşçi" value={num(aktifIsci)} valueTone="neutral" sub="havuzda" tone="violet" />
       </div>
+      )}
 
-      {/* Dönem raporu */}
+      {/* Dönem raporu (saha_sorumlusu görmez) */}
+      {user.rol !== 'saha_sorumlusu' && (
       <Card>
         <CardHeader title="Dönem Raporu" desc={`${donemEtiket(donem)} — seçili döneme göre hesaplanır`} />
         <div className="grid grid-cols-1 gap-6 px-5 py-5 lg:grid-cols-2">
@@ -178,6 +188,7 @@ export default async function DashboardPage({
           </div>
         </div>
       </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         {/* Bugünkü atamalar */}
@@ -297,7 +308,7 @@ export default async function DashboardPage({
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <AciliyetBadge aciliyet={t.aciliyet} />
-                          <TalepBadge durum={t.durum} />
+                          {atanan > toplamAdet ? <Badge tone="violet">Aşım</Badge> : <TalepBadge durum={t.durum} />}
                         </div>
                       </td>
                     </tr>

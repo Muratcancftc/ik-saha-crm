@@ -32,28 +32,29 @@ export function atamaLokasyonFilter(user: SessionUser): Prisma.AtamaWhereInput {
   return {}
 }
 
-// KPI: ciro, alacak, saha işçi maliyeti, giderler
-export async function getMaliVeri() {
-  const [faturalar, tahsilatlar, hakedisler, giderler, personel, odemeler] = await Promise.all([
-    prisma.fatura.aggregate({ _sum: { genelToplam: true } }),
-    prisma.tahsilat.aggregate({ _sum: { tutar: true } }),
-    prisma.hakedis.aggregate({ _sum: { marj: true }, _count: true }),
-    prisma.gider.findMany(),
+// KPI: ciro, alacak, saha işçi maliyeti, giderler — dönem bazlı (tüm sayfalar aynı kaynağı kullanır)
+export async function getMaliVeri(bas?: Date, bit?: Date) {
+  const faturaWhere = bas && bit ? { vadeTarihi: { gte: bas, lt: bit } } : {}
+  const hakedisWhere = bas && bit ? { donemBitis: { gte: bas, lt: bit } } : {}
+  const giderWhere = bas && bit ? { tarih: { gte: bas, lt: bit } } : {}
+
+  const [faturalar, hakedislerList, giderler, personel, odemeler] = await Promise.all([
+    prisma.fatura.findMany({ where: faturaWhere, include: { tahsilatlar: true } }),
+    prisma.hakedis.findMany({ where: hakedisWhere }),
+    prisma.gider.findMany({ where: giderWhere }),
     prisma.personel.aggregate({ _sum: { maas: true } }),
-    prisma.resmiOdeme.findMany({ where: { durum: 'odendi' } }),
+    prisma.resmiOdeme.findMany({
+      where: bas && bit ? { durum: 'odendi', odemeTarihi: { gte: bas, lt: bit } } : { durum: 'odendi' },
+    }),
   ])
 
-  const ciro = Number(faturalar._sum.genelToplam ?? 0)
-  const tahsilat = Number(tahsilatlar._sum.tutar ?? 0)
+  const ciro = faturalar.reduce((a, f) => a + Number(f.genelToplam), 0)
+  const tahsilat = faturalar.reduce((a, f) => a + f.tahsilatlar.reduce((x, t) => x + Number(t.tutar), 0), 0)
   const alacak = ciro - tahsilat
 
   // Saha işçi maliyeti = hakediş gün × yevmiye
-  const hakedislerList = await prisma.hakedis.findMany()
-  const sahaIsciMaliyeti = hakedislerList.reduce(
-    (acc, h) => acc + Number(h.gun) * Number(h.yevmiye),
-    0
-  )
-  const brütMarj = Number(hakedislerList.reduce((acc, h) => acc + Number(h.marj), 0))
+  const sahaIsciMaliyeti = hakedislerList.reduce((acc, h) => acc + Number(h.gun) * Number(h.yevmiye), 0)
+  const brütMarj = hakedislerList.reduce((acc, h) => acc + Number(h.marj), 0)
 
   // Genel giderler = kira/ulaşım/yakıt/sarf/diğer (işçi yevmiye ve bordro ayrı sayılır)
   const genelGiderler = giderler
@@ -86,7 +87,7 @@ export async function getMaliVeri() {
     aylikBordro,
     odenenVergi,
     netKar,
-    hakedisAdet: hakedisler._count,
+    hakedisAdet: hakedislerList.length,
   }
 }
 

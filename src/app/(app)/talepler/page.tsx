@@ -241,7 +241,7 @@ export default async function TaleplerPage({
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-base font-semibold">{secili.firma.ad}</h2>
-                      <TalepBadge durum={secili.durum} />
+                      {secili.atamalar.filter((a) => a.durum !== 'iptal').length > secili.kalemler.reduce((a, k) => a + k.adet, 0) ? <Badge tone="violet">Aşım</Badge> : <TalepBadge durum={secili.durum} />}
                       <AciliyetBadge aciliyet={secili.aciliyet} />
                       {secili.sablon && <Badge tone="violet" className="bg-white/15 text-white ring-white/20">Şablon {secili.tekrar ? `(${secili.tekrar === 'gunluk' ? 'Günlük' : 'Haftalık'})` : ''}</Badge>}
                     </div>
@@ -572,7 +572,7 @@ function TalepGruplari({
                   {t.aciliyet === 'acil' && <Badge tone="red">ACİL</Badge>}
                   {t.vardiya === 'gece' && <Badge tone="slate">Gece</Badge>}
                   {t.sablon && <Badge tone="violet">Ş</Badge>}
-                  <TalepBadge durum={t.durum} />
+                  {eksikMi === false && toplam > 0 && atanan > toplam ? <Badge tone="violet">Aşım</Badge> : <TalepBadge durum={t.durum} />}
                 </div>
               </div>
               <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-slate-500">

@@ -24,16 +24,19 @@ export default async function BildirimlerPage({
   void user
   const sp = await searchParams
 
-  const bildirimler = await prisma.bildirim.findMany({
-    where: {
-      ...(sp.tur ? { tur: sp.tur as never } : {}),
-      ...(sp.okunmamis === '1' ? { okundu: false } : {}),
-    },
-    orderBy: [{ okundu: 'asc' }, { tarih: 'desc' }],
-    take: 100,
-  })
+  const [bildirimler, okunmamisToplam] = await Promise.all([
+    prisma.bildirim.findMany({
+      where: {
+        ...(sp.tur ? { tur: sp.tur as never } : {}),
+        ...(sp.okunmamis === '1' ? { okundu: false } : {}),
+      },
+      orderBy: [{ okundu: 'asc' }, { tarih: 'desc' }],
+      take: 100,
+    }),
+    prisma.bildirim.count({ where: { okundu: false } }),
+  ])
 
-  const okunmamis = bildirimler.filter((b) => !b.okundu).length
+  const okunmamis = okunmamisToplam
 
   return (
     <div className="space-y-5">

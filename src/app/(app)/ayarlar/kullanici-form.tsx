@@ -34,18 +34,18 @@ export function KullaniciForm({ lokasyonlar }: { lokasyonlar: LokasyonDto[] }) {
                 <Icon name="x" size={18} />
               </button>
             </div>
-            <form action={formAction} className="space-y-4 px-6 py-5">
+            <form action={formAction} autoComplete="off" className="space-y-4 px-6 py-5">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">Ad</label>
-                <input name="ad" required className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
+                <input name="ad" required autoComplete="off" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">E-posta</label>
-                <input name="email" type="email" required className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
+                <input name="email" type="email" required autoComplete="off" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">Şifre (min 6)</label>
-                <input name="sifre" type="password" required minLength={6} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
+                <input name="sifre" type="password" required minLength={6} autoComplete="new-password" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">Rol</label>

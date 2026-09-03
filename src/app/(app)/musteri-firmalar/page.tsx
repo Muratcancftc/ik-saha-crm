@@ -80,6 +80,13 @@ export default async function MusteriFirmalarPage() {
                       </div>
                     </div>
                   </div>
+                  <a
+                    href={`/musteri-firmalar/${f.id}`}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                  >
+                    Firma Detayı
+                    <Icon name="chevron" size={13} className="-rotate-90" />
+                  </a>
                 </div>
 
                 <div className="grid flex-1 grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">

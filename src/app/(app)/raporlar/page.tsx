@@ -1,5 +1,6 @@
 import { requireUser } from '@/lib/dal'
 import { getDashboardRapor, getAylikTrend, getIsciKarlilik } from '@/lib/profil-queries'
+import { getMaliVeri } from '@/lib/queries'
 import { donemAralik, donemEtiket } from '@/lib/donem'
 import { tl, num } from '@/lib/format'
 import { Card, CardHeader, Badge, EmptyState } from '@/components/ui'
@@ -19,10 +20,11 @@ export default async function RaporlarPage({
   const sp = await searchParams
   const donem = donemAralik(sp)
 
-  const [rapor, trend, karlilik] = await Promise.all([
+  const [rapor, trend, karlilik, mali] = await Promise.all([
     getDashboardRapor(user, donem.bas, donem.bit),
     getAylikTrend(),
     getIsciKarlilik(donem.bas, donem.bit),
+    getMaliVeri(donem.bas, donem.bit),
   ])
 
   const maxTrend = Math.max(...trend.map((m) => Math.max(m.ciro, m.gider, 1)))
@@ -70,9 +72,9 @@ export default async function RaporlarPage({
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-emerald-500" />Net</span>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-3">
-              <Mini label="Ciro" v={tl(rapor.ciro)} tone="text-indigo-600" />
-              <Mini label="Gider" v={tl(rapor.gider)} tone="text-amber-600" />
-              <Mini label="Net Kâr" v={tl(rapor.netKar)} tone={rapor.netKar >= 0 ? 'text-emerald-600' : 'text-red-600'} />
+              <Mini label="Ciro" v={tl(mali.ciro)} tone="text-indigo-600" />
+              <Mini label="Gider" v={tl(mali.genelGiderler + mali.personelBordroGider + mali.sahaIsciMaliyeti + mali.odenenVergi)} tone="text-amber-600" />
+              <Mini label="Net Kâr" v={tl(mali.netKar)} tone={mali.netKar >= 0 ? 'text-emerald-600' : 'text-red-600'} />
             </div>
           </div>
         </Card>

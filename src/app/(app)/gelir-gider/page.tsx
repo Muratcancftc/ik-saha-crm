@@ -1,6 +1,9 @@
 import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { getMaliVeri } from '@/lib/queries'
+import { donemAralik, donemEtiket } from '@/lib/donem'
+import { DonemSecici } from '@/components/donem-secici'
+import { Suspense } from 'react'
 import { tl, num, date } from '@/lib/format'
 import { Card, CardHeader, StatCard, Th, Td, EmptyState } from '@/components/ui'
 import { GiderKategoriLabel, GiderKategoriLabelBadge, GiderForm } from './gider-form'
@@ -9,12 +12,22 @@ import { Icon } from '@/components/icons'
 
 export const dynamic = 'force-dynamic'
 
-export default async function GelirGiderPage() {
+export default async function GelirGiderPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ donem?: string; bas?: string; bit?: string }>
+}) {
   await requireRoles(['patron', 'muhasebe'])
-  const mali = await getMaliVeri()
+  const sp = await searchParams
+  const donem = donemAralik(sp)
+  const mali = await getMaliVeri(donem.bas, donem.bit)
 
-  const giderler = await prisma.gider.findMany({ orderBy: { tarih: 'desc' } })
+  const giderler = await prisma.gider.findMany({
+    where: { tarih: { gte: donem.bas, lt: donem.bit } },
+    orderBy: { tarih: 'desc' },
+  })
   const tahsilatlar = await prisma.tahsilat.findMany({
+    where: { tarih: { gte: donem.bas, lt: donem.bit } },
     include: { fatura: { include: { firma: true } } },
     orderBy: { tarih: 'desc' },
   })
@@ -44,10 +57,18 @@ export default async function GelirGiderPage() {
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">Gelir – Gider</h2>
+          <p className="text-xs text-slate-400">{donemEtiket(donem)}</p>
+        </div>
+        <Suspense fallback={null}><DonemSecici /></Suspense>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard icon="wallet" label="Net Kâr" value={tl(mali.netKar)} sub="Gelir − (işçi + gider + bordro + vergi)" tone={mali.netKar >= 0 ? 'green' : 'red'} />
-        <StatCard icon="hakedis" label="Brüt Marj" value={tl(mali.brütMarj)} sub="Müşteriden − gün×yevmiye (ayrı hesaplanır)" tone="indigo" />
-        <StatCard icon="gider" label="Nakit Akışı" value={tl(giren - cikan)} sub={`Giren ${tl(giren)} · Çıkan ${tl(cikan)}`} tone="blue" />
+        <StatCard icon="wallet" label="Net Kâr" value={tl(mali.netKar)} valueTone={mali.netKar >= 0 ? 'green' : 'red'} sub="Gelir − (işçi + gider + bordro + vergi)" tone="indigo" />
+        <StatCard icon="hakedis" label="Brüt Marj" value={tl(mali.brütMarj)} valueTone="neutral" sub="Müşteriden − gün×yevmiye" tone="indigo" />
+        <StatCard icon="gider" label="Nakit Akışı" value={tl(giren - cikan)} valueTone="neutral" sub={`Giren ${tl(giren)} · Çıkan ${tl(cikan)}`} tone="blue" />
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">

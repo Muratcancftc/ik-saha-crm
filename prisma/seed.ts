@@ -432,33 +432,60 @@ async function main() {
     data: { atamaId: bugunAtama2.id, durum: 'gelmedi', calisilanSaat: 0 },
   })
 
-  // ---- Hakediş (geçmiş dönem, puantaj kapanınca otomatik) ----
-  for (const gt of gecmisTalepler.slice(0, 4)) {
+  // ---- Hakediş (geçmiş dönem; işçi+firma+ay bazında toplanır, avans dönemde bir kez) ----
+  for (const gt of gecmisTalepler) {
     for (const w of gt.isciler) {
+      const atama = await prisma.atama.findFirst({ where: { talepId: gt.talep.id, isciId: w.id } })
+      if (!atama) continue
+      const puantaj = await prisma.puantaj.findUnique({ where: { atamaId: atama.id } })
+      if (!puantaj || puantaj.durum === 'gelmedi') continue
       const firmaFiyat = await prisma.firmaFiyat.findFirst({
         where: { firmaId: gt.talep.firmaId, meslekId: meslekler[gt.meslekAd].id },
       })
-      const gun = 1
       const yevmiye = w.gunlukUcretBeklentisi
       const musteriGun = firmaFiyat ? Number(firmaFiyat.kisiGunFiyat) : yevmiye + 500
-      const avansToplam = avanslar[w.id] ?? 0
-      const kesinti = 0
-      const isciNet = gun * yevmiye - avansToplam - kesinti
-      await prisma.hakedis.create({
-        data: {
-          isciId: w.id,
-          firmaId: gt.talep.firmaId,
-          donemBas: atMidnight(-30),
-          donemBitis: atMidnight(-1),
-          gun,
-          yevmiye,
-          avansToplam,
-          kesinti,
-          isciNet,
-          musteriTutar: gun * musteriGun,
-          marj: gun * musteriGun - gun * yevmiye,
-        },
+      const avans = avanslar[w.id] ?? 0
+      const tarih = gt.talep.tarih
+      const donemKey = `${tarih.getFullYear()}-${tarih.getMonth() + 1}`
+
+      const mevcut = await prisma.hakedis.findFirst({
+        where: { isciId: w.id, firmaId: gt.talep.firmaId, donemKey },
       })
+      if (mevcut) {
+        const gun = mevcut.gun + 1
+        const musteri = Number(mevcut.musteriTutar) + musteriGun
+        await prisma.hakedis.update({
+          where: { id: mevcut.id },
+          data: {
+            atamaId: atama.id,
+            donemBitis: tarih,
+            gun,
+            yevmiye,
+            avansToplam: avans,
+            isciNet: gun * yevmiye - avans,
+            musteriTutar: musteri,
+            marj: musteri - gun * yevmiye,
+          },
+        })
+      } else {
+        await prisma.hakedis.create({
+          data: {
+            atamaId: atama.id,
+            isciId: w.id,
+            firmaId: gt.talep.firmaId,
+            donemKey,
+            donemBas: new Date(tarih.getFullYear(), tarih.getMonth(), 1),
+            donemBitis: tarih,
+            gun: 1,
+            yevmiye,
+            avansToplam: avans,
+            kesinti: 0,
+            isciNet: yevmiye - avans,
+            musteriTutar: musteriGun,
+            marj: musteriGun - yevmiye,
+          },
+        })
+      }
     }
   }
 

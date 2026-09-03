@@ -359,7 +359,8 @@ model Hakedis {
   id           Int      @id @default(autoincrement())
   isciId       Int
   firmaId      Int
-  atamaId      Int?     @unique // tekrarsız otomatik üretim
+  atamaId      Int? // referans (tekrarsızlık donemKey üzerinden)
+  donemKey     String // "2026-9" — işçi+firma+ay tekil anahtarı
   donemBas     DateTime
   donemBitis   DateTime
   gun          Int
@@ -374,6 +375,7 @@ model Hakedis {
   isci  Isci         @relation(fields: [isciId], references: [id], onDelete: Cascade)
   firma MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
 
+  @@unique([isciId, firmaId, donemKey])
   @@index([isciId])
   @@index([firmaId])
 }

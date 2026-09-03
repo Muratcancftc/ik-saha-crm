@@ -8,6 +8,7 @@ import { Card, CardHeader, Badge, Button, Th, Td, EmptyState } from '@/component
 import { IsciBadge, PuantajBadge } from '@/components/status-badge'
 import { Icon } from '@/components/icons'
 import { DonemSecici } from '@/components/donem-secici'
+import { MaskedValue } from '@/components/masked-value'
 import { Suspense } from 'react'
 import { isciNotGuncelle, avansEkle, avansMahsup } from '@/app/actions/isci'
 import { belgeEkle, silBelge } from '@/app/actions/belge'
@@ -69,8 +70,8 @@ export default async function IsciProfilPage({
           <CardHeader title="Genel" desc="Kimlik ve çalışma bilgileri" />
           <div className="px-5 py-4">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
-              <Satir label="TC Kimlik" value={isci.tcKimlik} />
-              <Satir label="IBAN" value={isci.iban} />
+              <Satir label="TC Kimlik" value={<MaskedValue value={isci.tcKimlik} mask={isci.tcMasked} />} />
+              <Satir label="IBAN" value={<MaskedValue value={isci.iban} mask={isci.ibanMasked} />} />
               <Satir label="Telefon" value={isci.telefon} />
               <Satir label="İlçe" value={isci.ilce} />
               <Satir label="Doğum Tarihi" value={date(isci.dogumTarihi)} />
@@ -287,7 +288,7 @@ function Ozet({ label, value, tone }: { label: string; value: string; tone: stri
   )
 }
 
-function Satir({ label, value }: { label: string; value: string }) {
+function Satir({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-3">
       <dt className="text-slate-400">{label}</dt>
