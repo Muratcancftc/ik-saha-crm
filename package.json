@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "check": "tsc --noEmit && eslint && next build",
+    "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx --env-file=.env prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",

@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "Rol" AS ENUM ('patron', 'operasyon', 'muhasebe', 'saha_sorumlusu');
 
@@ -43,6 +46,21 @@ CREATE TYPE "PersonelDurum" AS ENUM ('aktif', 'pasif');
 -- CreateEnum
 CREATE TYPE "BildirimTur" AS ENUM ('belge', 'sgk', 'fatura', 'vergi', 'talep');
 
+-- CreateEnum
+CREATE TYPE "TekrarTip" AS ENUM ('gunluk', 'haftalik');
+
+-- CreateEnum
+CREATE TYPE "AdayDurum" AS ENUM ('basvurdu', 'gorusuldu', 'onaylandi', 'reddedildi');
+
+-- CreateEnum
+CREATE TYPE "OdemeKaynak" AS ENUM ('isci', 'personel');
+
+-- CreateEnum
+CREATE TYPE "OdemeDurum" AS ENUM ('odendi', 'bekliyor');
+
+-- CreateEnum
+CREATE TYPE "EvrakTip" AS ENUM ('firma_sozlesme', 'isci_is_sozlesme', 'kvkk_acik_riza', 'diger');
+
 -- CreateTable
 CREATE TABLE "IsciMeslek" (
     "isciId" INTEGER NOT NULL,
@@ -70,6 +88,7 @@ CREATE TABLE "Isci" (
     "gunlukUcretBeklentisi" DECIMAL(10,2) NOT NULL,
     "durum" "IsciDurum" NOT NULL DEFAULT 'aktif',
     "tercihBolgeler" TEXT[],
+    "not" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -165,6 +184,8 @@ CREATE TABLE "Talep" (
     "aciliyet" "Aciliyet" NOT NULL DEFAULT 'normal',
     "durum" "TalepDurum" NOT NULL DEFAULT 'acik',
     "not" TEXT,
+    "sablon" BOOLEAN NOT NULL DEFAULT false,
+    "tekrar" "TekrarTip",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Talep_pkey" PRIMARY KEY ("id")
@@ -185,6 +206,7 @@ CREATE TABLE "Atama" (
     "id" SERIAL NOT NULL,
     "talepId" INTEGER NOT NULL,
     "isciId" INTEGER NOT NULL,
+    "meslekId" INTEGER,
     "tarih" TIMESTAMP(3) NOT NULL,
     "durum" "AtamaDurum" NOT NULL DEFAULT 'atandi',
     "sgkBildirildi" BOOLEAN NOT NULL DEFAULT false,
@@ -211,6 +233,8 @@ CREATE TABLE "Hakedis" (
     "id" SERIAL NOT NULL,
     "isciId" INTEGER NOT NULL,
     "firmaId" INTEGER NOT NULL,
+    "atamaId" INTEGER,
+    "donemKey" TEXT NOT NULL,
     "donemBas" TIMESTAMP(3) NOT NULL,
     "donemBitis" TIMESTAMP(3) NOT NULL,
     "gun" INTEGER NOT NULL,
@@ -294,6 +318,31 @@ CREATE TABLE "Personel" (
 );
 
 -- CreateTable
+CREATE TABLE "Izin" (
+    "id" SERIAL NOT NULL,
+    "personelId" INTEGER NOT NULL,
+    "tarih" TIMESTAMP(3) NOT NULL,
+    "gun" INTEGER NOT NULL,
+    "tip" TEXT NOT NULL,
+    "not" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Izin_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PersonelGecmisi" (
+    "id" SERIAL NOT NULL,
+    "personelId" INTEGER NOT NULL,
+    "tarih" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "alan" TEXT NOT NULL,
+    "eskiDeger" TEXT NOT NULL,
+    "yeniDeger" TEXT NOT NULL,
+
+    CONSTRAINT "PersonelGecmisi_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Kullanici" (
     "id" SERIAL NOT NULL,
     "ad" TEXT NOT NULL,
@@ -313,10 +362,67 @@ CREATE TABLE "Bildirim" (
     "tur" "BildirimTur" NOT NULL,
     "mesaj" TEXT NOT NULL,
     "ilgiliId" INTEGER,
+    "kanal" TEXT,
+    "hedef" TEXT,
+    "gonderimDurum" BOOLEAN NOT NULL DEFAULT false,
     "tarih" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "okundu" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Bildirim_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Aday" (
+    "id" SERIAL NOT NULL,
+    "ad" TEXT NOT NULL,
+    "telefon" TEXT NOT NULL,
+    "email" TEXT,
+    "meslekId" INTEGER,
+    "durum" "AdayDurum" NOT NULL DEFAULT 'basvurdu',
+    "puan" INTEGER NOT NULL DEFAULT 50,
+    "not" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Aday_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Odeme" (
+    "id" SERIAL NOT NULL,
+    "tip" "OdemeKaynak" NOT NULL,
+    "isciId" INTEGER,
+    "personelId" INTEGER,
+    "tutar" DECIMAL(10,2) NOT NULL,
+    "donem" TEXT NOT NULL,
+    "durum" "OdemeDurum" NOT NULL DEFAULT 'bekliyor',
+    "odemeTarihi" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Odeme_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Evrak" (
+    "id" SERIAL NOT NULL,
+    "tip" "EvrakTip" NOT NULL,
+    "baslik" TEXT NOT NULL,
+    "dosyaAdi" TEXT NOT NULL,
+    "dosyaYol" TEXT NOT NULL,
+    "ilgiliFirmaId" INTEGER,
+    "ilgiliIsciId" INTEGER,
+    "yuklemeTarihi" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Evrak_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Ayar" (
+    "id" SERIAL NOT NULL,
+    "anahtar" TEXT NOT NULL,
+    "deger" TEXT NOT NULL,
+    "aciklama" TEXT,
+
+    CONSTRAINT "Ayar_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -356,6 +462,9 @@ CREATE INDEX "Hakedis_isciId_idx" ON "Hakedis"("isciId");
 CREATE INDEX "Hakedis_firmaId_idx" ON "Hakedis"("firmaId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Hakedis_isciId_firmaId_donemKey_key" ON "Hakedis"("isciId", "firmaId", "donemKey");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Fatura_no_key" ON "Fatura"("no");
 
 -- CreateIndex
@@ -365,10 +474,22 @@ CREATE INDEX "Gider_kategori_tarih_idx" ON "Gider"("kategori", "tarih");
 CREATE INDEX "ResmiOdeme_tip_sonOdemeTarihi_idx" ON "ResmiOdeme"("tip", "sonOdemeTarihi");
 
 -- CreateIndex
+CREATE INDEX "Izin_personelId_idx" ON "Izin"("personelId");
+
+-- CreateIndex
+CREATE INDEX "PersonelGecmisi_personelId_idx" ON "PersonelGecmisi"("personelId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Kullanici_email_key" ON "Kullanici"("email");
 
 -- CreateIndex
 CREATE INDEX "Bildirim_kullaniciId_okundu_idx" ON "Bildirim"("kullaniciId", "okundu");
+
+-- CreateIndex
+CREATE INDEX "Odeme_durum_idx" ON "Odeme"("durum");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Ayar_anahtar_key" ON "Ayar"("anahtar");
 
 -- AddForeignKey
 ALTER TABLE "IsciMeslek" ADD CONSTRAINT "IsciMeslek_isciId_fkey" FOREIGN KEY ("isciId") REFERENCES "Isci"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -416,6 +537,9 @@ ALTER TABLE "Atama" ADD CONSTRAINT "Atama_talepId_fkey" FOREIGN KEY ("talepId") 
 ALTER TABLE "Atama" ADD CONSTRAINT "Atama_isciId_fkey" FOREIGN KEY ("isciId") REFERENCES "Isci"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Atama" ADD CONSTRAINT "Atama_meslekId_fkey" FOREIGN KEY ("meslekId") REFERENCES "Meslek"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Puantaj" ADD CONSTRAINT "Puantaj_atamaId_fkey" FOREIGN KEY ("atamaId") REFERENCES "Atama"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -431,7 +555,29 @@ ALTER TABLE "Fatura" ADD CONSTRAINT "Fatura_firmaId_fkey" FOREIGN KEY ("firmaId"
 ALTER TABLE "Tahsilat" ADD CONSTRAINT "Tahsilat_faturaId_fkey" FOREIGN KEY ("faturaId") REFERENCES "Fatura"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Izin" ADD CONSTRAINT "Izin_personelId_fkey" FOREIGN KEY ("personelId") REFERENCES "Personel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PersonelGecmisi" ADD CONSTRAINT "PersonelGecmisi_personelId_fkey" FOREIGN KEY ("personelId") REFERENCES "Personel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Kullanici" ADD CONSTRAINT "Kullanici_lokasyonId_fkey" FOREIGN KEY ("lokasyonId") REFERENCES "Lokasyon"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Bildirim" ADD CONSTRAINT "Bildirim_kullaniciId_fkey" FOREIGN KEY ("kullaniciId") REFERENCES "Kullanici"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Aday" ADD CONSTRAINT "Aday_meslekId_fkey" FOREIGN KEY ("meslekId") REFERENCES "Meslek"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Odeme" ADD CONSTRAINT "Odeme_isciId_fkey" FOREIGN KEY ("isciId") REFERENCES "Isci"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Odeme" ADD CONSTRAINT "Odeme_personelId_fkey" FOREIGN KEY ("personelId") REFERENCES "Personel"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Evrak" ADD CONSTRAINT "Evrak_ilgiliFirmaId_fkey" FOREIGN KEY ("ilgiliFirmaId") REFERENCES "MusteriFirma"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Evrak" ADD CONSTRAINT "Evrak_ilgiliIsciId_fkey" FOREIGN KEY ("ilgiliIsciId") REFERENCES "Isci"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
