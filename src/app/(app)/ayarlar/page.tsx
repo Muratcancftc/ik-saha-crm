@@ -1,26 +1,17 @@
 import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
-import { Card, CardHeader, Th, Td, Badge, Button } from '@/components/ui'
+import { Card, CardHeader, Badge, Button } from '@/components/ui'
 import { Icon } from '@/components/icons'
-import { KullaniciForm } from './kullanici-form'
-import { meslekEkle, meslekSil, kullaniciRolDegistir, kullaniciSil, ayarKaydet } from '@/app/actions/ayar'
+import { meslekEkle, meslekSil, ayarKaydet } from '@/app/actions/ayar'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
-
-const ROL_LABEL: Record<string, string> = {
-  patron: 'Patron',
-  operasyon: 'Operasyon',
-  muhasebe: 'Muhasebe',
-  saha_sorumlusu: 'Saha Sorumlusu',
-}
 
 export default async function AyarlarPage() {
   await requireRoles(['patron'])
 
-  const [meslekler, kullanicilar, lokasyonlar, ayarlar] = await Promise.all([
+  const [meslekler, ayarlar] = await Promise.all([
     prisma.meslek.findMany({ orderBy: { ad: 'asc' } }),
-    prisma.kullanici.findMany({ include: { lokasyon: true }, orderBy: { id: 'asc' } }),
-    prisma.lokasyon.findMany({ include: { firma: true } }),
     prisma.ayar.findMany({ orderBy: { anahtar: 'asc' } }),
   ])
 
@@ -86,67 +77,20 @@ export default async function AyarlarPage() {
         </div>
       </Card>
 
-      {/* Kullanıcı & RBAC */}
-      <Card>
-        <CardHeader
-          title="Kullanıcı & Rol Yönetimi"
-          desc="RBAC — rol bazlı yetkilendirme"
-          action={<KullaniciForm lokasyonlar={lokasyonlar} />}
-        />
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-100">
-                <Th>Kullanıcı</Th>
-                <Th>E-posta</Th>
-                <Th>Rol</Th>
-                <Th>Lokasyon</Th>
-                <Th className="text-right">İşlem</Th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {kullanicilar.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50/60">
-                  <Td className="font-medium text-slate-900">{u.ad}</Td>
-                  <Td>{u.email}</Td>
-                  <Td>
-                    <form action={kullaniciRolDegistir} className="flex items-center gap-1.5">
-                      <input type="hidden" name="id" value={u.id} />
-                      <select name="rol" defaultValue={u.rol} className="rounded-lg border border-slate-300 px-2 py-1 text-xs outline-none focus:border-indigo-500">
-                        {Object.entries(ROL_LABEL).map(([k, l]) => (
-                          <option key={k} value={k}>{l}</option>
-                        ))}
-                      </select>
-                      {u.rol === 'saha_sorumlusu' || u.lokasyonId ? (
-                        <select name="lokasyonId" defaultValue={u.lokasyonId ?? ''} className="rounded-lg border border-slate-300 px-2 py-1 text-xs outline-none focus:border-indigo-500">
-                          <option value="">—</option>
-                          {lokasyonlar.map((l) => (
-                            <option key={l.id} value={l.id}>{l.ad}</option>
-                          ))}
-                        </select>
-                      ) : null}
-                      <button type="submit" className="rounded-lg p-1 text-indigo-600 hover:bg-indigo-50" title="Kaydet">
-                        <Icon name="check" size={14} />
-                      </button>
-                    </form>
-                  </Td>
-                  <Td>{u.lokasyon?.ad ?? '—'}</Td>
-                  <Td className="text-right">
-                    {u.rol !== 'patron' && (
-                      <form action={kullaniciSil}>
-                        <input type="hidden" name="id" value={u.id} />
-                        <button className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Sil">
-                          <Icon name="x" size={14} />
-                        </button>
-                      </form>
-                    )}
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Kullanıcı yönetimine yönlendirme */}
+      <Link
+        href="/kullanicilar"
+        className="flex items-center justify-between rounded-2xl border border-indigo-200 bg-indigo-50/60 px-5 py-4 transition hover:bg-indigo-50"
+      >
+        <div>
+          <div className="flex items-center gap-2 text-sm font-semibold text-indigo-700">
+            <Icon name="users" size={16} />
+            Kullanıcılar & Yetkiler
+          </div>
+          <div className="mt-0.5 text-xs text-indigo-500">Ekip üyesi ekle, rollerini ve lokasyonlarını belirle</div>
         </div>
-      </Card>
+        <Icon name="chevron" size={16} className="-rotate-90 text-indigo-400" />
+      </Link>
     </div>
   )
 }

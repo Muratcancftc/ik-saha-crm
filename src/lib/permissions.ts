@@ -18,6 +18,7 @@ export const ROUTES: Record<string, { title: string; roles: Rol[]; desc?: string
   '/raporlar': { title: 'Raporlar', roles: ['patron', 'muhasebe', 'operasyon'] },
   '/evrak': { title: 'Sözleşme & Evrak', roles: ['patron', 'operasyon', 'muhasebe'] },
   '/ayarlar': { title: 'Ayarlar', roles: ['patron'] },
+  '/kullanicilar': { title: 'Kullanıcılar & Yetkiler', roles: ['patron'] },
   '/bildirimler': { title: 'Bildirimler', roles: ['patron', 'operasyon', 'muhasebe', 'saha_sorumlusu'] },
 }
 
@@ -57,6 +58,7 @@ export const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; ico
     items: [
       { href: '/raporlar', icon: 'gider', label: 'Raporlar', roles: ['patron', 'muhasebe', 'operasyon'] },
       { href: '/evrak', icon: 'belge', label: 'Sözleşme & Evrak', roles: ['patron', 'operasyon', 'muhasebe'] },
+      { href: '/kullanicilar', icon: 'users', label: 'Kullanıcılar & Yetkiler', roles: ['patron'] },
       { href: '/ayarlar', icon: 'vergi', label: 'Ayarlar', roles: ['patron'] },
     ],
   },
