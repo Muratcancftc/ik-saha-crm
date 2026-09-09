@@ -43,3 +43,6 @@ next-env.d.ts
 
 /src/generated/prisma
 .env.local
+
+# yüklenen evrak dosyaları (runtime)
+public/uploads/
