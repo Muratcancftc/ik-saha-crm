@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
@@ -40,10 +41,19 @@ export default function Sidebar({ rol, userAd }: { rol: Rol; userAd: string }) {
       {/* mobil üst çubuk */}
       <div className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
-            İ
+          <div className="h-8 w-8 overflow-hidden rounded-lg bg-[#151515]">
+            <Image
+              src="/atalay-logo.png"
+              alt="Atalay İnsan Kaynakları"
+              width={32}
+              height={32}
+              className="h-full w-full object-contain"
+            />
           </div>
-          <span className="font-semibold tracking-tight text-slate-900">İK Saha</span>
+          <div className="flex flex-col leading-tight">
+            <span className="font-semibold tracking-tight text-slate-900">ATALAY</span>
+            <span className="text-[11px] text-slate-500">İnsan Kaynakları CRM</span>
+          </div>
         </div>
         <button
           onClick={() => setOpen(!open)}
@@ -69,12 +79,18 @@ export default function Sidebar({ rol, userAd }: { rol: Rol; userAd: string }) {
         )}
       >
         <div className="flex h-16 items-center gap-3 px-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500 text-base font-bold text-white">
-            İ
+          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-[#151515] ring-1 ring-white/10">
+            <Image
+              src="/atalay-logo.png"
+              alt="Atalay İnsan Kaynakları"
+              width={40}
+              height={40}
+              className="h-full w-full object-contain"
+            />
           </div>
-          <div>
-            <div className="text-sm font-semibold text-white">İK Saha</div>
-            <div className="text-[11px] text-slate-400">Saha İşgücü Otomasyonu</div>
+          <div className="flex min-w-0 flex-col leading-tight">
+            <div className="truncate text-sm font-semibold text-white">ATALAY</div>
+            <div className="text-[11px] text-slate-400">İnsan Kaynakları CRM</div>
           </div>
         </div>
 

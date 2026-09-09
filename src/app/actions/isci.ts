@@ -33,6 +33,10 @@ export async function createIsci(_prev: IsciActionState, formData: FormData): Pr
   const iban = String(formData.get('iban') ?? '').replace(/\s/g, '')
   if (!/^TR\d{24}$/.test(iban)) return { error: 'IBAN geçersiz (TR + 24 hane).' }
 
+  // Doğum tarihi isteğe bağlı — boş bırakılırsa Invalid Date crash'ini önle
+  const dogumRaw = String(formData.get('dogumTarihi') ?? '')
+  const dogumTarihi = dogumRaw ? new Date(dogumRaw) : new Date()
+
   await prisma.isci.create({
     data: {
       ad,
@@ -40,7 +44,7 @@ export async function createIsci(_prev: IsciActionState, formData: FormData): Pr
       tcKimlik: encrypt(tc),
       ilce: String(formData.get('ilce') ?? ''),
       iban: encrypt(iban),
-      dogumTarihi: new Date(String(formData.get('dogumTarihi') ?? Date.now())),
+      dogumTarihi,
       puan: Number(formData.get('puan') ?? 50) || 50,
       gunlukUcretBeklentisi: Number(formData.get('gunlukUcretBeklentisi') ?? 0) || 0,
       durum: (String(formData.get('durum') ?? 'aktif') as IsciDurum) || 'aktif',

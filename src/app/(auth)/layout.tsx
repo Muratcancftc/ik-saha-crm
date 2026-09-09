@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
 export const metadata: Metadata = {
-  title: "Giriş | İK Saha",
+  title: "Giriş | ATALAY İnsan Kaynakları",
 };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -9,10 +10,19 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-screen bg-slate-50 lg:grid lg:grid-cols-2">
       <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-900 p-12 text-white">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-lg font-bold ring-1 ring-white/20">
-            İ
+          <div className="h-10 w-10 overflow-hidden rounded-xl bg-[#151515] ring-1 ring-white/20">
+            <Image
+              src="/atalay-logo.png"
+              alt="Atalay İnsan Kaynakları"
+              width={40}
+              height={40}
+              className="h-full w-full object-contain"
+            />
           </div>
-          <span className="text-lg font-semibold tracking-tight">İK Saha</span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-lg font-semibold tracking-tight">ATALAY</span>
+            <span className="text-xs text-indigo-200">İnsan Kaynakları CRM</span>
+          </div>
         </div>
         <div className="max-w-md">
           <h2 className="text-3xl font-semibold leading-tight">
@@ -35,17 +45,26 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             ))}
           </div>
         </div>
-        <div className="text-xs text-indigo-300">© 2026 İK Saha — saha işgücü otomasyonu</div>
+        <div className="text-xs text-indigo-300">© 2026 ATALAY İnsan Kaynakları San. Tic. Ltd. Şti.</div>
       </div>
 
       <div className="flex min-h-screen items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-lg font-bold text-white">
-                İ
+              <div className="h-10 w-10 overflow-hidden rounded-xl bg-[#151515]">
+                <Image
+                  src="/atalay-logo.png"
+                  alt="Atalay İnsan Kaynakları"
+                  width={40}
+                  height={40}
+                  className="h-full w-full object-contain"
+                />
               </div>
-              <span className="text-lg font-semibold tracking-tight text-slate-900">İK Saha</span>
+              <div className="flex flex-col leading-tight">
+                <span className="text-lg font-semibold tracking-tight text-slate-900">ATALAY</span>
+                <span className="text-xs text-slate-500">İnsan Kaynakları CRM</span>
+              </div>
             </div>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Hoş geldiniz</h1>

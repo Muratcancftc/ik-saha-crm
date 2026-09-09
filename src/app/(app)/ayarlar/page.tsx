@@ -33,7 +33,7 @@ export default async function AyarlarPage() {
       <Card>
         <CardHeader title="Firma Bilgileri" desc="Faturada ve bordroda kullanılan bilgiler" />
         <div className="grid grid-cols-1 gap-3 px-5 py-4 sm:grid-cols-2">
-          <AyarRow anahtar="FIRMA_AD" label="Firma Adı" deger={ayarGet('FIRMA_AD', 'İK Saha A.Ş.')} />
+          <AyarRow anahtar="FIRMA_AD" label="Firma Adı" deger={ayarGet('FIRMA_AD', 'ATALAY İnsan Kaynakları San. Tic. Ltd. Şti.')} />
           <AyarRow anahtar="FIRMA_VERGINO" label="Vergi No" deger={ayarGet('FIRMA_VERGINO', '1234567890')} />
           <AyarRow anahtar="FIRMA_TELEFON" label="Telefon" deger={ayarGet('FIRMA_TELEFON', '+90 216 000 00 00')} />
           <AyarRow anahtar="FIRMA_EMAIL" label="E-posta" deger={ayarGet('FIRMA_EMAIL', 'info@iksaha.com')} />

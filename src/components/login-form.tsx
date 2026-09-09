@@ -51,9 +51,9 @@ export default function LoginForm() {
         {pending ? 'Giriş yapılıyor…' : 'Giriş Yap'}
       </button>
 
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-        İK Saha yönetim paneline giriş.
-      </div>
+<div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          ATALAY İnsan Kaynakları yönetim paneline giriş.
+        </div>
     </form>
   )
 }

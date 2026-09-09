@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { startOfDay, addDays } from '@/lib/dates'
+import { parseLocalDate } from '@/lib/donem'
 import type { AtamaDurum } from '@prisma/client'
 
 // Bir atamanın hakedişini üret: işçi+firma+ay bazında TOPLA (upsert)
@@ -110,8 +111,8 @@ export async function hakedisUret(formData: FormData) {
   const bit = String(formData.get('donemBitis') ?? '')
   if (!bas || !bit) return
 
-  const basTarih = startOfDay(new Date(bas))
-  const bitTarih = addDays(new Date(bit), 1)
+  const basTarih = startOfDay(parseLocalDate(bas))
+  const bitTarih = addDays(parseLocalDate(bit), 1)
 
   const atamalar = await prisma.atama.findMany({
     where: {

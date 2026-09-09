@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { atamaLokasyonFilter } from '@/lib/queries'
 import { dateLong, num } from '@/lib/format'
 import { startOfDay, addDays, sameDay } from '@/lib/dates'
+import { parseLocalDate } from '@/lib/donem'
 import { Card, CardHeader, Badge, EmptyState } from '@/components/ui'
 import { PuantajBadge, AtamaBadge } from '@/components/status-badge'
 import { updatePuantaj } from '@/app/actions/talep'
@@ -16,7 +17,7 @@ export default async function PuantajPage({
 }) {
   const user = await requireUser()
   const sp = await searchParams
-  const tarih = sp.tarih ? startOfDay(new Date(sp.tarih)) : startOfDay()
+  const tarih = sp.tarih ? startOfDay(parseLocalDate(sp.tarih)) : startOfDay()
 
   const bugun = startOfDay()
   const gunler = Array.from({ length: 14 }, (_, i) => addDays(bugun, i - 3))

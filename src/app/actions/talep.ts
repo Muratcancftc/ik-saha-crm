@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { startOfDay, daysUntil, addDays } from '@/lib/dates'
+import { parseLocalDate } from '@/lib/donem'
 import type { TalepDurum, AtamaDurum, PuantajDurum, Vardiya, Aciliyet, TekrarTip } from '@prisma/client'
 
 export type TalepActionState = { error?: string; ok?: boolean; uyari?: string } | undefined
@@ -195,7 +196,7 @@ export async function talepKopyala(formData: FormData) {
   })
   if (!kaynak) return
 
-  const bas = startOfDay(new Date(baslangic))
+  const bas = startOfDay(parseLocalDate(baslangic))
   for (let i = 0; i < gunSayisi; i++) {
     const gun = addDays(bas, i)
     const varMi = await prisma.talep.findFirst({

@@ -39,7 +39,7 @@ export default async function HakedisIcmalPage() {
         <div className="flex items-end justify-between border-b-[3px] border-slate-900 pb-3">
           <div>
             <h1 className="text-xl font-bold">Hakediş &amp; Marj İcmali</h1>
-            <div className="mt-1 text-xs text-slate-500">{user.ad} · {dateLong(new Date())} · İK Saha</div>
+            <div className="mt-1 text-xs text-slate-500">{user.ad} · {dateLong(new Date())} · ATALAY İnsan Kaynakları</div>
           </div>
         </div>
 

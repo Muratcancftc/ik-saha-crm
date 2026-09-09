@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "İK Saha — Saha İşgücü CRM",
-  description: "İnsan kaynakları ve saha işgücü CRM + ön muhasebe otomasyonu",
+  title: "ATALAY İnsan Kaynakları — Saha İşgücü CRM",
+  description: "ATALAY İnsan Kaynakları San. Tic. Ltd. Şti. — insan kaynakları ve saha işgücü CRM + ön muhasebe otomasyonu",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
