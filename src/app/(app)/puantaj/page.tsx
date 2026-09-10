@@ -52,7 +52,7 @@ export default async function PuantajPage({
           {!sameDay(tarih, bugun) && (tarih < bugun ? ' · geçmiş gün' : ' · gelecek gün')}
           <span className="text-slate-400">{sahaSiniri}</span>
         </p>
-        <div className="flex gap-1.5">
+        <div className="flex min-w-0 gap-1.5 overflow-x-auto pb-1">
           {gunler.map((g) => {
             const aktif = sameDay(g, tarih)
             const bugunMu = sameDay(g, bugun)
@@ -93,19 +93,19 @@ export default async function PuantajPage({
         ) : (
           <ul className="divide-y divide-slate-100">
             {atamalar.map((a) => (
-              <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+              <li key={a.id} className="flex flex-col gap-3 px-5 py-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
                     {a.isci.ad.split(' ').map((p) => p[0]).slice(0, 2).join('')}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-sm font-medium text-slate-900">{a.isci.ad}</div>
-                    <div className="text-xs text-slate-500">
+                    <div className="truncate text-xs text-slate-500">
                       {a.talep.firma.ad} · {a.talep.lokasyon.ad} · {a.talep.vardiya === 'gunduz' ? 'Gündüz' : 'Gece'}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <AtamaBadge durum={a.durum} />
                   {a.puantaj ? (
                     <PuantajBadge durum={a.puantaj.durum} />

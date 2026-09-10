@@ -11,9 +11,9 @@ export default function Topbar({ unread }: { unread: number }) {
   const title = ROUTES[pathname]?.title ?? 'ATALAY İnsan Kaynakları'
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-6 backdrop-blur">
-      <div>
-        <h1 className="text-base font-semibold tracking-tight text-slate-900">{title}</h1>
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-slate-200 bg-white/80 px-4 backdrop-blur sm:px-6">
+      <div className="min-w-0">
+        <h1 className="truncate text-base font-semibold tracking-tight text-slate-900">{title}</h1>
       </div>
       <div className="flex items-center gap-1">
         <PushBildirim />

@@ -100,7 +100,7 @@ export default async function TaleplerPage({
       {/* ============ SOL: liste ============ */}
       <div className="w-full shrink-0 space-y-3 lg:w-[400px]">
         {/* Özet şeridi */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <OzetKutu label="Açık" value={acikSayi} tone="text-amber-600" />
           <OzetKutu label="Kısmi" value={kismiSayi} tone="text-blue-600" />
           <OzetKutu label="Eksik" value={eksikOlan.length} tone="text-red-600" />
