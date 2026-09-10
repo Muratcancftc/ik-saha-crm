@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { startOfDay, daysUntil, addDays } from '@/lib/dates'
 import { parseLocalDate } from '@/lib/donem'
+import { pushBildirimGonder } from '@/lib/push'
 import type { TalepDurum, AtamaDurum, PuantajDurum, Vardiya, Aciliyet, TekrarTip } from '@prisma/client'
 
 export type TalepActionState = { error?: string; ok?: boolean; uyari?: string } | undefined
@@ -123,6 +124,13 @@ export async function createAtama(_prev: TalepActionState, formData: FormData): 
       mesaj: `${etiket} ${saat} ${talep.lokasyon.ad} — iş başı.`,
     },
   })
+
+  // Tarayıcı push bildirimi (panel kullanıcılarına)
+  await pushBildirimGonder(
+    'ATALAY İK — Yeni Atama',
+    `${isci.ad} → ${talep.lokasyon.ad} (${etiket} ${saat})`,
+    '/talepler'
+  )
 
   await talepDolulukGuncelle(talepId)
 

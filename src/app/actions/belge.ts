@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { startOfDay, addDays } from '@/lib/dates'
+import { pushBildirimGonder } from '@/lib/push'
 import type { BildirimTur } from '@prisma/client'
 
 export type BelgeState = { error?: string; ok?: boolean } | undefined
@@ -90,12 +91,15 @@ export async function bildirimleriTara() {
     include: { isci: true, talep: { include: { firma: true } } },
   })
 
+  const yeniBildirimler: { tur: BildirimTur; mesaj: string }[] = []
+
   for (const b of belgeler) {
     const durum = b.bitisTarihi < bugun ? 'süresi doldu' : '30 gün içinde doluyor'
     const mesaj = `${b.isci.ad} — ${b.tip} belgesi ${durum}.`
     const mevcut = await prisma.bildirim.findFirst({ where: { mesaj, okundu: false } })
     if (!mevcut) {
       await prisma.bildirim.create({ data: { tur: 'belge', mesaj } })
+      yeniBildirimler.push({ tur: 'belge', mesaj })
     }
   }
   for (const f of gecikenFaturalar) {
@@ -103,6 +107,7 @@ export async function bildirimleriTara() {
     const mevcut = await prisma.bildirim.findFirst({ where: { mesaj, okundu: false } })
     if (!mevcut) {
       await prisma.bildirim.create({ data: { tur: 'fatura', mesaj } })
+      yeniBildirimler.push({ tur: 'fatura', mesaj })
     }
   }
   for (const a of sgkEksik) {
@@ -110,7 +115,13 @@ export async function bildirimleriTara() {
     const mevcut = await prisma.bildirim.findFirst({ where: { mesaj, okundu: false } })
     if (!mevcut) {
       await prisma.bildirim.create({ data: { tur: 'sgk', mesaj } })
+      yeniBildirimler.push({ tur: 'sgk', mesaj })
     }
+  }
+
+  // Tarayıcı push bildirimi (aktif aboneliklere)
+  for (const y of yeniBildirimler) {
+    await pushBildirimGonder('ATALAY İK — Bildirim', y.mesaj, '/bildirimler')
   }
 
   revalidatePath('/')

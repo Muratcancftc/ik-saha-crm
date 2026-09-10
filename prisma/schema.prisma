@@ -492,6 +492,7 @@ model Kullanici {
 
   lokasyon    Lokasyon?  @relation(fields: [lokasyonId], references: [id], onDelete: SetNull)
   bildirimler Bildirim[]
+  pushAbonelikler PushAbonelik[]
 }
 
 model Bildirim {
@@ -565,4 +566,18 @@ model Ayar {
   anahtar  String  @unique
   deger    String
   aciklama String?
+}
+
+// Tarayıcı push bildirimi abonelikleri
+model PushAbonelik {
+  id          Int      @id @default(autoincrement())
+  kullaniciId Int
+  endpoint    String   @unique
+  p256dh      String
+  auth        String
+  createdAt   DateTime @default(now())
+
+  kullanici Kullanici @relation(fields: [kullaniciId], references: [id], onDelete: Cascade)
+
+  @@index([kullaniciId])
 }
