@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { dateTime } from '@/lib/format'
 import { Card, CardHeader, Badge, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
+import PushBildirim from '@/components/push-bildirim'
 import { bildirimleriTara, bildirimleriOku, bildirimSil, bildirimGonder } from '@/app/actions/belge'
 
 export const dynamic = 'force-dynamic'
@@ -63,6 +64,7 @@ export default async function BildirimlerPage({
           <form action={bildirimleriTara}>
             <button type="submit" className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-indigo-600 ring-1 ring-slate-300 hover:bg-indigo-50">Uyarıları Tara</button>
           </form>
+          <PushBildirim />
           <form action={bildirimleriOku}>
             <button type="submit" className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50">Tümünü Okundu İşaretle</button>
           </form>
