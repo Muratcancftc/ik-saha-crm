@@ -40,7 +40,7 @@ export default function Sidebar({ rol, userAd }: { rol: Rol; userAd: string }) {
     <>
       {/* mobil üst çubuk */}
       <div className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="h-8 w-8 overflow-hidden rounded-lg bg-[#151515]">
             <Image
               src="/atalay-logo.png"
@@ -54,7 +54,7 @@ export default function Sidebar({ rol, userAd }: { rol: Rol; userAd: string }) {
             <span className="font-semibold tracking-tight text-slate-900">ATALAY</span>
             <span className="text-[11px] text-slate-500">İnsan Kaynakları CRM</span>
           </div>
-        </div>
+        </Link>
         <button
           onClick={() => setOpen(!open)}
           className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
@@ -78,7 +78,7 @@ export default function Sidebar({ rol, userAd }: { rol: Rol; userAd: string }) {
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex h-16 items-center gap-3 px-5">
+        <Link href="/" className="flex h-16 items-center gap-3 px-5 transition hover:bg-white/5">
           <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-[#151515] ring-1 ring-white/10">
             <Image
               src="/atalay-logo.png"
@@ -92,7 +92,7 @@ export default function Sidebar({ rol, userAd }: { rol: Rol; userAd: string }) {
             <div className="truncate text-sm font-semibold text-white">ATALAY</div>
             <div className="text-[11px] text-slate-400">İnsan Kaynakları CRM</div>
           </div>
-        </div>
+        </Link>
 
         <nav className="flex-1 space-y-7 overflow-y-auto px-3 pb-6 pt-3">
           {nav.map((group) => (
