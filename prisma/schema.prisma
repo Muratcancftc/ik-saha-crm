@@ -107,6 +107,7 @@ enum BildirimTur {
   fatura
   vergi
   talep
+  website
 }
 
 enum TekrarTip {
@@ -300,6 +301,17 @@ model Talep {
   sablon     Boolean    @default(false) // şablon talep
   tekrar     TekrarTip? // günlük/haftalık tekrar
   createdAt  DateTime   @default(now())
+
+  // Website entegrasyonu
+  kaynak       String? // website | website_test | ...
+  landingPage  String?
+  referrer     String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  utmContent   String?
+  utmTerm      String?
+  webRequestId String? @unique // idempotency (X-Idempotency-Key)
 
   firma    MusteriFirma  @relation(fields: [firmaId], references: [id], onDelete: Cascade)
   lokasyon Lokasyon      @relation(fields: [lokasyonId], references: [id], onDelete: Cascade)
@@ -527,7 +539,36 @@ model Aday {
   not       String?
   createdAt DateTime  @default(now())
 
+  // Website entegrasyonu
+  kaynak       String? // website | website_test | ...
+  cvYolu       String? // public/uploads/cv/...
+  cvDosyaAdi   String?
+  ilanId       Int? // başvurduğu iş ilanı
+  webRequestId String? @unique // idempotency
+
   meslek Meslek? @relation(fields: [meslekId], references: [id], onDelete: SetNull)
+  ilan   Job?    @relation(fields: [ilanId], references: [id], onDelete: SetNull)
+
+  @@index([telefon])
+  @@index([email])
+}
+
+// Website'te yayınlanan açık pozisyonlar / iş ilanları
+model Job {
+  id               Int      @id @default(autoincrement())
+  slug             String   @unique
+  baslik           String
+  lokasyon         String?
+  calismaTipi      String? // tam_zamanli | yari_zamanli | ...
+  aciklama         String?
+  gereksinimler    String[]
+  yayinlandi       Boolean  @default(false) // website'te yayınlandı mı
+  yayinTarihi      DateTime?
+  gecerlilikTarihi DateTime? // validThrough
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  adaylar Aday[]
 }
 
 model Odeme {

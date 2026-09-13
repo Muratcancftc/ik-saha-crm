@@ -254,6 +254,16 @@ export default async function TaleplerPage({
                       {daysUntil(secili.tarih) === 0 && <span className="font-semibold text-white"> · Bugün</span>}
                     </p>
                     {secili.not && <p className="mt-1 text-xs text-indigo-200">Not: {secili.not}</p>}
+                    {secili.kaynak && (
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-indigo-100">
+                        <Badge tone="violet" className="bg-white/15 text-white ring-white/20">
+                          Kaynak: {secili.kaynak === 'website_test' ? 'Website (test)' : 'Website'}
+                        </Badge>
+                        {secili.landingPage && <span className="truncate">Landing: {secili.landingPage}</span>}
+                        {secili.referrer && <span className="truncate">Ref: {secili.referrer}</span>}
+                        {secili.utmSource && <span>UTM: {[secili.utmSource, secili.utmMedium, secili.utmCampaign, secili.utmContent, secili.utmTerm].filter(Boolean).join(' · ')}</span>}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     {secili.durum !== 'kapandi' ? (
@@ -537,7 +547,7 @@ function TalepGruplari({
   goster,
 }: {
   title: string
-  items: Array<{ id: number; firma: { ad: string }; lokasyon: { ad: string }; tarih: Date; durum: string; vardiya: string; aciliyet: string; kalemler: Array<{ adet: number }>; atamalar: Array<{ durum: string }>; sablon: boolean }>
+  items: Array<{ id: number; firma: { ad: string }; lokasyon: { ad: string }; tarih: Date; durum: string; vardiya: string; aciliyet: string; kalemler: Array<{ adet: number }>; atamalar: Array<{ durum: string }>; sablon: boolean; kaynak: string | null }>
   seciliId: number
   firmaId?: number
   durum?: string
@@ -573,6 +583,7 @@ function TalepGruplari({
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate text-sm font-semibold text-slate-900">{t.firma.ad}</span>
                 <div className="flex shrink-0 items-center gap-1.5">
+                  {t.kaynak?.startsWith('website') && <Badge tone="violet">Website</Badge>}
                   {t.aciliyet === 'acil' && <Badge tone="red">ACİL</Badge>}
                   {t.vardiya === 'gece' && <Badge tone="slate">Gece</Badge>}
                   {t.sablon && <Badge tone="violet">Ş</Badge>}

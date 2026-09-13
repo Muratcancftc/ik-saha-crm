@@ -14,6 +14,7 @@ const TUR: Record<string, { label: string; tone: string }> = {
   fatura: { label: 'Fatura', tone: 'red' },
   vergi: { label: 'Vergi', tone: 'violet' },
   talep: { label: 'Talep / No-show', tone: 'indigo' },
+  website: { label: 'Website', tone: 'emerald' },
 }
 
 export default async function BildirimlerPage({

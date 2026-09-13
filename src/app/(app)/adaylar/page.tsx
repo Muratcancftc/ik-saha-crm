@@ -21,7 +21,7 @@ export default async function AdaylarPage() {
 
   const [adaylar, meslekler] = await Promise.all([
     prisma.aday.findMany({
-      include: { meslek: true },
+      include: { meslek: true, ilan: true },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.meslek.findMany({ orderBy: { ad: 'asc' } }),
@@ -68,7 +68,17 @@ export default async function AdaylarPage() {
                   const d = DURUM[a.durum] ?? { label: a.durum, tone: 'slate' }
                   return (
                     <tr key={a.id} className="hover:bg-slate-50/60">
-                      <Td className="font-medium text-slate-900">{a.ad}</Td>
+                      <Td className="font-medium text-slate-900">
+                        <div className="flex items-center gap-2">
+                          {a.ad}
+                          {a.kaynak?.startsWith('website') && <Badge tone="violet">Website</Badge>}
+                        </div>
+                        {a.ilan && (
+                          <div className="mt-0.5 text-xs text-slate-500">
+                            Başvurduğu ilan: <b className="font-medium">{a.ilan.baslik}</b>
+                          </div>
+                        )}
+                      </Td>
                       <Td>{a.meslek?.ad ?? '—'}</Td>
                       <Td>
                         <div>{a.telefon}</div>
