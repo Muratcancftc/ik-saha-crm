@@ -1,4 +1,4 @@
-import { getDownloadUrl } from '@vercel/blob'
+import { get } from '@vercel/blob'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { prisma } from '@/lib/db'
@@ -26,12 +26,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   if (evrak.dosyaYol.startsWith('https://')) {
     try {
-      const signed = getDownloadUrl(evrak.dosyaYol)
-      const res = await fetch(signed)
-      if (!res.ok) {
+      const result = await get(evrak.dosyaYol, { access: 'private' })
+      if (!result) {
         return new Response(JSON.stringify({ error: 'storage_error' }), { status: 502, headers: { 'Content-Type': 'application/json' } })
       }
-      const buf = await res.arrayBuffer()
+      const buf = await new Response(result.stream).arrayBuffer()
       return new Response(buf, { headers: dosyaHeaders(evrak, buf) })
     } catch {
       return new Response(JSON.stringify({ error: 'storage_error' }), { status: 502, headers: { 'Content-Type': 'application/json' } })
