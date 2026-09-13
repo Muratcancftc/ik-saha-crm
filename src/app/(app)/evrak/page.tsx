@@ -71,7 +71,7 @@ export default async function EvrakPage() {
                       <Td className="font-medium text-slate-900">{e.baslik}</Td>
                       <Td>{bagli}</Td>
                       <Td>
-                        <a href={e.dosyaYol} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-indigo-600 hover:underline">
+                        <a href={`/api/evrak/${e.id}`} className="inline-flex items-center gap-1.5 text-indigo-600 hover:underline">
                           <Icon name="belge" size={14} />
                           {e.dosyaAdi}
                         </a>

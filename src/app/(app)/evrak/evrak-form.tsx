@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useActionState, useState, useEffect } from 'react'
 import { evrakYukle } from '@/app/actions/evrak'
 import { Icon } from '@/components/icons'
 import { Button } from '@/components/ui'
@@ -10,6 +10,11 @@ type IsciDto = { id: number; ad: string }
 
 export function EvrakForm({ firmalar, isciler }: { firmalar: FirmaDto[]; isciler: IsciDto[] }) {
   const [open, setOpen] = useState(false)
+  const [state, formAction, pending] = useActionState(evrakYukle, undefined)
+
+  useEffect(() => {
+    if (state && 'ok' in state) setOpen(false)
+  }, [state])
 
   return (
     <>
@@ -30,7 +35,7 @@ export function EvrakForm({ firmalar, isciler }: { firmalar: FirmaDto[]; isciler
                 <Icon name="x" size={18} />
               </button>
             </div>
-            <form action={evrakYukle} className="space-y-4 px-6 py-5">
+            <form action={formAction} className="space-y-4 px-6 py-5">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">Tip</label>
                 <select name="tip" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
@@ -65,12 +70,19 @@ export function EvrakForm({ firmalar, isciler }: { firmalar: FirmaDto[]; isciler
                 </div>
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-slate-600">Dosya *</label>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600">
+                  Dosya * <span className="font-normal text-slate-400">(pdf, doc, docx, jpg, png, xls, xlsx — max 10MB)</span>
+                </label>
                 <input name="dosya" type="file" required className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-indigo-700" />
               </div>
+
+              {state && 'error' in state && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{String(state.error)}</div>
+              )}
+
               <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
                 <button type="button" onClick={() => setOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">Vazgeç</button>
-                <Button type="submit">Yükle</Button>
+                <Button type="submit" disabled={pending}>{pending ? 'Yükleniyor…' : 'Yükle'}</Button>
               </div>
             </form>
           </div>

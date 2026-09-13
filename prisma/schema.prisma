@@ -593,7 +593,9 @@ model Evrak {
   tip           EvrakTip
   baslik        String
   dosyaAdi      String
-  dosyaYol      String // public/uploads/evrak/...
+  dosyaYol      String // Blob URL (production) veya /uploads/... (yerel dev)
+  mime          String? // içerik türü (metadata)
+  boyut         Int? // byte cinsinden boyut (metadata)
   ilgiliFirmaId Int?
   ilgiliIsciId  Int?
   yuklemeTarihi DateTime @default(now())
