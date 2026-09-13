@@ -1,3 +1,4 @@
+import { put, del } from '@vercel/blob'
 import { writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { prisma } from '@/lib/db'
@@ -11,12 +12,22 @@ import {
   geçerliEposta,
   geçerliTelefon,
   cvGeçerli,
+  cvUzanti,
 } from '@/lib/integration'
 import { pushBildirimGonder } from '@/lib/push'
 
 export const dynamic = 'force-dynamic'
 
-const CV_DIR = path.join(process.cwd(), 'public', 'uploads', 'cv')
+// CV dosyası için MIME eşlemesi
+const CV_MIME: Record<string, string> = {
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+}
+
+function cvMime(uzanti: string): string {
+  return CV_MIME[uzanti] ?? 'application/octet-stream'
+}
 
 export async function OPTIONS(req: Request) {
   return new Response(null, { status: 204, headers: corsHeaders(req) })
@@ -159,15 +170,26 @@ export async function POST(req: Request) {
     meslekId = m ? m.id : (await prisma.meslek.create({ data: { ad: position } })).id
   }
 
-  // CV diske kaydet
+  // CV dosyası: production'da kalıcı Vercel Blob; yerel dev/test'te geçici local dosya
+  // (production asla local disk kullanmaz — Vercel filesystem read-only'dir)
   let cvYolu: string | null = null
   let cvDosyaAdi: string | null = null
   if (cv) {
-    await mkdir(CV_DIR, { recursive: true })
-    const benzersiz = `${Date.now()}-${Math.round(Math.random() * 1e9)}`
-    const dosyaAdi = `${benzersiz}-${cv.ad.replace(/[^\w.\-]+/g, '_')}`
-    await writeFile(path.join(CV_DIR, dosyaAdi), cv.bytes)
-    cvYolu = `/uploads/cv/${dosyaAdi}`
+    const uz = cvUzanti(cv.ad)
+    const guvenliAd = cv.ad.replace(/[^\w.\-]+/g, '_')
+    if (process.env.VERCEL) {
+      const blob = await put(`candidate-cv/${Date.now()}-${guvenliAd}`, cv.bytes, {
+        access: 'private',
+        contentType: cvMime(uz),
+      })
+      cvYolu = blob.url
+    } else {
+      const klasor = path.join(process.cwd(), 'public', 'uploads', 'cv')
+      await mkdir(klasor, { recursive: true })
+      const dosyaAdi = `${Date.now()}-${guvenliAd}`
+      await writeFile(path.join(klasor, dosyaAdi), cv.bytes)
+      cvYolu = `/uploads/cv/${dosyaAdi}`
+    }
     cvDosyaAdi = cv.ad
   }
 
@@ -188,29 +210,30 @@ export async function POST(req: Request) {
     .join('\n')
 
   let aday: { id: number; ad: string }
-  if (mevcut) {
-    // Mevcut aday → yeni başvuru bilgilerini ekle, yeni kayıt açma
-    const guncel = await prisma.aday.update({
-      where: { id: mevcut.id },
-      data: {
-        meslekId: mevcut.meslekId ?? meslekId,
-        ilanId: ilan?.id ?? mevcut.ilanId,
-        kaynak: mevcut.kaynak ?? kaynak,
-        cvYolu: cvYolu ?? mevcut.cvYolu,
-        cvDosyaAdi: cvDosyaAdi ?? mevcut.cvDosyaAdi,
-        webRequestId: idemKey ?? mevcut.webRequestId,
-        not: mevcut.not ? `${mevcut.not}\n---\n${notEki}` : notEki,
-      },
-    })
-    aday = { id: guncel.id, ad: guncel.ad }
-  } else {
-    const yeni = await prisma.aday.create({
-      data: {
-        ad: ad!,
-        telefon: phone,
-        email: email || null,
-        meslekId,
-        ilanId: ilan?.id ?? null,
+  try {
+    if (mevcut) {
+      // Mevcut aday → yeni başvuru bilgilerini ekle, yeni kayıt açma
+      const guncel = await prisma.aday.update({
+        where: { id: mevcut.id },
+        data: {
+          meslekId: mevcut.meslekId ?? meslekId,
+          ilanId: ilan?.id ?? mevcut.ilanId,
+          kaynak: mevcut.kaynak ?? kaynak,
+          cvYolu: cvYolu ?? mevcut.cvYolu,
+          cvDosyaAdi: cvDosyaAdi ?? mevcut.cvDosyaAdi,
+          webRequestId: idemKey ?? mevcut.webRequestId,
+          not: mevcut.not ? `${mevcut.not}\n---\n${notEki}` : notEki,
+        },
+      })
+      aday = { id: guncel.id, ad: guncel.ad }
+    } else {
+      const yeni = await prisma.aday.create({
+        data: {
+          ad: ad!,
+          telefon: phone,
+          email: email || null,
+          meslekId,
+          ilanId: ilan?.id ?? null,
         kaynak,
         cvYolu,
         cvDosyaAdi,
@@ -219,6 +242,17 @@ export async function POST(req: Request) {
       },
     })
     aday = { id: yeni.id, ad: yeni.ad }
+    }
+  } catch (e) {
+    // DB hatası → yüklenen blob'u temizle (yarım durum kalmasın)
+    if (cvYolu) {
+      try {
+        await del(cvYolu)
+      } catch {
+        // temizleme başarısızsa sessizce geç — asıl hatayı döndür
+      }
+    }
+    throw e
   }
 
   // --- Bildirim (mevcut bildirim altyapısı + push) ---
