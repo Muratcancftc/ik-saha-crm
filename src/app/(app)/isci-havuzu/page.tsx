@@ -8,7 +8,7 @@ import { IsciBadge } from '@/components/status-badge'
 import { Icon } from '@/components/icons'
 import { IsciForm } from './isci-form'
 import { IsciDetayModal } from './isci-detay-modal'
-import { toggleIsciDurum } from '@/app/actions/isci'
+import { toggleIsciDurum, isciAdayaGonder } from '@/app/actions/isci'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -210,6 +210,19 @@ export default async function IsciHavuzuPage({
                       <div className="flex justify-end gap-1.5">
                         <IsciDetayModal isciId={i.id} isciAd={i.ad} />
                         <IsciForm mode="edit" isci={i} meslekler={meslekler} bolgeler={BOLGELER} />
+                        {i.durum === 'aktif' && (
+                          <form
+                            action={isciAdayaGonder}
+                            onSubmit={(e) => {
+                              if (!window.confirm(`${i.ad} aday havuzuna geri gönderilsin mi? (İşçi pasife alınır, geçmişi korunur)`)) e.preventDefault()
+                            }}
+                          >
+                            <input type="hidden" name="id" value={i.id} />
+                            <button className="rounded-lg p-1.5 text-slate-400 transition hover:bg-amber-50 hover:text-amber-600" title="Aday havuzuna geri gönder">
+                              <Icon name="chevron" size={16} className="rotate-180" />
+                            </button>
+                          </form>
+                        )}
                         <form action={toggleIsciDurum}>
                           <input type="hidden" name="id" value={i.id} />
                           <input type="hidden" name="hedef" value={i.durum === 'aktif' ? 'pasif' : 'aktif'} />

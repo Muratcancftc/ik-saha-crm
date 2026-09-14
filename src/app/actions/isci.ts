@@ -132,6 +132,43 @@ export async function isciDetay(id: number) {
   return getIsciDetay(id)
 }
 
+// İşçi havuzundaki işçiyi tekrar aday havuzuna gönder:
+// İşçi pasif yapılır (atama önerilerinden çıkar) ve Aday kaydı oluşturulur (onay bekliyor).
+// Tarihsel atama/hakediş verisi korunur — işçi silinmez.
+export async function isciAdayaGonder(formData: FormData) {
+  await requireRoles(['patron', 'operasyon'])
+  const id = Number(formData.get('id'))
+  const isci = await prisma.isci.findUnique({
+    where: { id },
+    include: { meslekler: { take: 1 } },
+  })
+  if (!isci) return
+  if (isci.durum !== 'aktif') return // yalnızca aktif işçiler geri gönderilebilir
+
+  await prisma.$transaction([
+    prisma.aday.create({
+      data: {
+        ad: isci.ad,
+        telefon: isci.telefon,
+        meslekId: isci.meslekler[0]?.meslekId ?? null,
+        durum: 'basvurdu',
+        not: 'İşçi havuzundan aday havuzuna geri gönderildi.',
+      },
+    }),
+    prisma.isci.update({
+      where: { id },
+      data: {
+        durum: 'pasif',
+        not: isci.not ? `${isci.not}\n→ aday havuzuna geri gönderildi` : '→ aday havuzuna geri gönderildi',
+      },
+    }),
+  ])
+
+  revalidatePath('/isci-havuzu')
+  revalidatePath('/adaylar')
+  return
+}
+
 export async function isciNotGuncelle(formData: FormData) {
   await requireRoles(['patron', 'operasyon'])
   const id = Number(formData.get('id'))
