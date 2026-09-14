@@ -4,7 +4,8 @@ import { decrypt, maskIBAN } from '@/lib/crypto'
 import { tl, num, date } from '@/lib/format'
 import { Card, CardHeader, Th, Td, Badge, EmptyState, Button } from '@/components/ui'
 import { Icon } from '@/components/icons'
-import { odemeUret, odemeOdendi, odemeleriOdi, odemeGeriAl, odemeSil } from '@/app/actions/odeme'
+import { odemeOdendi, odemeleriOdi, odemeGeriAl, odemeSil } from '@/app/actions/odeme'
+import { OdemeUretForm } from './ure-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,8 +22,6 @@ export default async function OdemePage() {
   const toplamBekleyen = bekleyen.reduce((a, o) => a + Number(o.tutar), 0)
   const toplamOdenen = odemeler.filter((o) => o.durum === 'odendi').reduce((a, o) => a + Number(o.tutar), 0)
 
-  const cariDonem = new Date().toISOString().slice(0, 7)
-
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -31,16 +30,23 @@ export default async function OdemePage() {
         <Kutu label="Toplam Kayıt" value={num(odemeler.length)} tone="text-indigo-600" sub={`${num(donemler.length)} dönem`} />
       </div>
 
+      {/* Aylık bordro üret — önizleme + sonuç */}
       <Card>
         <CardHeader
-          title="Toplu Ödeme Üret"
-          desc="İşçi hakediş netleri (avans düşülmüş) + personel maaşları — dönem bazlı, tekrarsız"
+          title="Aylık Bordro Üret"
+          desc="Dönem seçince kaç işçi hakedişi + personel maaşı ödemeye dönüşeceğini önizle, sonra üret — mükerrer kayıt oluşmaz."
+        />
+        <div className="px-5 py-4">
+          <OdemeUretForm />
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Ödeme Kayıtları"
+          desc="İşçi hakediş netleri (avans düşülmüş) + personel maaşları"
           action={
             <div className="flex flex-wrap items-center gap-2">
-              <form action={odemeUret} className="flex items-center gap-2">
-                <input name="donem" type="month" defaultValue={cariDonem} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-indigo-500" />
-                <Button type="submit" size="sm">Üret</Button>
-              </form>
               <form action={odemeleriOdi}>
                 <input type="hidden" name="donem" value="" />
                 <Button variant="secondary" size="sm" type="submit">Tümünü Ödendi İşaretle</Button>

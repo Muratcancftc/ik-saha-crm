@@ -6,11 +6,13 @@ import { requireRoles } from '@/lib/dal'
 import { startOfDay } from '@/lib/dates'
 import type { OdemeKaynak } from '@prisma/client'
 
+export type OdemeUretState = { isci?: number; personel?: number; hazir?: number; zatenVar?: number } | undefined
+
 // Dönem için ödeme kayıtlarını üret (işçi hakediş net + personel maaş)
-export async function odemeUret(formData: FormData) {
+export async function odemeUret(_prev: OdemeUretState, formData: FormData): Promise<OdemeUretState> {
   await requireRoles(['patron', 'muhasebe'])
   const donem = String(formData.get('donem') ?? '').trim()
-  if (!/^\d{4}-\d{2}$/.test(donem)) return
+  if (!/^\d{4}-\d{2}$/.test(donem)) return { isci: 0, personel: 0 }
 
   const [yil, ay] = donem.split('-').map(Number)
   const bas = startOfDay(new Date(yil, ay - 1, 1))
@@ -26,24 +28,28 @@ export async function odemeUret(formData: FormData) {
     isciNet.set(h.isciId, (isciNet.get(h.isciId) ?? 0) + Number(h.isciNet))
   }
 
+  let isciYeni = 0
   for (const [isciId, tutar] of isciNet) {
     const varMi = await prisma.odeme.findFirst({ where: { tip: 'isci', isciId, donem } })
     if (!varMi) {
       await prisma.odeme.create({ data: { tip: 'isci', isciId, donem, tutar } })
+      isciYeni++
     }
   }
 
   // personel maaşları
   const personeller = await prisma.personel.findMany({ where: { durum: 'aktif' } })
+  let personelYeni = 0
   for (const p of personeller) {
     const varMi = await prisma.odeme.findFirst({ where: { tip: 'personel', personelId: p.id, donem } })
     if (!varMi) {
       await prisma.odeme.create({ data: { tip: 'personel', personelId: p.id, donem, tutar: p.maas } })
+      personelYeni++
     }
   }
 
   revalidatePath('/odeme')
-  return
+  return { isci: isciYeni, personel: personelYeni, hazir: isciNet.size + personeller.length, zatenVar: isciNet.size + personeller.length - isciYeni - personelYeni }
 }
 
 export async function odemeOdendi(formData: FormData) {
