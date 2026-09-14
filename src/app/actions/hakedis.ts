@@ -104,12 +104,14 @@ export async function setAtamaDurumOtomatik(formData: FormData) {
   revalidatePath('/puantaj')
 }
 
+export type HakedisUretState = { olusturulan?: number; kayitSayisi?: number } | undefined
+
 // Dönem hakedişlerini topluca üret (geriye dönük)
-export async function hakedisUret(formData: FormData) {
+export async function hakedisUret(_prev: HakedisUretState, formData: FormData): Promise<HakedisUretState> {
   await requireRoles(['patron', 'muhasebe'])
   const bas = String(formData.get('donemBas') ?? '')
   const bit = String(formData.get('donemBitis') ?? '')
-  if (!bas || !bit) return
+  if (!bas || !bit) return { olusturulan: 0 }
 
   const basTarih = startOfDay(parseLocalDate(bas))
   const bitTarih = addDays(parseLocalDate(bit), 1)
@@ -122,12 +124,14 @@ export async function hakedisUret(formData: FormData) {
     },
   })
 
+  let olusturulan = 0
   for (const a of atamalar) {
-    await hakedisOlustur(a.id)
+    const h = await hakedisOlustur(a.id)
+    if (h) olusturulan++
   }
 
   revalidatePath('/hakedis')
-  return
+  return { olusturulan, kayitSayisi: atamalar.length }
 }
 
 export async function silHakedis(formData: FormData) {

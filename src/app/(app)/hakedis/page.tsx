@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 import { tl, num, date } from '@/lib/format'
 import { Card, CardHeader, StatCard, Th, Td, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
-import { hakedisUret } from '@/app/actions/hakedis'
+import { HakUretForm } from './ure-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,42 +26,35 @@ export default async function HakedisPage() {
         <StatCard icon="hakedis" label="Toplam Hakediş" value={tl(toplamMusteri)} sub={`${num(toplamGun)} iş günü`} tone="indigo" />
         <StatCard icon="wallet" label="Brüt Marj" value={tl(toplamMarj)} sub="Müşteriden − (gün × yevmiye)" tone="green" />
         <StatCard icon="isci" label="İşçiye Ödenecek Net" value={tl(toplamIsciNet)} sub="Net = gün×yevmiye − avans − kesinti" tone="blue" />
-        <StatCard icon="gider" label="Avans Kullanımı" value="—" sub={`${num(hakedisler.length)} hakediş kaydı`} tone="amber" />
+        <StatCard icon="gider" label="Kayıt Sayısı" value={num(hakedisler.length)} sub="dönem hakedişi" tone="amber" />
       </div>
 
+      {/* Dönem Üret — önizleme + sonuç */}
       <Card>
         <CardHeader
           title="Dönem Hakedişi Üret"
-          desc="Tamamlanan atamalardan (puantajlı) otomatik hakediş oluşturur — meslek bazlı firma fiyatı kullanılır"
+          desc="Tamamlanan (puantajlı) atamalardan hakediş hesaplar — meslek bazlı firma fiyatı kullanılır. Dönem seçince üretilecekleri önizle, tekrarlasan bile mükerrer kayıt oluşmaz."
+        />
+        <div className="px-5 py-4">
+          <HakUretForm />
+        </div>
+      </Card>
+
+      {/* Kayıtlar */}
+      <Card>
+        <CardHeader
+          title={`Hakediş Kayıtları (${num(hakedisler.length)})`}
+          desc="İşçi + firma + ay bazında otomatik toplanır"
           action={
-            <div className="flex flex-wrap items-end gap-2">
-              <a
-                href="/api/export/hakedis"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-50"
-              >
+            <div className="flex flex-wrap items-center gap-2">
+              <a href="/api/export/hakedis" className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-50">
                 <Icon name="excel" size={15} />
                 Excel İcmal
               </a>
-              <a
-                href="/icmal/hakedis"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-red-600 ring-1 ring-red-200 transition hover:bg-red-50"
-              >
+              <a href="/icmal/hakedis" className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-red-600 ring-1 ring-red-200 transition hover:bg-red-50">
                 <Icon name="pdf" size={15} />
                 PDF İcmal
               </a>
-              <form action={hakedisUret} className="flex items-end gap-2">
-                <div>
-                  <label className="mb-1 block text-[11px] font-medium text-slate-500">Başlangıç</label>
-                  <input name="donemBas" type="date" required className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-indigo-500" />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[11px] font-medium text-slate-500">Bitiş</label>
-                  <input name="donemBitis" type="date" required className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-indigo-500" />
-                </div>
-                <button type="submit" className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500">
-                  Üret
-                </button>
-              </form>
             </div>
           }
         />
