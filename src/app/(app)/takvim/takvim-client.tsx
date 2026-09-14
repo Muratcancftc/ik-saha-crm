@@ -40,6 +40,13 @@ export function Takvim(props: Seri) {
     const idx = props.gunler.findIndex((g) => g.iso === bugunIso)
     return idx >= 0 ? idx : 0
   })
+
+  // URL'de ?gun= verildiğinde (ay görünümünden farklı haftaya geçiş) seçili günü senkronize et
+  useEffect(() => {
+    if (props.seciliGunBaslangic >= 0 && props.seciliGunBaslangic < 7) {
+      setSeciliGun(props.seciliGunBaslangic)
+    }
+  }, [props.seciliGunBaslangic, props.bas])
   const [secili, setSecili] = useState<{ talepId: number; meslekId: number; meslekAd: string } | null>(null)
   const [free, setFree] = useState<FreeWorker[] | null>(null)
   const [mesaj, setMesaj] = useState<string | null>(null)
@@ -61,19 +68,21 @@ export function Takvim(props: Seri) {
     const yil = Math.floor(props.ayBas / 100)
     const ay = props.ayBas % 100
     const hedefAy = new Date(yil, ay + offset, 1)
-    // hedef ayın ilk gününden sonraki ilk Pazartesi
+    // hedef ayın ilk gününden sonraki ilk Pazartesi (TZ-güvenli)
     const gun = (hedefAy.getDay() + 6) % 7 // pazartesi=0
-    const pazartesi = addDaysIso(hedefAy.toISOString().slice(0, 10), (7 - gun) % 7)
+    const ayBasIso = `${yil}-${String(ay + offset + 1).padStart(2, '0')}-01`
+    const pazartesi = addDaysIso(ayBasIso, (7 - gun) % 7)
     router.push(`/takvim?bas=${pazartesi}`)
   }
 
   function gunSec(iso: string) {
     const idx = props.gunler.findIndex((g) => g.iso === iso)
     if (idx < 0) {
-      // ay görünümünden farklı hafta → o haftaya git ve günü seç
+      // ay görünümünden farklı hafta → o haftaya git, hafta görünümüne geç ve günü seç
       const d = new Date(iso + 'T00:00:00')
       const gun = (d.getDay() + 6) % 7
       const pazartesi = addDaysIso(iso, -gun)
+      setGorunum('hafta')
       router.push(`/takvim?bas=${pazartesi}&gun=${gun}`)
       return
     }
