@@ -10,7 +10,7 @@ import { SilOnayForm } from './sil-onay'
 export const dynamic = 'force-dynamic'
 
 const DURUM: Record<string, { label: string; tone: string }> = {
-  basvurdu: { label: 'Başvurdu', tone: 'blue' },
+  basvurdu: { label: 'Onay Bekliyor', tone: 'blue' },
   gorusuldu: { label: 'Görüşüldü', tone: 'amber' },
   onaylandi: { label: 'Onaylandı', tone: 'green' },
   reddedildi: { label: 'Reddedildi', tone: 'red' },
@@ -32,13 +32,14 @@ export default async function AdaylarPage() {
     gorusuldu: adaylar.filter((a) => a.durum === 'gorusuldu').length,
     onaylandi: adaylar.filter((a) => a.durum === 'onaylandi').length,
   }
+  const bekleyen = sayilar.basvurdu + sayilar.gorusuldu
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">
           <b className="text-slate-900">{num(adaylar.length)}</b> aday ·{' '}
-          <span className="text-blue-600">{num(sayilar.basvurdu)} başvurdu</span> ·{' '}
+          <span className="text-blue-600">{num(bekleyen)} onay bekliyor</span> ·{' '}
           <span className="text-amber-600">{num(sayilar.gorusuldu)} görüşüldü</span> ·{' '}
           <span className="text-emerald-600">{num(sayilar.onaylandi)} onaylandı</span>
         </p>
@@ -98,11 +99,11 @@ export default async function AdaylarPage() {
                               </button>
                             </form>
                           )}
-                          {a.durum !== 'onaylandi' && (
+                          {a.durum !== 'onaylandi' && a.durum !== 'reddedildi' && (
                             <form action={adayAktar}>
                               <input type="hidden" name="id" value={a.id} />
-                              <button className="rounded-lg bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-500" title="İşçi havuzuna aktar">
-                                Havuza Aktar
+                              <button className="rounded-lg bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-500" title="Onayla ve işçi havuzuna aktar">
+                                Onayla & Havuza Aktar
                               </button>
                             </form>
                           )}

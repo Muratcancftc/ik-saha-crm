@@ -7,20 +7,57 @@ import { parseLocalDate } from '@/lib/donem'
 import { Card, CardHeader, Badge, EmptyState } from '@/components/ui'
 import { PuantajBadge, AtamaBadge } from '@/components/status-badge'
 import { updatePuantaj } from '@/app/actions/talep'
+import { Icon } from '@/components/icons'
 
 export const dynamic = 'force-dynamic'
+
+const PENCERE = 15
+
+// Seçili başlangıç veya bugünü içeren 15 günlük pencerenin başlangıcı
+function periyotBaslangic(fromIso?: string): Date {
+  if (fromIso) return startOfDay(parseLocalDate(fromIso))
+  const bugun = startOfDay()
+  const basGun = Math.floor((bugun.getDate() - 1) / PENCERE) * PENCERE + 1
+  return new Date(bugun.getFullYear(), bugun.getMonth(), basGun)
+}
+
+function iso(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+function tarihEtiket(d: Date): string {
+  return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'long' }).format(d)
+}
+
+// Dönem etiketi: aynı yıl → "01 Şubat – 15 Şubat 2026"; yıl değişimi → "26 Aralık 2025 – 09 Ocak 2026"
+function donemEtiket(bas: Date): string {
+  const son = addDays(bas, PENCERE - 1)
+  if (bas.getFullYear() === son.getFullYear()) {
+    return `${tarihEtiket(bas)} – ${tarihEtiket(son)} ${bas.getFullYear()}`
+  }
+  const fYil = new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' })
+  return `${fYil.format(bas)} – ${fYil.format(son)}`
+}
 
 export default async function PuantajPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tarih?: string }>
+  searchParams: Promise<{ bas?: string; tarih?: string }>
 }) {
   const user = await requireUser()
   const sp = await searchParams
-  const tarih = sp.tarih ? startOfDay(parseLocalDate(sp.tarih)) : startOfDay()
-
   const bugun = startOfDay()
-  const gunler = Array.from({ length: 14 }, (_, i) => addDays(bugun, i - 3))
+
+  const bas = periyotBaslangic(sp.bas)
+  const bit = addDays(bas, PENCERE) // [bas, bit) — yalnızca 15 gün
+  const gunler = Array.from({ length: PENCERE }, (_, i) => addDays(bas, i))
+
+  // Seçili gün: URL'deki tarih, yoksa bugün (pencere içindeyse), yoksa pencere başı
+  let tarih = sp.tarih ? startOfDay(parseLocalDate(sp.tarih)) : bugun
+  if (tarih < bas || tarih >= bit) tarih = bas
+
+  const onceki = addDays(bas, -PENCERE)
+  const sonraki = bit
 
   const atamalar = await prisma.atama.findMany({
     where: {
@@ -43,36 +80,81 @@ export default async function PuantajPage({
   }
 
   const sahaSiniri = user.rol === 'saha_sorumlusu' ? ' — yalnızca kendi lokasyonunuz' : ''
+  const etiket = donemEtiket(bas)
 
   return (
     <div className="space-y-5">
+      {/* Dönem gezinme: önceki / dönem etiketi / sonraki + tarih seç */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <a
+            href={`/puantaj?bas=${iso(onceki)}`}
+            title="Önceki 15 gün"
+            className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-medium text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
+          >
+            <Icon name="chevron" size={14} className="rotate-90" />
+            Önceki 15 Gün
+          </a>
+          <a
+            href={`/puantaj?bas=${iso(sonraki)}`}
+            title="Sonraki 15 gün"
+            className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-medium text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
+          >
+            Sonraki 15 Gün
+            <Icon name="chevron" size={14} className="-rotate-90" />
+          </a>
+        </div>
+
+        <div className="rounded-xl bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 ring-1 ring-indigo-100">
+          {etiket}
+        </div>
+
+        {/* Başlangıç tarihi seç — seçilen günden itibaren 15 günlük pencere */}
+        <form method="get" className="flex items-center gap-1.5">
+          <label className="text-xs font-medium text-slate-500">Tarih seç</label>
+          <input
+            name="bas"
+            type="date"
+            defaultValue={iso(bas)}
+            className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-indigo-500"
+          />
+          <button type="submit" className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-500">
+            Git
+          </button>
+        </form>
+      </div>
+
+      {/* 15 günlük gün seçici */}
+      <div className="flex min-w-0 gap-1.5 overflow-x-auto pb-1">
+        {gunler.map((g) => {
+          const aktif = sameDay(g, tarih)
+          const bugunMu = sameDay(g, bugun)
+          return (
+            <a
+              key={iso(g)}
+              href={`/puantaj?bas=${iso(bas)}&tarih=${iso(g)}`}
+              title={dateLong(g)}
+              className={`flex min-w-10 flex-col items-center rounded-lg px-2 py-1.5 text-center transition ${
+                aktif
+                  ? 'bg-indigo-600 text-white'
+                  : bugunMu
+                    ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                    : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span className="text-[9px] uppercase tracking-wide opacity-70">{dateLong(g).slice(0, 3)}</span>
+              <span className="text-sm font-semibold tabular-nums">{g.getDate()}</span>
+            </a>
+          )
+        })}
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">
           <b className="text-slate-900">{dateLong(tarih)}</b>
           {!sameDay(tarih, bugun) && (tarih < bugun ? ' · geçmiş gün' : ' · gelecek gün')}
           <span className="text-slate-400">{sahaSiniri}</span>
         </p>
-        <div className="flex min-w-0 gap-1.5 overflow-x-auto pb-1">
-          {gunler.map((g) => {
-            const aktif = sameDay(g, tarih)
-            const bugunMu = sameDay(g, bugun)
-            return (
-              <a
-                key={g.toISOString()}
-                href={`/puantaj?tarih=${g.toISOString().slice(0, 10)}`}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                  aktif
-                    ? 'bg-indigo-600 text-white'
-                    : bugunMu
-                      ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                      : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                {g.getDate()}
-              </a>
-            )
-          })}
-        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -86,7 +168,7 @@ export default async function PuantajPage({
       <Card>
         <CardHeader
           title={`Puantaj — ${num(atamalar.length)} işçi`}
-          desc="Durum değiştirdikçe sayaçlar ve yevmiye anında güncellenir"
+          desc={`${etiket} · seçili gün (${dateLong(tarih)}). Durum değiştirdikçe kayıt kalıcıdır; dönemi ileri/geri aldığınızda diğer dönemler değişmez.`}
         />
         {atamalar.length === 0 ? (
           <EmptyState icon="puantaj" title="Bu gün için atama yok" />

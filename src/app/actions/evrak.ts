@@ -67,18 +67,30 @@ export async function evrakYukle(_prev: EvrakState, formData: FormData): Promise
     dosyaYol = `/uploads/evrak/${dosyaAdi}`
   }
 
-  await prisma.evrak.create({
-    data: {
-      tip,
-      baslik,
-      dosyaAdi: dosya.name,
-      dosyaYol,
-      mime,
-      boyut: bytes.byteLength,
-      ilgiliFirmaId,
-      ilgiliIsciId,
-    },
-  })
+  try {
+    await prisma.evrak.create({
+      data: {
+        tip,
+        baslik,
+        dosyaAdi: dosya.name,
+        dosyaYol,
+        mime,
+        boyut: bytes.byteLength,
+        ilgiliFirmaId,
+        ilgiliIsciId,
+      },
+    })
+  } catch (e) {
+    // DB hatası → yüklenen blob'u temizle (yarım state bırakma)
+    if (dosyaYol.startsWith('https://')) {
+      try {
+        await del(dosyaYol)
+      } catch {
+        // temizleme başarısızsa sessizce geç — asıl hatayı döndür
+      }
+    }
+    throw e
+  }
 
   revalidatePath('/evrak')
   if (ilgiliFirmaId) revalidatePath(`/musteri-firmalar/${ilgiliFirmaId}`)

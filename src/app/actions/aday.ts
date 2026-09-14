@@ -45,6 +45,8 @@ export async function adayAktar(formData: FormData) {
   const id = Number(formData.get('id'))
   const aday = await prisma.aday.findUnique({ where: { id } })
   if (!aday) return
+  // Reddedilen aday operasyonel havuza aktarılamaz (backend koruması)
+  if (aday.durum === 'reddedildi') return
 
   // mock TC/IBAN (adayda yoksa üretilir)
   const genTC = () => {
