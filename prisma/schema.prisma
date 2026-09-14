@@ -518,6 +518,7 @@ model Bildirim {
   gonderimDurum Boolean     @default(false)
   tarih         DateTime    @default(now())
   okundu        Boolean     @default(false)
+  kaldirildi    Boolean     @default(false) // header feed'den kaldırıldı (geçmiş korunur)
 
   kullanici Kullanici? @relation(fields: [kullaniciId], references: [id], onDelete: Cascade)
 

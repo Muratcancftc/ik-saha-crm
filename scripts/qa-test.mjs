@@ -1,3 +1,4 @@
+/* eslint-disable */
 // ATALAY İK CRM — veri bütünlüğü / puantaj / aday onay QA regression testi
 // Kullanım: npm run dev açıkken → node scripts/qa-test.mjs
 const { chromium } = require('playwright')

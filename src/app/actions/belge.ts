@@ -151,4 +151,13 @@ export async function bildirimGonder(formData: FormData) {
   return
 }
 
+// Header feed'den kaldır: okundu işaretler + kaldırıldı işaretler (geçmiş kayıt korunur)
+export async function bildirimKaldir(formData: FormData) {
+  await requireRoles(['patron', 'operasyon', 'muhasebe', 'saha_sorumlusu'])
+  const id = Number(formData.get('id'))
+  await prisma.bildirim.update({ where: { id }, data: { okundu: true, kaldirildi: true } })
+  revalidatePath('/')
+  return
+}
+
 export type { BildirimTur }
