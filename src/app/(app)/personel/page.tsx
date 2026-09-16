@@ -6,13 +6,32 @@ import { Card, CardHeader, StatCard, Th, Td, EmptyState, Badge } from '@/compone
 import { Icon } from '@/components/icons'
 import { PersonelForm } from './personel-form'
 import { togglePersonelDurum } from '@/app/actions/personel'
+import { BolgeFiltre } from '@/components/bolge-filtre'
+import { BolgeSubMenu } from '@/components/bolge-submenu'
+import { bolgeGecerli, bolgeEtiket, BOLGE_TONE } from '@/lib/bolge'
+import { ISG_BELGE_TIPI } from '@/lib/belge'
 
 export const dynamic = 'force-dynamic'
 
-export default async function PersonelPage() {
-  await requireRoles(['patron', 'muhasebe'])
+export default async function PersonelPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ bolge?: string }>
+}) {
+  const user = await requireRoles(['patron', 'muhasebe'])
+  const sp = await searchParams
+  const bolge = bolgeGecerli(sp.bolge)
 
-  const personel = await prisma.personel.findMany({ orderBy: { ad: 'asc' } })
+  const personel = await prisma.personel.findMany({
+    where: bolge ? { bolge } : {},
+    orderBy: { ad: 'asc' },
+  })
+
+  const isgBelgeler = await prisma.belge.findMany({
+    where: { tip: ISG_BELGE_TIPI, personelId: { in: personel.map((p) => p.id) } },
+    select: { personelId: true },
+  })
+  const isgSet = new Set(isgBelgeler.map((b) => b.personelId))
 
   const rows = personel.map((p) => ({
     id: p.id,
@@ -25,6 +44,7 @@ export default async function PersonelPage() {
     sgkDurum: p.sgkDurum,
     izinBakiyesi: p.izinBakiyesi,
     durum: p.durum,
+    bolge: p.bolge,
   }))
 
   const aylikMaas = personel.filter((p) => p.durum === 'aktif').reduce((a, p) => a + Number(p.maas), 0)
@@ -34,17 +54,28 @@ export default async function PersonelPage() {
 
   return (
     <div className="space-y-5">
+      {bolge && <BolgeSubMenu bolge={bolge} rol={user.rol} />}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard icon="personel" label="Aylık Net Maaş Toplamı" value={tl(aylikMaas)} sub={`${num(personel.filter((p) => p.durum === 'aktif').length)} aktif personel`} tone="indigo" />
         <StatCard icon="vergi" label="İşveren SGK Payı (~%20,5)" value={tl(isverenPayi)} sub="Otomatik tahmini hesaplama" tone="amber" />
         <StatCard icon="wallet" label="Aylık İşveren Maliyeti" value={tl(aylikToplamMaliyet)} sub={`Yıllık ≈ ${tl(yillik)}`} tone="green" />
       </div>
 
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-500">
+          <b className="text-slate-900">{num(rows.length)}</b> personel
+          {bolge && <span className="text-slate-400"> · {bolgeEtiket(bolge)}</span>}
+        </p>
+        <div className="flex items-center gap-2">
+          <BolgeFiltre aktif={bolge} />
+          <PersonelForm mode="create" varsayilanBolge={bolge ?? 'kocaeli'} />
+        </div>
+      </div>
+
       <Card>
         <CardHeader
           title={`İç Kadro (${num(rows.length)})`}
           desc="Personel bordro ve IBAN bilgileri (IBAN şifreli, maskeli görünür)"
-          action={<PersonelForm mode="create" />}
         />
         <div className="overflow-x-auto">
           {rows.length === 0 ? (
@@ -54,6 +85,7 @@ export default async function PersonelPage() {
               <thead>
                 <tr className="border-b border-slate-100">
                   <Th>Personel</Th>
+                  <Th>Bölge</Th>
                   <Th>Departman / Rol</Th>
                   <Th>İşe Giriş</Th>
                   <Th className="text-right">Maaş</Th>
@@ -73,8 +105,10 @@ export default async function PersonelPage() {
                           {p.ad.split(' ').map((x) => x[0]).slice(0, 2).join('')}
                         </div>
                         <a href={`/personel/${p.id}`} className="font-medium text-slate-900 hover:text-indigo-600">{p.ad}</a>
+                        {isgSet.has(p.id) && <Badge tone="green">İSG √</Badge>}
                       </div>
                     </Td>
+                    <Td><Badge tone={BOLGE_TONE[p.bolge]}>{bolgeEtiket(p.bolge)}</Badge></Td>
                     <Td>
                       <div>{p.departman}</div>
                       <div className="text-xs text-slate-400">{p.rol}</div>

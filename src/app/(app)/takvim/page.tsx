@@ -2,6 +2,7 @@ import { requireUser } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { startOfDay, addDays } from '@/lib/dates'
 import { Takvim } from './takvim-client'
+import { BolgeSubMenu } from '@/components/bolge-submenu'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,19 +19,21 @@ const AY_ADLARI = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temm
 export default async function TakvimPage({
   searchParams,
 }: {
-  searchParams: Promise<{ bas?: string; gun?: string }>
+  searchParams: Promise<{ bas?: string; gun?: string; bolge?: string }>
 }) {
   const user = await requireUser()
   const sp = await searchParams
   const bas = haftaBaslangici(sp.bas)
   const bit = addDays(bas, 7)
+  const bolge = sp.bolge === 'kocaeli' || sp.bolge === 'balikesir' ? (sp.bolge as 'kocaeli' | 'balikesir') : undefined
 
   const lokFiltre = user.rol === 'saha_sorumlusu' ? { lokasyonId: user.lokasyonId ?? -1 } : {}
+  const bolgeFiltre = bolge ? { firma: { bolge } } : {}
 
   // hafta + ay verilerini paralel çek
   const [haftaTalepler, ayTalepler] = await Promise.all([
     prisma.talep.findMany({
-      where: { tarih: { gte: bas, lt: bit }, ...lokFiltre },
+      where: { tarih: { gte: bas, lt: bit }, ...lokFiltre, ...bolgeFiltre },
       include: {
         lokasyon: { include: { firma: true } },
         kalemler: { include: { meslek: true } },
@@ -42,6 +45,7 @@ export default async function TakvimPage({
       where: {
         tarih: { gte: new Date(bas.getFullYear(), bas.getMonth(), 1), lt: new Date(bas.getFullYear(), bas.getMonth() + 1, 1) },
         ...lokFiltre,
+        ...bolgeFiltre,
       },
       include: {
         kalemler: true,
@@ -102,16 +106,20 @@ export default async function TakvimPage({
   const ayIlkGun = new Date(bas.getFullYear(), bas.getMonth(), 1).getDay() // 0=Sun
 
   return (
-    <Takvim
-      bas={bas.toISOString().slice(0, 10)}
-      gunler={gunler}
-      satirlar={satirlar}
-      talepler={talepSeri}
-      ayGunler={ayGunler}
-      ayEtiket={ayEtiket}
-      ayIlkGun={ayIlkGun}
-      ayBas={bas.getFullYear() * 100 + bas.getMonth()}
-      seciliGunBaslangic={Number(sp.gun) || -1}
-    />
+    <div className="space-y-5">
+      {bolge && <BolgeSubMenu bolge={bolge} rol={user.rol} />}
+      <Takvim
+        bas={bas.toISOString().slice(0, 10)}
+        gunler={gunler}
+        satirlar={satirlar}
+        talepler={talepSeri}
+        ayGunler={ayGunler}
+        ayEtiket={ayEtiket}
+        ayIlkGun={ayIlkGun}
+        ayBas={bas.getFullYear() * 100 + bas.getMonth()}
+        seciliGunBaslangic={Number(sp.gun) || -1}
+        bolge={bolge}
+      />
+    </div>
   )
 }

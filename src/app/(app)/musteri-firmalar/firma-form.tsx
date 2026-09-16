@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from 'react'
 import { createFirma } from '@/app/actions/firma'
 import { Icon } from '@/components/icons'
 
-export function FirmaForm() {
+export function FirmaForm({ varsayilanBolge = 'kocaeli' }: { varsayilanBolge?: string }) {
   const [open, setOpen] = useState(false)
   const [state, formAction, pending] = useActionState(createFirma, undefined)
 
@@ -32,6 +32,13 @@ export function FirmaForm() {
               </button>
             </div>
             <form action={formAction} className="space-y-4 px-6 py-5">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600">Bölge</label>
+                <select name="bolge" defaultValue={varsayilanBolge} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                  <option value="kocaeli">Kocaeli</option>
+                  <option value="balikesir">Balıkesir</option>
+                </select>
+              </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">Firma Adı *</label>
                 <input name="ad" required className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />

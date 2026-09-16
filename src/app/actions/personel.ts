@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { encrypt, decrypt } from '@/lib/crypto'
+import { bolgeGecerli } from '@/lib/bolge'
 import type { PersonelDurum } from '@prisma/client'
 
 export type PersonelState = { error?: string; ok?: boolean } | undefined
@@ -26,6 +27,7 @@ export async function createPersonel(_prev: PersonelState, formData: FormData): 
       iban: iban ? encrypt(iban) : encrypt(''),
       sgkDurum: String(formData.get('sgkDurum') ?? 'Aktif SGK'),
       izinBakiyesi: Number(formData.get('izinBakiyesi') ?? 0) || 0,
+      bolge: bolgeGecerli(String(formData.get('bolge') ?? '')) ?? 'kocaeli',
       durum: 'aktif',
     },
   })
@@ -54,6 +56,7 @@ export async function updatePersonel(_prev: PersonelState, formData: FormData): 
       iban: iban ? encrypt(iban) : mevcut.iban,
       sgkDurum: String(formData.get('sgkDurum') ?? mevcut.sgkDurum),
       izinBakiyesi: Number(formData.get('izinBakiyesi') ?? mevcut.izinBakiyesi) || 0,
+      bolge: bolgeGecerli(String(formData.get('bolge') ?? '')) ?? mevcut.bolge,
       durum: (String(formData.get('durum') ?? mevcut.durum) as PersonelDurum) || mevcut.durum,
     },
   })

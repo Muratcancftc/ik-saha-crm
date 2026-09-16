@@ -292,7 +292,7 @@ export async function updatePuantaj(formData: FormData) {
 export async function oneriGetir(talepId: number, meslekId: number, haricId?: number) {
   await requireRoles(['patron', 'operasyon'])
 
-  const talep = await prisma.talep.findUnique({ where: { id: talepId }, include: { lokasyon: true } })
+  const talep = await prisma.talep.findUnique({ where: { id: talepId }, include: { lokasyon: true, firma: true } })
   if (!talep) return []
 
   const bugun = startOfDay()
@@ -305,6 +305,7 @@ export async function oneriGetir(talepId: number, meslekId: number, haricId?: nu
   const adaylar = await prisma.isci.findMany({
     where: {
       durum: 'aktif',
+      bolge: talep.firma.bolge,
       meslekler: { some: { meslekId } },
     },
     include: {

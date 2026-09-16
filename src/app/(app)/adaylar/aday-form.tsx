@@ -60,6 +60,14 @@ export function AdayForm({ meslekler }: { meslekler: MeslekDto[] }) {
                 </div>
               </div>
               <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600">Bölge</label>
+                <select name="bolge" defaultValue="" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                  <option value="">Atanmamış</option>
+                  <option value="kocaeli">Kocaeli</option>
+                  <option value="balikesir">Balıkesir</option>
+                </select>
+              </div>
+              <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">Puan (0-100)</label>
                 <input name="puan" type="number" min={0} max={100} defaultValue={50} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
               </div>

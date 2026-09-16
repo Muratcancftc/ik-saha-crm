@@ -22,6 +22,7 @@ type Seri = {
   ayIlkGun: number
   ayBas: number
   seciliGunBaslangic: number
+  bolge?: string
 }
 
 type FreeWorker = { id: number; ad: string; ilce: string; puan: number; beklenti: number; meslekler: string[]; belgeYaklasan: boolean }
@@ -56,12 +57,12 @@ export function Takvim(props: Seri) {
     const gun = props.gunler[seciliGun]
     if (!gun) return
     setFree(null)
-    musaitIsciler(gun.iso, secili?.meslekId).then(setFree)
-  }, [seciliGun, secili?.meslekId, props.bas, props.gunler])
+    musaitIsciler(gun.iso, secili?.meslekId, props.bolge).then(setFree)
+  }, [seciliGun, secili?.meslekId, props.bas, props.gunler, props.bolge])
 
   function git(offset: number) {
     const yeni = addDaysIso(props.bas, offset)
-    router.push(`/takvim?bas=${yeni}`)
+    router.push(`/takvim?bas=${yeni}${props.bolge ? `&bolge=${props.bolge}` : ''}`)
   }
 
   function ayGecir(offset: number) {
@@ -72,7 +73,7 @@ export function Takvim(props: Seri) {
     const gun = (hedefAy.getDay() + 6) % 7 // pazartesi=0
     const ayBasIso = `${yil}-${String(ay + offset + 1).padStart(2, '0')}-01`
     const pazartesi = addDaysIso(ayBasIso, (7 - gun) % 7)
-    router.push(`/takvim?bas=${pazartesi}`)
+    router.push(`/takvim?bas=${pazartesi}${props.bolge ? `&bolge=${props.bolge}` : ''}`)
   }
 
   function gunSec(iso: string) {
@@ -83,7 +84,7 @@ export function Takvim(props: Seri) {
       const gun = (d.getDay() + 6) % 7
       const pazartesi = addDaysIso(iso, -gun)
       setGorunum('hafta')
-      router.push(`/takvim?bas=${pazartesi}&gun=${gun}`)
+      router.push(`/takvim?bas=${pazartesi}&gun=${gun}${props.bolge ? `&bolge=${props.bolge}` : ''}`)
       return
     }
     setSeciliGun(idx)
@@ -141,7 +142,21 @@ export function Takvim(props: Seri) {
                 <Icon name="chevron" size={16} className="-rotate-90" />
               </button>
             </div>
-            <a href="/takvim" className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500">
+            <select
+              value={props.bolge ?? ''}
+              onChange={(e) => {
+                const v = e.target.value
+                const p = new URLSearchParams({ bas: props.bas })
+                if (v) p.set('bolge', v)
+                router.push(`/takvim?${p.toString()}`)
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-indigo-500"
+            >
+              <option value="">Tüm Bölgeler</option>
+              <option value="kocaeli">Kocaeli</option>
+              <option value="balikesir">Balıkesir</option>
+            </select>
+            <a href={`/takvim${props.bolge ? `?bolge=${props.bolge}` : ''}`} className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500">
               Bugüne dön
             </a>
           </div>
@@ -192,7 +207,7 @@ export function Takvim(props: Seri) {
 function HaftaGorunumu({
   bas, gunler, satirlar, talepler, seciliGun, setSeciliGun, secili, setSecili,
   free, setFree, mesaj, setMesaj, detayTalep, setDetayTalep,
-  gunToplamlari, satirToplam, bugunIso, gunNesnesi,
+  gunToplamlari, satirToplam, bugunIso, gunNesnesi, bolge,
 }: {
   bas: string
   gunler: Array<{ iso: string; etiket: string }>
@@ -212,6 +227,7 @@ function HaftaGorunumu({
   satirToplam: (lokasyonId: number) => { ihtiyac: number; atanan: number }
   bugunIso: string
   gunNesnesi: Date
+  bolge?: string
 }) {
   const router = useRouter()
   const seciliGunIso = gunler[seciliGun]?.iso
@@ -220,8 +236,8 @@ function HaftaGorunumu({
     const gun = gunler[seciliGun]
     if (!gun) return
     setFree(null)
-    musaitIsciler(gun.iso, secili?.meslekId).then(setFree)
-  }, [seciliGun, secili?.meslekId, bas, gunler, setFree])
+    musaitIsciler(gun.iso, secili?.meslekId, bolge).then(setFree)
+  }, [seciliGun, secili?.meslekId, bas, gunler, setFree, bolge])
 
   return (
     <div className="flex flex-col gap-4 xl:flex-row">

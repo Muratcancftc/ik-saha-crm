@@ -2,6 +2,7 @@ import { requireUser } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import Sidebar from '@/components/sidebar'
 import Topbar from '@/components/topbar'
+import { EtkinlikPulse } from '@/components/etkinlik-pulse'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser()
@@ -17,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Topbar unread={unread} />
         <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6">{children}</main>
       </div>
+      <EtkinlikPulse />
     </div>
   )
 }

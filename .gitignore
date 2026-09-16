@@ -46,3 +46,6 @@ next-env.d.ts
 
 # yüklenen evrak dosyaları (runtime)
 public/uploads/
+
+# dekont / yerel dosya yüklemeleri
+/uploads/

@@ -14,6 +14,7 @@ type IsciDto = {
   puan: number
   beklenti: number
   durum: string
+  bolge: string
   tercihBolgeler: string[]
   dogumTarihi: Date
   meslekIds: number[]
@@ -179,6 +180,13 @@ export function IsciForm({
                     <option value="aktif">Aktif</option>
                     <option value="pasif">Pasif</option>
                     <option value="kara_liste">Kara Liste</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-600">Bölge</label>
+                  <select name="bolge" defaultValue={isci?.bolge ?? 'kocaeli'} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                    <option value="kocaeli">Kocaeli</option>
+                    <option value="balikesir">Balıkesir</option>
                   </select>
                 </div>
               </div>

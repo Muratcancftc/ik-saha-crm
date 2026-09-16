@@ -29,6 +29,9 @@ type IconName =
   | 'pdf'
   | 'trash'
   | 'yenile'
+  | 'bolge'
+  | 'servis'
+  | 'telefon'
 
 const PATHS: Record<IconName, ReactElement> = {
   dashboard: (
@@ -176,6 +179,24 @@ const PATHS: Record<IconName, ReactElement> = {
   yenile: (
     <>
       <path d="M21 12a9 9 0 1 1-2.6-6.3M21 3v6h-6" />
+    </>
+  ),
+  bolge: (
+    <>
+      <circle cx="12" cy="10" r="3" />
+      <path d="M12 2a8 8 0 0 1 8 8c0 5-8 12-8 12S4 15 4 10a8 8 0 0 1 8-8z" />
+    </>
+  ),
+  servis: (
+    <>
+      <path d="M4 17V7a2 2 0 0 1 2-2h8l6 6v6" />
+      <path d="M4 17h14" />
+      <path d="M9 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM19 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+    </>
+  ),
+  telefon: (
+    <>
+      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.4 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z" />
     </>
   ),
 }

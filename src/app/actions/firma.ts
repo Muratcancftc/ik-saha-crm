@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
+import { bolgeGecerli } from '@/lib/bolge'
 
 export type FirmaActionState = { error?: string; ok?: boolean } | undefined
 
@@ -18,6 +19,7 @@ export async function createFirma(_prev: FirmaActionState, formData: FormData): 
       telefon: String(formData.get('telefon') ?? '').trim() || null,
       email: String(formData.get('email') ?? '').trim() || null,
       adres: String(formData.get('adres') ?? '').trim() || null,
+      bolge: bolgeGecerli(String(formData.get('bolge') ?? '')) ?? 'kocaeli',
     },
   })
   revalidatePath('/musteri-firmalar')
@@ -64,6 +66,20 @@ export async function setFirmaFiyat(formData: FormData) {
     create: { firmaId, meslekId, kisiGunFiyat: fiyat },
   })
   revalidatePath('/musteri-firmalar')
+  return
+}
+
+// Firma bölgesini değiştir (website'ten gelen firmayı şehre ata)
+export async function setFirmaBolge(formData: FormData) {
+  await requireRoles(['patron', 'operasyon'])
+  const firmaId = Number(formData.get('firmaId'))
+  const bolge = bolgeGecerli(String(formData.get('bolge') ?? ''))
+  if (!firmaId || !bolge) return
+  await prisma.musteriFirma.update({ where: { id: firmaId }, data: { bolge } })
+  revalidatePath('/musteri-firmalar')
+  revalidatePath('/talepler')
+  revalidatePath('/takvim')
+  revalidatePath('/puantaj')
   return
 }
 

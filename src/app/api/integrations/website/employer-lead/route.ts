@@ -11,6 +11,7 @@ import {
 } from '@/lib/integration'
 import { startOfDay, addDays } from '@/lib/dates'
 import { pushBildirimGonder } from '@/lib/push'
+import { bolgeGecerli } from '@/lib/bolge'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,6 +73,7 @@ export async function POST(req: Request) {
   const personnelCount = Math.max(1, Math.min(9999, Math.round(Number(body.personnelCount) || 1)))
   const description = temizle(body.description, 2000) || null
   const kaynak = kaynakBelirle(body.source ? temizle(body.source, 40) : undefined)
+  const bolge = bolgeGecerli(temizle(body.bolge ?? body.region, 40).toLowerCase()) ?? 'kocaeli'
 
   // --- Firma bul veya oluştur (dedupe: ad / email / telefon) ---
   const firmaKosul: Array<Record<string, unknown>> = []
@@ -81,7 +83,7 @@ export async function POST(req: Request) {
 
   let firma = firmaKosul.length ? await prisma.musteriFirma.findFirst({ where: { OR: firmaKosul } }) : null
   if (!firma) {
-    firma = await prisma.musteriFirma.create({ data: { ad: companyName, email, telefon: phone } })
+    firma = await prisma.musteriFirma.create({ data: { ad: companyName, email, telefon: phone, bolge } })
   }
 
   // --- Yetkili / contact bul veya oluştur ---

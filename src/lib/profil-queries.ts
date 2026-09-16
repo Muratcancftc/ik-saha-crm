@@ -188,6 +188,7 @@ export async function getFirmaProfil(firmaId: number, bas: Date, bit: Date) {
   return {
     id: firma.id,
     ad: firma.ad,
+    bolge: firma.bolge,
     vergiNo: firma.vergiNo,
     telefon: firma.telefon,
     email: firma.email,

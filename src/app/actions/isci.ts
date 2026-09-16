@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { encrypt, decrypt } from '@/lib/crypto'
+import { bolgeGecerli } from '@/lib/bolge'
 import type { IsciDurum } from '@prisma/client'
 
 function parseMeslekler(formData: FormData): number[] {
@@ -48,6 +49,7 @@ export async function createIsci(_prev: IsciActionState, formData: FormData): Pr
       puan: Number(formData.get('puan') ?? 50) || 50,
       gunlukUcretBeklentisi: Number(formData.get('gunlukUcretBeklentisi') ?? 0) || 0,
       durum: (String(formData.get('durum') ?? 'aktif') as IsciDurum) || 'aktif',
+      bolge: bolgeGecerli(String(formData.get('bolge') ?? '')) ?? 'kocaeli',
       tercihBolgeler: parseBolgeler(formData),
       meslekler: {
         create: parseMeslekler(formData).map((meslekId) => ({ meslekId })),
@@ -92,6 +94,7 @@ export async function updateIsci(_prev: IsciActionState, formData: FormData): Pr
           Number(formData.get('gunlukUcretBeklentisi') ?? mevcut.gunlukUcretBeklentisi) ||
           mevcut.gunlukUcretBeklentisi,
         durum: (String(formData.get('durum') ?? mevcut.durum) as IsciDurum) || mevcut.durum,
+        bolge: bolgeGecerli(String(formData.get('bolge') ?? '')) ?? mevcut.bolge,
         tercihBolgeler: bolgeler.length ? bolgeler : mevcut.tercihBolgeler,
         meslekler: {
           create: meslekIds.map((meslekId) => ({ meslekId })),

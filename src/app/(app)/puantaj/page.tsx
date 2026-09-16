@@ -7,6 +7,9 @@ import { parseLocalDate } from '@/lib/donem'
 import { Card, CardHeader, Badge, EmptyState } from '@/components/ui'
 import { PuantajBadge, AtamaBadge } from '@/components/status-badge'
 import { updatePuantaj } from '@/app/actions/talep'
+import { ManuelPuantajForm } from './manuel-puantaj-form'
+import { BolgeFiltre } from '@/components/bolge-filtre'
+import { BolgeSubMenu } from '@/components/bolge-submenu'
 import { Icon } from '@/components/icons'
 
 export const dynamic = 'force-dynamic'
@@ -42,11 +45,13 @@ function donemEtiket(bas: Date): string {
 export default async function PuantajPage({
   searchParams,
 }: {
-  searchParams: Promise<{ bas?: string; tarih?: string }>
+  searchParams: Promise<{ bas?: string; tarih?: string; bolge?: string }>
 }) {
   const user = await requireUser()
   const sp = await searchParams
   const bugun = startOfDay()
+
+  const bolge = sp.bolge === 'kocaeli' || sp.bolge === 'balikesir' ? sp.bolge : undefined
 
   const bas = periyotBaslangic(sp.bas)
   const bit = addDays(bas, PENCERE) // [bas, bit) — yalnızca 15 gün
@@ -63,6 +68,7 @@ export default async function PuantajPage({
     where: {
       tarih: { gte: startOfDay(tarih), lt: addDays(startOfDay(tarih), 1) },
       durum: { not: 'iptal' },
+      ...(bolge ? { talep: { firma: { bolge } } } : {}),
       ...atamaLokasyonFilter(user),
     },
     include: {
@@ -82,13 +88,28 @@ export default async function PuantajPage({
   const sahaSiniri = user.rol === 'saha_sorumlusu' ? ' — yalnızca kendi lokasyonunuz' : ''
   const etiket = donemEtiket(bas)
 
+  const puantajHref = (params: Record<string, string>) => {
+    const p = new URLSearchParams(params)
+    if (bolge) p.set('bolge', bolge)
+    return `/puantaj?${p.toString()}`
+  }
+
+  const [aktifIsciler, firmalar, meslekler] = await Promise.all([
+    prisma.isci.findMany({ where: { durum: 'aktif' }, select: { id: true, ad: true }, orderBy: { ad: 'asc' } }),
+    prisma.musteriFirma.findMany({ include: { lokasyonlar: { select: { id: true, ad: true } } }, orderBy: { ad: 'asc' } }),
+    prisma.meslek.findMany({ select: { id: true, ad: true }, orderBy: { ad: 'asc' } }),
+  ])
+
+  const manuelEklemeVar = user.rol === 'patron' || user.rol === 'operasyon'
+
   return (
     <div className="space-y-5">
+      {bolge && <BolgeSubMenu bolge={bolge} rol={user.rol} />}
       {/* Dönem gezinme: önceki / dönem etiketi / sonraki + tarih seç */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <a
-            href={`/puantaj?bas=${iso(onceki)}`}
+            href={puantajHref({ bas: iso(onceki) })}
             title="Önceki 15 gün"
             className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-medium text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
           >
@@ -96,7 +117,7 @@ export default async function PuantajPage({
             Önceki 15 Gün
           </a>
           <a
-            href={`/puantaj?bas=${iso(sonraki)}`}
+            href={puantajHref({ bas: iso(sonraki) })}
             title="Sonraki 15 gün"
             className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-medium text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
           >
@@ -122,6 +143,11 @@ export default async function PuantajPage({
             Git
           </button>
         </form>
+
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs font-medium text-slate-500">Bölge</label>
+          <BolgeFiltre aktif={bolge ?? null} />
+        </div>
       </div>
 
       {/* 15 günlük gün seçici */}
@@ -132,7 +158,7 @@ export default async function PuantajPage({
           return (
             <a
               key={iso(g)}
-              href={`/puantaj?bas=${iso(bas)}&tarih=${iso(g)}`}
+              href={puantajHref({ bas: iso(bas), tarih: iso(g) })}
               title={dateLong(g)}
               className={`flex min-w-10 flex-col items-center rounded-lg px-2 py-1.5 text-center transition ${
                 aktif
@@ -155,6 +181,14 @@ export default async function PuantajPage({
           {!sameDay(tarih, bugun) && (tarih < bugun ? ' · geçmiş gün' : ' · gelecek gün')}
           <span className="text-slate-400">{sahaSiniri}</span>
         </p>
+        {manuelEklemeVar && (
+          <ManuelPuantajForm
+            isciler={aktifIsciler}
+            firmalar={firmalar}
+            meslekler={meslekler}
+            varsayilanTarih={iso(tarih)}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">

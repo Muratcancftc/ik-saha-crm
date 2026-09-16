@@ -9,26 +9,30 @@ import { Icon } from '@/components/icons'
 import { IsciForm } from './isci-form'
 import { IsciDetayModal } from './isci-detay-modal'
 import { GeriGonderButton } from './geri-gonder'
-import { toggleIsciDurum } from '@/app/actions/isci'
+import { toggleIsciDurum, silIsci } from '@/app/actions/isci'
+import { BolgeSubMenu } from '@/components/bolge-submenu'
+import { SilOnayForm } from '@/components/sil-onay'
+import { bolgeGecerli, bolgeEtiket, BOLGE_TONE } from '@/lib/bolge'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-const BOLGELER = [
-  'Ümraniye', 'Üsküdar', 'Pendik', 'Kartal', 'Maltepe', 'Kadıköy',
-  'Beylikdüzü', 'Esenyurt', 'Başakşehir', 'Tuzla', 'Ataşehir', 'Sancaktepe',
+const ILCELER = [
+  'Gebze', 'İzmit', 'Derince', 'Körfez', 'Kartepe', 'Gölcük', 'Başiskele', 'Çayırova', 'Darıca',
+  'Karesi', 'Altıeylül', 'Bandırma', 'Edremit', 'Burhaniye', 'Gönen', 'Susurluk', 'Manyas',
 ]
 
 export default async function IsciHavuzuPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; meslek?: string; bolge?: string; durum?: string }>
+  searchParams: Promise<{ q?: string; meslek?: string; bolge?: string; ilce?: string; durum?: string }>
 }) {
-  await requireRoles(['patron', 'operasyon'])
+  const user = await requireRoles(['patron', 'operasyon'])
   const sp = await searchParams
   const q = sp.q?.trim() ?? ''
   const meslek = sp.meslek
-  const bolge = sp.bolge
+  const bolge = bolgeGecerli(sp.bolge)
+  const ilce = sp.ilce
   const durum = sp.durum
 
   const meslekler = await prisma.meslek.findMany({ orderBy: { ad: 'asc' } })
@@ -37,7 +41,8 @@ export default async function IsciHavuzuPage({
     where: {
       ...(q ? { ad: { contains: q, mode: 'insensitive' } } : {}),
       ...(meslek ? { meslekler: { some: { meslekId: Number(meslek) } } } : {}),
-      ...(bolge ? { ilce: bolge } : {}),
+      ...(bolge ? { bolge } : {}),
+      ...(ilce ? { ilce } : {}),
       ...(durum ? { durum: durum as never } : {}),
     },
     include: {
@@ -57,6 +62,7 @@ export default async function IsciHavuzuPage({
       tcMasked: maskTC(decrypt(i.tcKimlik)),
       ibanMasked: maskIBAN(decrypt(i.iban)),
       ilce: i.ilce,
+      bolge: i.bolge,
       puan: i.puan,
       beklenti: Number(i.gunlukUcretBeklentisi),
       durum: i.durum,
@@ -73,6 +79,7 @@ export default async function IsciHavuzuPage({
 
   return (
     <div className="space-y-5">
+      {bolge && <BolgeSubMenu bolge={bolge} rol={user.rol} />}
       {/* Filtre çubuğu */}
       <Card className="p-4">
         <form method="get" className="flex flex-wrap items-end gap-3">
@@ -95,10 +102,18 @@ export default async function IsciHavuzuPage({
             </Select>
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-600">Bölge (İlçe)</label>
+            <label className="mb-1.5 block text-xs font-medium text-slate-600">Bölge</label>
             <Select name="bolge" defaultValue={bolge ?? ''}>
               <option value="">Tümü</option>
-              {BOLGELER.map((b) => (
+              <option value="kocaeli">Kocaeli</option>
+              <option value="balikesir">Balıkesir</option>
+            </Select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-slate-600">İlçe</label>
+            <Select name="ilce" defaultValue={ilce ?? ''}>
+              <option value="">Tümü</option>
+              {ILCELER.map((b) => (
                 <option key={b} value={b}>{b}</option>
               ))}
             </Select>
@@ -134,7 +149,7 @@ export default async function IsciHavuzuPage({
         <IsciForm
           mode="create"
           meslekler={meslekler}
-          bolgeler={BOLGELER}
+          bolgeler={ILCELER}
         />
       </div>
 
@@ -148,6 +163,7 @@ export default async function IsciHavuzuPage({
                 <tr className="border-b border-slate-100">
                   <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">İşçi</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Bölge</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">İlçe</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Meslekler</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Puan</th>
                   <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-500">Beklenti</th>
@@ -171,6 +187,9 @@ export default async function IsciHavuzuPage({
                           <div className="whitespace-nowrap text-xs text-slate-500">{i.telefon}</div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge tone={BOLGE_TONE[i.bolge]}>{bolgeEtiket(i.bolge)}</Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700">{i.ilce}</td>
                     <td className="px-4 py-3">
@@ -210,15 +229,18 @@ export default async function IsciHavuzuPage({
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1.5">
                         <IsciDetayModal isciId={i.id} isciAd={i.ad} />
-                        <IsciForm mode="edit" isci={i} meslekler={meslekler} bolgeler={BOLGELER} />
+                        <IsciForm mode="edit" isci={i} meslekler={meslekler} bolgeler={ILCELER} />
                         {i.durum === 'aktif' && <GeriGonderButton id={i.id} ad={i.ad} />}
                         <form action={toggleIsciDurum}>
                           <input type="hidden" name="id" value={i.id} />
                           <input type="hidden" name="hedef" value={i.durum === 'aktif' ? 'pasif' : 'aktif'} />
-                          <button className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" title="Durum değiştir">
-                            <Icon name="x" size={16} />
+                          <button className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" title={i.durum === 'aktif' ? 'Pasifleştir' : 'Aktifleştir'}>
+                            <Icon name="yenile" size={16} />
                           </button>
                         </form>
+                        {user.rol === 'patron' && (
+                          <SilOnayForm action={silIsci} id={i.id} baslik={`${i.ad} işçisi`} />
+                        )}
                       </div>
                     </td>
                   </tr>

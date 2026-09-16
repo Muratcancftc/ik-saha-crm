@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { encrypt } from '@/lib/crypto'
+import { bolgeGecerli } from '@/lib/bolge'
 import type { AdayDurum } from '@prisma/client'
 
 export type AdayState = { error?: string; ok?: boolean } | undefined
@@ -23,6 +24,7 @@ export async function createAday(_prev: AdayState, formData: FormData): Promise<
       meslekId,
       durum: 'basvurdu',
       puan: Number(formData.get('puan') ?? 50) || 50,
+      bolge: bolgeGecerli(String(formData.get('bolge') ?? '')) ?? null,
       not: String(formData.get('not') ?? '') || null,
     },
   })
@@ -57,17 +59,22 @@ export async function adayAktar(formData: FormData) {
   }
   const genIBAN = () => 'TR00' + Array.from({ length: 22 }, () => Math.floor(Math.random() * 10)).join('')
 
+  // Aktarılan işçi adayın bölgesine atanır (atanmamışsa varsayılan Kocaeli)
+  const bolge = aday.bolge ?? 'kocaeli'
+  const ilce = bolge === 'balikesir' ? 'Karesi' : 'İzmit'
+
   await prisma.isci.create({
     data: {
       ad: aday.ad,
       telefon: aday.telefon,
       tcKimlik: encrypt(genTC()),
-      ilce: 'İstanbul',
+      ilce,
       iban: encrypt(genIBAN()),
       dogumTarihi: new Date(1990, 0, 1),
       puan: aday.puan,
       gunlukUcretBeklentisi: 1500,
       durum: 'aktif',
+      bolge,
       tercihBolgeler: [],
       not: 'Aday havuzundan aktarıldı',
       meslekler: aday.meslekId ? { create: [{ meslekId: aday.meslekId }] } : undefined,
@@ -78,6 +85,17 @@ export async function adayAktar(formData: FormData) {
 
   revalidatePath('/adaylar')
   revalidatePath('/isci-havuzu')
+  return
+}
+
+// Adayın bölgesini ata / değiştir (website'ten gelen atanmamış adaylar için)
+export async function adayBolgeDegistir(formData: FormData) {
+  await requireRoles(['patron', 'operasyon'])
+  const id = Number(formData.get('id'))
+  const bolge = bolgeGecerli(String(formData.get('bolge') ?? '')) ?? null
+  if (!id) return
+  await prisma.aday.update({ where: { id }, data: { bolge } })
+  revalidatePath('/adaylar')
   return
 }
 

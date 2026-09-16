@@ -5,25 +5,44 @@ import { daysUntil, startOfDay } from '@/lib/dates'
 import { Card, CardHeader, Th, Td, Badge, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { BelgeForm } from './belge-form'
+import { PersonelIsgForm } from './personel-isg-form'
 import { silBelge, belgeYenile } from '@/app/actions/belge'
 import { sgkBildir } from '@/app/actions/talep'
+import { BolgeSubMenu } from '@/components/bolge-submenu'
+import { bolgeGecerli } from '@/lib/bolge'
+import { ISG_BELGE_TIPI } from '@/lib/belge'
 
 export const dynamic = 'force-dynamic'
 
 export default async function BelgeSgkPage({
   searchParams,
 }: {
-  searchParams: Promise<{ durum?: string }>
+  searchParams: Promise<{ durum?: string; bolge?: string }>
 }) {
-  await requireRoles(['patron', 'operasyon'])
+  const user = await requireRoles(['patron', 'operasyon'])
   const sp = await searchParams
   const durumFiltre = sp.durum ?? 'hepsi'
+  const bolge = bolgeGecerli(sp.bolge)
 
   const belgeler = await prisma.belge.findMany({
+    where: { isciId: { not: null }, ...(bolge ? { isci: { bolge } } : {}) },
     include: { isci: true },
     orderBy: { bitisTarihi: 'asc' },
   })
-  const isciler = await prisma.isci.findMany({ orderBy: { ad: 'asc' } })
+  const isciler = await prisma.isci.findMany({
+    where: bolge ? { bolge } : {},
+    orderBy: { ad: 'asc' },
+  })
+
+  const personeller = await prisma.personel.findMany({
+    where: bolge ? { bolge } : {},
+    orderBy: { ad: 'asc' },
+  })
+  const personelIsgBelgeler = await prisma.belge.findMany({
+    where: { tip: ISG_BELGE_TIPI, personelId: { not: null }, ...(bolge ? { personel: { bolge } } : {}) },
+    include: { personel: true },
+    orderBy: { bitisTarihi: 'asc' },
+  })
 
   const bugun = startOfDay()
   const siniflandir = (b: (typeof belgeler)[number]) => {
@@ -39,13 +58,19 @@ export default async function BelgeSgkPage({
 
   // SGK giriş bildirimleri
   const sgkEksik = await prisma.atama.findMany({
-    where: { sgkBildirildi: false, durum: { in: ['atandi', 'onaylandi'] }, tarih: { gte: bugun } },
+    where: {
+      sgkBildirildi: false,
+      durum: { in: ['atandi', 'onaylandi'] },
+      tarih: { gte: bugun },
+      ...(bolge ? { talep: { firma: { bolge } } } : {}),
+    },
     include: { isci: true, talep: { include: { firma: true, lokasyon: true } } },
     orderBy: { tarih: 'asc' },
   })
 
   return (
     <div className="space-y-5">
+      {bolge && <BolgeSubMenu bolge={bolge} rol={user.rol} />}
       {/* SGK giriş bildirimi */}
       <Card>
         <CardHeader
@@ -83,6 +108,74 @@ export default async function BelgeSgkPage({
                             Bildirildi ✓
                           </button>
                         </form>
+                      </Td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </Card>
+
+      {/* Personel İSG belgesi */}
+      <Card>
+        <CardHeader
+          title={`Personel İSG Belgeleri (${num(personelIsgBelgeler.length)})`}
+          desc="İSG belgesi olan personel, Personel menüsünde adının yanında İSG √ rozeti ile görünür"
+          action={<PersonelIsgForm personeller={personeller.map((p) => ({ id: p.id, ad: p.ad }))} />}
+        />
+        <div className="overflow-x-auto">
+          {personelIsgBelgeler.length === 0 ? (
+            <EmptyState icon="belge" title="Personel İSG belgesi yok" desc="Sağ üstten İSG belgesi ekleyebilirsiniz" />
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <Th>Personel</Th>
+                  <Th>Bitiş</Th>
+                  <Th>Durum</Th>
+                  <Th className="text-right">İşlem</Th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {personelIsgBelgeler.map((b) => {
+                  const g = daysUntil(b.bitisTarihi)
+                  return (
+                    <tr key={b.id} className="hover:bg-slate-50/60">
+                      <Td>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-slate-900">{b.personel?.ad ?? '—'}</span>
+                          <Badge tone="green">İSG √</Badge>
+                        </div>
+                      </Td>
+                      <Td>{date(b.bitisTarihi)}</Td>
+                      <Td>
+                        {g < 0 ? (
+                          <Badge tone="red">{Math.abs(g)} gün önce doldu</Badge>
+                        ) : g <= 30 ? (
+                          <Badge tone="amber">{g} gün kaldı</Badge>
+                        ) : (
+                          <Badge tone="green">Geçerli</Badge>
+                        )}
+                      </Td>
+                      <Td className="text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <form action={belgeYenile} className="flex items-center gap-1">
+                            <input type="hidden" name="id" value={b.id} />
+                            <input name="bitisTarihi" type="date" defaultValue={b.bitisTarihi.toISOString().slice(0, 10)} className="w-28 rounded-lg border border-slate-200 px-1.5 py-1 text-[11px] outline-none focus:border-indigo-500" />
+                            <button type="submit" title="Yenile (yeni bitiş tarihi)" className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2 py-1 text-[11px] font-medium text-indigo-700 transition hover:bg-indigo-100">
+                              <Icon name="yenile" size={12} />
+                              Yenile
+                            </button>
+                          </form>
+                          <form action={silBelge}>
+                            <input type="hidden" name="id" value={b.id} />
+                            <button className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Sil">
+                              <Icon name="x" size={14} />
+                            </button>
+                          </form>
+                        </div>
                       </Td>
                     </tr>
                   )
@@ -140,7 +233,7 @@ export default async function BelgeSgkPage({
                   const durum = siniflandir(b)
                   return (
                     <tr key={b.id} className="hover:bg-slate-50/60">
-                      <Td className="font-medium text-slate-900">{b.isci.ad}</Td>
+                      <Td className="font-medium text-slate-900">{b.isci?.ad ?? '—'}</Td>
                       <Td>{b.tip}</Td>
                       <Td>{date(b.verilisTarihi)}</Td>
                       <Td>{date(b.bitisTarihi)}</Td>

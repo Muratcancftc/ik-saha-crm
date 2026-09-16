@@ -21,6 +21,7 @@ import {
 } from '@/app/actions/talep'
 import { bildirimGonder } from '@/app/actions/belge'
 import { setAtamaDurumOtomatik } from '@/app/actions/hakedis'
+import { BolgeSubMenu } from '@/components/bolge-submenu'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,6 +34,7 @@ export default async function TaleplerPage({
     talep?: string
     durum?: string
     firma?: string
+    bolge?: string
     tarihBas?: string
     tarihBit?: string
     eksik?: string
@@ -48,12 +50,14 @@ export default async function TaleplerPage({
   const seciliId = Number(sp.talep) || 0
   const durum = sp.durum ?? ''
   const firmaId = sp.firma ? Number(sp.firma) : undefined
+  const bolge = sp.bolge ?? ''
   const goster = sp.g ?? ''
 
   const [talepler, secili, firmalar, meslekler] = await Promise.all([
     getTaleplerFiltreli(user, {
       durum: durum || undefined,
       firmaId,
+      bolge: bolge || undefined,
       tarihBas: sp.tarihBas,
       tarihBit: sp.tarihBit,
       sadeceEksik: sp.eksik === '1',
@@ -61,7 +65,10 @@ export default async function TaleplerPage({
     }),
     seciliId ? getTalepDetay(user, seciliId) : null,
     prisma.musteriFirma.findMany({
-      where: user.rol === 'saha_sorumlusu' ? { lokasyonlar: { some: { id: user.lokasyonId ?? -1 } } } : {},
+      where: {
+        ...(bolge === 'kocaeli' || bolge === 'balikesir' ? { bolge: bolge as 'kocaeli' | 'balikesir' } : {}),
+        ...(user.rol === 'saha_sorumlusu' ? { lokasyonlar: { some: { id: user.lokasyonId ?? -1 } } } : {}),
+      },
       include: { lokasyonlar: true },
       orderBy: { ad: 'asc' },
     }),
@@ -96,7 +103,9 @@ export default async function TaleplerPage({
     .reduce((a, t) => a + t.kalemler.reduce((x, k) => x + k.adet, 0), 0)
 
   return (
-    <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+    <div className="space-y-5">
+      {(bolge === 'kocaeli' || bolge === 'balikesir') && <BolgeSubMenu bolge={bolge} rol={user.rol} />}
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
       {/* ============ SOL: liste ============ */}
       <div className="w-full shrink-0 space-y-3 lg:w-[400px]">
         {/* Özet şeridi */}
@@ -119,6 +128,14 @@ export default async function TaleplerPage({
                 <option value="kismi">Kısmi</option>
                 <option value="dolu">Dolu</option>
                 <option value="kapandi">Kapandı</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="mb-1 block text-[11px] font-medium text-slate-500">Bölge</label>
+              <select name="bolge" defaultValue={bolge} className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-indigo-500">
+                <option value="">Tüm Bölgeler</option>
+                <option value="kocaeli">Kocaeli</option>
+                <option value="balikesir">Balıkesir</option>
               </select>
             </div>
             <div className="col-span-2">
@@ -151,7 +168,7 @@ export default async function TaleplerPage({
             <button type="submit" className="col-span-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-500">
               Filtrele
             </button>
-            <Link href={`/talepler${seciliId ? `?talep=${seciliId}` : ''}`} className="col-span-1 rounded-lg bg-white px-3 py-1.5 text-center text-sm font-medium text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50">
+            <Link href={filtreHref(seciliId, undefined, undefined, undefined, undefined, undefined, bolge)} className="col-span-1 rounded-lg bg-white px-3 py-1.5 text-center text-sm font-medium text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50">
               Temizle
             </Link>
           </form>
@@ -181,6 +198,7 @@ export default async function TaleplerPage({
               eksik={sp.eksik}
               sablon={sp.sablon}
               goster={goster}
+              bolge={bolge}
             />
             <TalepGruplari
               title={`Gelecek (${gelecek.length})`}
@@ -191,6 +209,7 @@ export default async function TaleplerPage({
               eksik={sp.eksik}
               sablon={sp.sablon}
               goster={goster}
+              bolge={bolge}
             />
 
             {/* Geçmiş — varsayılan kapalı */}
@@ -199,7 +218,7 @@ export default async function TaleplerPage({
                 gecmis.length > 0 && (
                   <div className="rounded-xl border border-dashed border-slate-300 px-4 py-2.5 text-center">
                     <Link
-                      href={filtreHref(seciliId, firmaId, durum, sp.eksik, sp.sablon, '1')}
+                      href={filtreHref(seciliId, firmaId, durum, sp.eksik, sp.sablon, '1', bolge)}
                       className="text-xs font-medium text-slate-500 hover:text-indigo-600"
                     >
                       Geçmiş ({gecmis.length}) — {GCEMIS_LIMIT} tanesini göster ▾
@@ -220,7 +239,7 @@ export default async function TaleplerPage({
               )}
               {gecmisGoster && gecmis.length > GCEMIS_LIMIT && goster === '1' && (
                 <div className="mt-1 text-center">
-                  <Link href={filtreHref(seciliId, firmaId, durum, sp.eksik, sp.sablon, 'tum')} className="text-xs font-medium text-indigo-600 hover:underline">
+                  <Link href={filtreHref(seciliId, firmaId, durum, sp.eksik, sp.sablon, 'tum', bolge)} className="text-xs font-medium text-indigo-600 hover:underline">
                     Tümünü göster ({gecmis.length})
                   </Link>
                 </div>
@@ -487,6 +506,7 @@ export default async function TaleplerPage({
         )}
       </div>
     </div>
+    </div>
   )
 }
 
@@ -497,11 +517,12 @@ function addDaysT(d: Date, n: number) {
   return x
 }
 
-function filtreHref(seciliId: number, firmaId?: number, durum?: string, eksik?: string, sablon?: string, g?: string) {
+function filtreHref(seciliId: number, firmaId?: number, durum?: string, eksik?: string, sablon?: string, g?: string, bolge?: string) {
   const p = new URLSearchParams()
   if (seciliId) p.set('talep', String(seciliId))
   if (firmaId) p.set('firma', String(firmaId))
   if (durum) p.set('durum', durum)
+  if (bolge) p.set('bolge', bolge)
   if (eksik === '1') p.set('eksik', '1')
   if (sablon === '1') p.set('sablon', '1')
   if (g) p.set('g', g)
@@ -545,6 +566,7 @@ function TalepGruplari({
   eksik,
   sablon,
   goster,
+  bolge,
 }: {
   title: string
   items: Array<{ id: number; firma: { ad: string }; lokasyon: { ad: string }; tarih: Date; durum: string; vardiya: string; aciliyet: string; kalemler: Array<{ adet: number }>; atamalar: Array<{ durum: string }>; sablon: boolean; kaynak: string | null }>
@@ -554,6 +576,7 @@ function TalepGruplari({
   eksik?: string
   sablon?: string
   goster?: string
+  bolge?: string
 }) {
   if (items.length === 0) return null
   return (
@@ -575,7 +598,7 @@ function TalepGruplari({
           return (
             <Link
               key={t.id}
-              href={filtreHref(t.id, firmaId, durum, eksik, sablon, goster)}
+              href={filtreHref(t.id, firmaId, durum, eksik, sablon, goster, bolge)}
               className={`block rounded-xl border border-l-4 bg-white px-4 py-3 shadow-sm transition ${durumRenk} ${
                 seciliId === t.id ? 'border-l-indigo-600 ring-2 ring-indigo-500/20' : 'hover:border-slate-300 hover:shadow'
               }`}

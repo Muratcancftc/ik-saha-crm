@@ -116,7 +116,7 @@ export async function getUyarilar(user: SessionUser) {
 
   const [belgeler, gecikenFaturalar, sgkEksik] = await Promise.all([
     prisma.belge.findMany({
-      where: { bitisTarihi: { lte: limit } },
+      where: { isciId: { not: null }, bitisTarihi: { lte: limit } },
       include: { isci: true },
       orderBy: { bitisTarihi: 'asc' },
     }),
@@ -171,6 +171,7 @@ export type TalepListeItem = Prisma.TalepGetPayload<{
 export type TalepFiltre = {
   durum?: string
   firmaId?: number
+  bolge?: string
   tarihBas?: string
   tarihBit?: string
   sadeceEksik?: boolean
@@ -182,6 +183,7 @@ export async function getTaleplerFiltreli(user: SessionUser, f: TalepFiltre): Pr
     ...lokasyonFilter(user),
     ...(f.durum ? { durum: f.durum as TalepDurum } : {}),
     ...(f.firmaId ? { firmaId: f.firmaId } : {}),
+    ...(f.bolge === 'kocaeli' || f.bolge === 'balikesir' ? { firma: { bolge: f.bolge } } : {}),
     ...(f.tarihBas ? { tarih: { gte: new Date(`${f.tarihBas}T00:00:00`) } } : {}),
     ...(f.sablon ? { sablon: true } : {}),
   }
@@ -354,7 +356,7 @@ export async function getOperasyonOzeti(user: SessionUser) {
       include: { kalemler: true, atamalar: { where: { durum: { not: 'iptal' } } } },
     }),
     prisma.belge.findMany({
-      where: { bitisTarihi: { lte: addDays(bugun, 30) } },
+      where: { isciId: { not: null }, bitisTarihi: { lte: addDays(bugun, 30) } },
       include: { isci: true },
     }),
   ])

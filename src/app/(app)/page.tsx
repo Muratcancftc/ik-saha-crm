@@ -233,7 +233,7 @@ export default async function DashboardPage({
               <UyariBox tone="red" icon="alert" title={`${uyarilar.suresiDolan.length} belgenin süresi doldu`}>
                 {uyarilar.suresiDolan.slice(0, 3).map((b) => (
                   <div key={b.id} className="text-xs text-slate-600">
-                    <b>{b.isci.ad}</b> — {b.tip} · {Math.abs(daysUntil(b.bitisTarihi))} gün önce
+                    <b>{b.isci?.ad ?? '—'}</b> — {b.tip} · {Math.abs(daysUntil(b.bitisTarihi))} gün önce
                   </div>
                 ))}
               </UyariBox>
@@ -242,7 +242,7 @@ export default async function DashboardPage({
               <UyariBox tone="amber" icon="clock" title={`${uyarilar.yaklasan.length} belge 30 gün içinde doluyor`}>
                 {uyarilar.yaklasan.slice(0, 3).map((b) => (
                   <div key={b.id} className="text-xs text-slate-600">
-                    <b>{b.isci.ad}</b> — {b.tip} · {daysUntil(b.bitisTarihi)} gün kaldı
+                    <b>{b.isci?.ad ?? '—'}</b> — {b.tip} · {daysUntil(b.bitisTarihi)} gün kaldı
                   </div>
                 ))}
               </UyariBox>

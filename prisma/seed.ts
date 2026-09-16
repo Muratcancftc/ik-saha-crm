@@ -2,6 +2,7 @@ import { PrismaClient, IsciDurum, GiderKategori, OdemeTip, PuantajDurum } from '
 import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs'
 import { encrypt } from '../src/lib/crypto'
+import { ISG_BELGE_TIPI } from '../src/lib/belge'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
@@ -44,39 +45,47 @@ function genIBAN(): string {
 
 const MESLEK_ADLARI = ['forklift', 'kaynak', 'depo', 'temizlik', 'insaat', 'hamaliye', 'paketleme', 'hijyen']
 
-// isim, ilce, tercihBolgeler, meslekler, beklenti
-const WORKERS: Array<[string, string, string[], string[], number]> = [
-  ['Mehmet Yılmaz', 'Ümraniye', ['Ümraniye', 'Pendik'], ['forklift', 'depo'], 1600],
-  ['Ahmet Demir', 'Pendik', ['Pendik', 'Tuzla'], ['forklift', 'hamaliye'], 1550],
-  ['Hasan Kaya', 'Kartal', ['Kartal', 'Maltepe'], ['depo', 'paketleme'], 1450],
-  ['İbrahim Şahin', 'Esenyurt', ['Beylikdüzü', 'Esenyurt'], ['temizlik', 'hijyen'], 1350],
-  ['Mustafa Aydın', 'Tuzla', ['Tuzla', 'Pendik'], ['kaynak', 'insaat'], 1750],
-  ['Emre Arslan', 'Başakşehir', ['Başakşehir', 'Esenyurt'], ['insaat', 'hamaliye'], 1500],
-  ['Osman Çelik', 'Kadıköy', ['Kadıköy', 'Üsküdar'], ['temizlik', 'paketleme'], 1400],
-  ['Ramazan Kılıç', 'Üsküdar', ['Üsküdar', 'Kadıköy'], ['depo', 'forklift'], 1500],
-  ['Hüseyin Öztürk', 'Beylikdüzü', ['Beylikdüzü'], ['hijyen', 'temizlik'], 1300],
-  ['Ali Koç', 'Maltepe', ['Maltepe', 'Kartal'], ['kaynak', 'forklift'], 1800],
-  ['Fatih Aksoy', 'Ataşehir', ['Ümraniye', 'Ataşehir'], ['insaat', 'depo'], 1500],
-  ['Murat Doğan', 'Sancaktepe', ['Ümraniye', 'Pendik'], ['hamaliye', 'paketleme'], 1300],
-  ['Serkan Yalçın', 'Pendik', ['Pendik', 'Tuzla'], ['kaynak'], 1850],
-  ['Ömer Güneş', 'Esenyurt', ['Esenyurt', 'Başakşehir'], ['insaat', 'hamaliye'], 1450],
-  ['Volkan Er', 'Tuzla', ['Tuzla', 'Pendik'], ['paketleme', 'depo'], 1400],
-  ['Burak Şen', 'Ümraniye', ['Ümraniye', 'Kadıköy'], ['forklift', 'depo'], 1600],
-  ['Cengiz Aydoğan', 'Kartal', ['Kartal', 'Maltepe'], ['insaat', 'kaynak'], 1700],
-  ['Salih Öz', 'Beylikdüzü', ['Beylikdüzü', 'Esenyurt'], ['hijyen', 'temizlik'], 1350],
-  ['Yılmaz Toprak', 'Başakşehir', ['Başakşehir'], ['depo', 'paketleme'], 1420],
-  ['Kadir Yıldız', 'Kadıköy', ['Kadıköy', 'Üsküdar'], ['temizlik'], 1380],
-  ['Necati Bulut', 'Tuzla', ['Tuzla', 'Pendik'], ['hamaliye', 'insaat'], 1400],
-  ['Sinan Özdemir', 'Maltepe', ['Maltepe', 'Kartal'], ['kaynak', 'insaat'], 1750],
+// [isim, ilce, tercihBolgeler, meslekler, beklenti, bolge]
+const WORKERS: Array<[string, string, string[], string[], number, 'kocaeli' | 'balikesir']> = [
+  ['Mehmet Yılmaz', 'Gebze', ['Gebze', 'İzmit'], ['forklift', 'depo'], 1600, 'kocaeli'],
+  ['Ahmet Demir', 'İzmit', ['İzmit', 'Derince'], ['forklift', 'hamaliye'], 1550, 'kocaeli'],
+  ['Hasan Kaya', 'Derince', ['Derince', 'Körfez'], ['depo', 'paketleme'], 1450, 'kocaeli'],
+  ['İbrahim Şahin', 'Karesi', ['Karesi', 'Altıeylül'], ['temizlik', 'hijyen'], 1350, 'balikesir'],
+  ['Mustafa Aydın', 'Kartepe', ['Kartepe', 'Başiskele'], ['kaynak', 'insaat'], 1750, 'kocaeli'],
+  ['Emre Arslan', 'Gölcük', ['Gölcük', 'Derince'], ['insaat', 'hamaliye'], 1500, 'kocaeli'],
+  ['Osman Çelik', 'Bandırma', ['Bandırma', 'Edremit'], ['temizlik', 'paketleme'], 1400, 'balikesir'],
+  ['Ramazan Kılıç', 'Altıeylül', ['Altıeylül', 'Karesi'], ['depo', 'forklift'], 1500, 'balikesir'],
+  ['Hüseyin Öztürk', 'Edremit', ['Edremit', 'Burhaniye'], ['hijyen', 'temizlik'], 1300, 'balikesir'],
+  ['Ali Koç', 'Gebze', ['Gebze', 'Çayırova'], ['kaynak', 'forklift'], 1800, 'kocaeli'],
+  ['Fatih Aksoy', 'İzmit', ['İzmit', 'Başiskele'], ['insaat', 'depo'], 1500, 'kocaeli'],
+  ['Murat Doğan', 'Körfez', ['Körfez', 'İzmit'], ['hamaliye', 'paketleme'], 1300, 'kocaeli'],
+  ['Serkan Yalçın', 'Gebze', ['Gebze', 'Çayırova'], ['kaynak'], 1850, 'kocaeli'],
+  ['Ömer Güneş', 'Karesi', ['Karesi', 'Susurluk'], ['insaat', 'hamaliye'], 1450, 'balikesir'],
+  ['Volkan Er', 'Darıca', ['Darıca', 'Çayırova'], ['paketleme', 'depo'], 1400, 'kocaeli'],
+  ['Burak Şen', 'İzmit', ['İzmit', 'Kartepe'], ['forklift', 'depo'], 1600, 'kocaeli'],
+  ['Cengiz Aydoğan', 'Derince', ['Derince', 'Körfez'], ['insaat', 'kaynak'], 1700, 'kocaeli'],
+  ['Salih Öz', 'Gönen', ['Gönen', 'Manyas'], ['hijyen', 'temizlik'], 1350, 'balikesir'],
+  ['Yılmaz Toprak', 'Bandırma', ['Bandırma'], ['depo', 'paketleme'], 1420, 'balikesir'],
+  ['Kadir Yıldız', 'Karesi', ['Karesi', 'Altıeylül'], ['temizlik'], 1380, 'balikesir'],
+  ['Necati Bulut', 'Susurluk', ['Susurluk', 'Bandırma'], ['hamaliye', 'insaat'], 1400, 'balikesir'],
+  ['Sinan Özdemir', 'Edremit', ['Edremit', 'Burhaniye'], ['kaynak', 'insaat'], 1750, 'balikesir'],
 ]
-
-// lokasyon adları
-const LOKASYON_ADLARI = ['Pendik Merkez Depo', 'Ümraniye Şube', 'Tuzla Gıda Tesisi', 'Beylikdüzü Lojistik', 'Başakşehir Şantiye', 'Kadıköy Hizmet']
 
 async function main() {
   console.log('🌱 Seed başlıyor...')
 
   // Temizleme (FK sırası)
+  await prisma.arama.deleteMany()
+  await prisma.vergiDekont.deleteMany()
+  await prisma.vergiSablon.deleteMany()
+  await prisma.vergiOdemesi.deleteMany()
+  await prisma.ucretLog.deleteMany()
+  await prisma.odemeKayit.deleteMany()
+  await prisma.odemeDonemi.deleteMany()
+  await prisma.kesinti.deleteMany()
+  await prisma.puantajKayit.deleteMany()
+  await prisma.personelUcret.deleteMany()
+  await prisma.firmaUcret.deleteMany()
   await prisma.bildirim.deleteMany()
   await prisma.kullanici.deleteMany()
   await prisma.odeme.deleteMany()
@@ -116,45 +125,49 @@ async function main() {
     data: {
       ad: 'Artaş Lojistik A.Ş.',
       vergiNo: '1234567890',
-      telefon: '+90 216 555 10 20',
+      telefon: '+90 262 555 10 20',
       email: 'finans@artaslojistik.com',
-      adres: 'Pendik Sanayi, İstanbul',
+      adres: 'Gebze Organize Sanayi, Kocaeli',
+      bolge: 'kocaeli',
     },
   })
   const firma2 = await prisma.musteriFirma.create({
     data: {
       ad: 'Yıldız Gıda San. Tic.',
       vergiNo: '9876543210',
-      telefon: '+90 216 555 30 40',
+      telefon: '+90 266 555 30 40',
       email: 'muhasebe@yildizgida.com',
-      adres: 'Tuzla Kimya Sanayi, İstanbul',
+      adres: 'Bandırma Gıda OSB, Balıkesir',
+      bolge: 'balikesir',
     },
   })
   const firma3 = await prisma.musteriFirma.create({
     data: {
       ad: 'Nova İnşaat Ltd. Şti.',
       vergiNo: '5551234567',
-      telefon: '+90 212 555 70 80',
+      telefon: '+90 262 555 70 80',
       email: 'insaat@nova.com.tr',
-      adres: 'Başakşehir Bulvarı, İstanbul',
+      adres: 'Kartepe Yolu, Kocaeli',
+      bolge: 'kocaeli',
     },
   })
   const firma4 = await prisma.musteriFirma.create({
     data: {
       ad: 'TemizLine Hizmet A.Ş.',
       vergiNo: '1112223334',
-      telefon: '+90 216 555 90 00',
+      telefon: '+90 266 555 90 00',
       email: 'operasyon@temizline.com',
-      adres: 'Kadıköy, İstanbul',
+      adres: 'Altıeylül, Balıkesir',
+      bolge: 'balikesir',
     },
   })
 
-  const f1lok1 = await prisma.lokasyon.create({ data: { firmaId: firma1.id, ad: LOKASYON_ADLARI[0], adres: 'Pendik' } })
-  await prisma.lokasyon.create({ data: { firmaId: firma1.id, ad: LOKASYON_ADLARI[1], adres: 'Ümraniye' } })
-  const f2lok1 = await prisma.lokasyon.create({ data: { firmaId: firma2.id, ad: LOKASYON_ADLARI[2], adres: 'Tuzla' } })
-  await prisma.lokasyon.create({ data: { firmaId: firma2.id, ad: LOKASYON_ADLARI[3], adres: 'Beylikdüzü' } })
-  const f3lok1 = await prisma.lokasyon.create({ data: { firmaId: firma3.id, ad: LOKASYON_ADLARI[4], adres: 'Başakşehir' } })
-  const f4lok1 = await prisma.lokasyon.create({ data: { firmaId: firma4.id, ad: LOKASYON_ADLARI[5], adres: 'Kadıköy' } })
+  const f1lok1 = await prisma.lokasyon.create({ data: { firmaId: firma1.id, ad: 'Gebze Merkez Depo', adres: 'Gebze' } })
+  await prisma.lokasyon.create({ data: { firmaId: firma1.id, ad: 'İzmit Şube', adres: 'İzmit' } })
+  const f2lok1 = await prisma.lokasyon.create({ data: { firmaId: firma2.id, ad: 'Bandırma Gıda Tesisi', adres: 'Bandırma' } })
+  await prisma.lokasyon.create({ data: { firmaId: firma2.id, ad: 'Edremit Lojistik', adres: 'Edremit' } })
+  const f3lok1 = await prisma.lokasyon.create({ data: { firmaId: firma3.id, ad: 'Kartepe Şantiye', adres: 'Kartepe' } })
+  const f4lok1 = await prisma.lokasyon.create({ data: { firmaId: firma4.id, ad: 'Altıeylül Hizmet', adres: 'Altıeylül' } })
 
   await prisma.yetkili.createMany({
     data: [
@@ -177,8 +190,8 @@ async function main() {
   }
 
   // ---- İşçiler ----
-  const isciler: { id: number; ad: string; gunlukUcretBeklentisi: number; ilce: string }[] = []
-  for (const [ad, ilce, tercih, meslekleri, beklenti] of WORKERS) {
+  const isciler: { id: number; ad: string; gunlukUcretBeklentisi: number; ilce: string; bolge: string }[] = []
+  for (const [ad, ilce, tercih, meslekleri, beklenti, bolge] of WORKERS) {
     const durum: IsciDurum = ad === 'Sinan Özdemir' ? 'kara_liste' : ad === 'Necati Bulut' ? 'pasif' : 'aktif'
     const isci = await prisma.isci.create({
       data: {
@@ -191,11 +204,12 @@ async function main() {
         puan: 40 + Math.floor(rnd() * 60),
         gunlukUcretBeklentisi: beklenti,
         durum,
+        bolge: bolge as 'kocaeli' | 'balikesir',
         tercihBolgeler: tercih,
         meslekler: { create: meslekleri.map((m) => ({ meslekId: meslekler[m].id })) },
       },
     })
-    isciler.push({ id: isci.id, ad, gunlukUcretBeklentisi: beklenti, ilce })
+    isciler.push({ id: isci.id, ad, gunlukUcretBeklentisi: beklenti, ilce, bolge })
   }
 
   // ---- Belgeler (bazıları süresi dolmuş / yaklaşan) ----
@@ -242,6 +256,88 @@ async function main() {
     await prisma.avans.create({ data: { isciId: isci.id, tutar: t, tarih: atMidnight(-5 - Math.floor(rnd() * 10)), durum: 'verildi' } })
     avanslar[isci.id] = t
   }
+
+  // ---- İK modülü: personel-firma ataması, ücretler, puantaj, dönem ----
+  const ikFirmaMap = [firma1, firma3, firma1, firma2, firma3]
+  for (let k = 0; k < 5; k++) {
+    await prisma.isci.update({
+      where: { id: isciler[k].id },
+      data: {
+        firmaId: ikFirmaMap[k].id,
+        calismaTipi: k === 4 ? 'SAATLIK' : 'GUNLUK',
+        varsayilanOdemeYontemi: k % 2 === 0 ? 'ELDEN' : 'IBAN',
+      },
+    })
+  }
+  const firmaUcretPlan: Array<[number, number, number]> = [
+    [firma1.id, 1900, 240], [firma2.id, 1850, 230], [firma3.id, 2000, 260], [firma4.id, 1800, 225],
+  ]
+  for (const [firmaId, gunluk, saatlik] of firmaUcretPlan) {
+    await prisma.firmaUcret.create({ data: { firmaId, gunlukUcret: gunluk, saatlikUcret: saatlik, gecerlilikBaslangic: atMidnight(-90) } })
+  }
+  await prisma.personelUcret.create({ data: { isciId: isciler[0].id, gunlukUcret: 2100, saatlikUcret: 280, gecerlilikBaslangic: atMidnight(-60) } })
+  await prisma.personelUcret.create({ data: { isciId: isciler[2].id, gunlukUcret: 1750, saatlikUcret: 220, gecerlilikBaslangic: atMidnight(-40) } })
+
+  const pUcretMap = new Map<number, { g: number; s: number }>([
+    [isciler[0].id, { g: 2100, s: 280 }],
+    [isciler[2].id, { g: 1750, s: 220 }],
+  ])
+  const fUcretMap = new Map(firmaUcretPlan.map(([firmaId, g, s]) => [firmaId, { g, s }]))
+  const cozUcret = (isciId: number, firmaId: number) => pUcretMap.get(isciId) ?? fUcretMap.get(firmaId) ?? { g: 1800, s: 225 }
+
+  const ikAyBas = new Date(); ikAyBas.setDate(1); ikAyBas.setHours(0, 0, 0, 0)
+  const ikBugun = atMidnight(0)
+  const ikGunSayisi = Math.min(ikBugun.getDate(), 20)
+  for (let k = 0; k < 5; k++) {
+    const isci = isciler[k]
+    const firmaId = ikFirmaMap[k].id
+    const saatlikTip = k === 4
+    for (let g = 0; g < ikGunSayisi; g++) {
+      const t = new Date(ikAyBas); t.setDate(t.getDate() + g)
+      if (t > ikBugun) break
+      const fsi = rnd() > 0.88 ? 0.5 : 1
+      const { g: gunluk, s: saatlik } = cozUcret(isci.id, firmaId)
+      const mesai = saatlikTip && rnd() > 0.75 ? 2 : 0
+      const calisilan = saatlikTip ? 8 * fsi : 0
+      const tutar = saatlikTip
+        ? Math.round(((calisilan - mesai) * saatlik + mesai * saatlik * 1.5) * 100) / 100
+        : Math.round((fsi * gunluk + (mesai ? saatlik * mesai * 1.5 : 0)) * 100) / 100
+      await prisma.puantajKayit.create({
+        data: {
+          isciId: isci.id,
+          firmaId,
+          tarih: t,
+          fsi,
+          calismaTipi: saatlikTip ? 'SAATLIK' : 'GUNLUK',
+          calisilanSaat: calisilan,
+          mesaiSaat: mesai,
+          uygulananGunlukUcret: gunluk,
+          uygulananSaatlikUcret: saatlik,
+          hesaplananTutar: tutar,
+        },
+      })
+    }
+  }
+
+  // Dönem örnekleri: biri bekliyor, biri ödendi+kilitli
+  const k1 = await prisma.puantajKayit.findMany({ where: { isciId: isciler[0].id } })
+  const k2 = await prisma.puantajKayit.findMany({ where: { isciId: isciler[1].id } })
+  const brut1 = Math.round(k1.reduce((a, p) => a + Number(p.hesaplananTutar), 0) * 100) / 100
+  const brut2 = Math.round(k2.reduce((a, p) => a + Number(p.hesaplananTutar), 0) * 100) / 100
+  const avans1 = avanslar[isciler[0].id] ?? 0
+  const net1 = Math.round((brut1 - avans1) * 100) / 100
+  const net2 = brut2
+  const donemBitis = new Date(ikAyBas.getFullYear(), ikAyBas.getMonth() + 1, 0)
+  await prisma.odemeDonemi.create({
+    data: { isciId: isciler[0].id, firmaId: ikFirmaMap[0].id, baslangic: ikAyBas, bitis: donemBitis, brutHakedis: brut1, toplamAvans: avans1, toplamKesinti: 0, netOdenecek: net1, durum: 'BEKLIYOR' },
+  })
+  const donem2 = await prisma.odemeDonemi.create({
+    data: { isciId: isciler[1].id, firmaId: ikFirmaMap[1].id, baslangic: ikAyBas, bitis: donemBitis, brutHakedis: brut2, toplamAvans: 0, toplamKesinti: 0, netOdenecek: net2, durum: 'ODENDI', kilitli: true },
+  })
+  await prisma.odemeKayit.create({
+    data: { donemId: donem2.id, tarih: atMidnight(-1), tutar: net2, yontem: 'IBAN', ibanSnapshot: 'TR000000000000000000000000', hesapSahibi: isciler[1].ad, teslimEdenKullaniciId: 1 },
+  })
+  await prisma.kesinti.create({ data: { isciId: isciler[2].id, tarih: atMidnight(-2), tutar: 150, tur: 'ceza', aciklama: 'Geç kalma cezası' } })
 
   // ---- Talepler ----
   const talepler: { id: number; lokasyonId: number; firmaId: number; tarih: Date }[] = []
@@ -568,15 +664,62 @@ async function main() {
     data: { tip: 'muhtasar_sgk', tutar: 9650, sonOdemeTarihi: atMidnight(-9), durum: 'gecikti' },
   })
 
-  // ---- Personel (iç kadro) ----
-  const personelPlan: Array<[string, string, string, number, string, number]> = [
-    ['Zeynep Ak', 'Yönetim', 'Patron', 85000, 'Aktif SGK', 14],
-    ['Mert Can', 'Operasyon', 'Operasyon Sorumlusu', 42000, 'Aktif SGK', 10],
-    ['Elif Su', 'Muhasebe', 'Muhasebe Uzmanı', 38000, 'Aktif SGK', 8],
-    ['Onur Tekin', 'Saha', 'Saha Sorumlusu', 32000, 'Aktif SGK', 12],
-    ['Aylin Duru', 'İK', 'İK Asistanı', 28000, 'Aktif SGK', 6],
+  // ---- Vergi & Resmi Ödemeler (firma bazlı) ----
+  const vergiPlan: Array<[number, string, string, number, number, number | null, string | null]> = [
+    // [firmaId, tur, donem, tahakkuk, sonOdemeGun(offset), odenenTutar, yontem]
+    [firma1.id, 'KDV', '2026-09', 24800, 26, null, null],
+    [firma1.id, 'MUHTASAR', '2026-09', 18300, 28, null, null],
+    [firma2.id, 'KDV', '2026-09', 19400, 26, 19400, 'BANKA'],
+    [firma2.id, 'SGK', '2026-09', 12650, 28, null, null],
+    [firma3.id, 'GECICI_VERGI', '2026 Q3', 34200, 17, null, null],
+    [firma3.id, 'STOPAJ', '2026-09', 9800, 26, null, null],
+    [firma4.id, 'KDV', '2026-09', 7200, 26, 5000, 'NAKIT'], // kısmi ödeme
+    [firma1.id, 'KDV', '2026-08', 23500, -4, null, null], // gecikmiş
   ]
-  for (const [ad, departman, rol, maas, sgkDurum, izin] of personelPlan) {
+  for (const [firmaId, tur, donem, tutar, gun, odenen, yontem] of vergiPlan) {
+    const kayit = await prisma.vergiOdemesi.create({
+      data: {
+        firmaId,
+        vergiTuru: tur as never,
+        donem,
+        tahakkukTutari: tutar,
+        sonOdemeTarihi: atMidnight(gun),
+        odenenTutar: odenen ?? undefined,
+        odemeTarihi: odenen ? atMidnight(Math.max(gun - 5, -15)) : undefined,
+        odemeYontemi: (yontem as never) ?? undefined,
+        olusturanKullaniciId: 1,
+      },
+    })
+    if (firmaId === firma2.id && odenen) {
+      await prisma.vergiDekont.create({
+        data: {
+          vergiOdemeId: kayit.id,
+          dosyaUrl: 'uploads/dekont/ornek-kdv-dekont.pdf',
+          dosyaAdi: 'ornek-kdv-dekont.pdf',
+          dosyaTipi: 'pdf',
+          dosyaBoyutu: 10240,
+          yukleyenKullaniciId: 1,
+        },
+      })
+    }
+  }
+  await prisma.vergiSablon.createMany({
+    data: [
+      { firmaId: firma1.id, vergiTuru: 'KDV', tahakkukTutari: 24000, sonOdemeGun: 26, donemEtiketi: null },
+      { firmaId: firma2.id, vergiTuru: 'KDV', tahakkukTutari: 19000, sonOdemeGun: 26, donemEtiketi: null },
+      { firmaId: firma3.id, vergiTuru: 'GECICI_VERGI', tahakkukTutari: 33000, sonOdemeGun: 17, donemEtiketi: 'Q3' },
+    ],
+  })
+
+  // ---- Personel (iç kadro) ----
+  const personelPlan: Array<[string, string, string, number, string, number, 'kocaeli' | 'balikesir']> = [
+    ['Zeynep Ak', 'Yönetim', 'Patron', 85000, 'Aktif SGK', 14, 'kocaeli'],
+    ['Mert Can', 'Operasyon', 'Operasyon Sorumlusu', 42000, 'Aktif SGK', 10, 'kocaeli'],
+    ['Elif Su', 'Muhasebe', 'Muhasebe Uzmanı', 38000, 'Aktif SGK', 8, 'kocaeli'],
+    ['Onur Tekin', 'Saha', 'Saha Sorumlusu', 32000, 'Aktif SGK', 12, 'balikesir'],
+    ['Aylin Duru', 'İK', 'İK Asistanı', 28000, 'Aktif SGK', 6, 'balikesir'],
+  ]
+  for (const [ad, departman, rol, maas, sgkDurum, izin, bolge] of personelPlan) {
     const p = await prisma.personel.create({
       data: {
         ad,
@@ -587,6 +730,7 @@ async function main() {
         iban: encrypt(genIBAN()),
         sgkDurum,
         izinBakiyesi: izin,
+        bolge,
         durum: 'aktif',
       },
     })
@@ -613,6 +757,43 @@ async function main() {
     })
   }
 
+  // ---- Personel İSG belgeleri (bazı personelde var → Personel menüsünde İSG √) ----
+  const personelKayitlari = await prisma.personel.findMany({ orderBy: { id: 'asc' } })
+  for (const p of personelKayitlari.slice(0, 3)) {
+    await prisma.belge.create({
+      data: {
+        personelId: p.id,
+        tip: ISG_BELGE_TIPI,
+        verilisTarihi: atMidnight(-200),
+        bitisTarihi: atMidnight(160),
+      },
+    })
+  }
+
+  // ---- Servisçiler (kavli, KDV'siz) ----
+  const servisciPlan: Array<[string, string, 'kocaeli' | 'balikesir']> = [
+    ['Kemal Şahin', '+90 532 777 00 11', 'kocaeli'],
+    ['Hakan Aydın', '+90 535 888 00 22', 'kocaeli'],
+    ['Tuncay Özkan', '+90 542 999 00 33', 'balikesir'],
+  ]
+  const servisciKayitlari: number[] = []
+  for (const [ad, telefon, bolge] of servisciPlan) {
+    const s = await prisma.servisci.create({ data: { ad, telefon, bolge } })
+    servisciKayitlari.push(s.id)
+    // geçmiş servisler
+    const servisSayisi = 4 + Math.floor(rnd() * 6)
+    for (let i = 0; i < servisSayisi; i++) {
+      await prisma.servis.create({
+        data: {
+          servisciId: s.id,
+          tarih: atMidnight(-i - Math.floor(rnd() * 3)),
+          guzergah: rnd() > 0.5 ? 'Şantiyeye işçi servisi' : 'Depodan üretim tesisine transfer',
+          tutar: 800 + Math.floor(rnd() * 40) * 10,
+        },
+      })
+    }
+  }
+
   // ---- İşçi notları ----
   const isciNotlari: Array<[number, string]> = [
     [0, 'Forklift ehliyeti güçlü, son 2 ayda 2 no-show. Uyarıldı.'],
@@ -625,17 +806,28 @@ async function main() {
 
   // ---- Kullanıcılar (şimdilik tek admin) ----
   const sifre = await bcrypt.hash('123123', 10)
-  await prisma.kullanici.createMany({
-    data: [
-      { ad: 'Admin', email: 'admin@ikcrm.com', sifreHash: sifre, rol: 'patron' },
-    ],
+  const admin = await prisma.kullanici.create({
+    data: { ad: 'Admin', email: 'admin@ikcrm.com', sifreHash: sifre, rol: 'patron' },
   })
+
+  // ---- Telefon aramaları (örnek) ----
+  for (let k = 0; k < 6; k++) {
+    const adet = 1 + Math.floor(rnd() * 3)
+    for (let i = 0; i < adet; i++) {
+      await prisma.arama.create({
+        data: { isciId: isciler[k].id, kullaniciId: admin.id, tarih: atMidnight(-Math.floor(rnd() * 6)).toISOString() },
+      })
+    }
+  }
 
   // ---- Ayar (sabitler DB'ye taşındı) ----
   await prisma.ayar.createMany({
     data: [
       { anahtar: 'KDV_ORANI', deger: '0.20', aciklama: 'Fatura KDV oranı' },
       { anahtar: 'SGK_ISVEREN_ORANI', deger: '0.205', aciklama: 'SGK işveren payı' },
+      { anahtar: 'GUNLUK_UCRET_VARSAYILAN', deger: '1800', aciklama: 'Sistem varsayılan günlük ücret (TL)' },
+      { anahtar: 'SAATLIK_UCRET_VARSAYILAN', deger: '225', aciklama: 'Sistem varsayılan saatlik ücret (TL)' },
+      { anahtar: 'MESAI_CARPAN', deger: '1.5', aciklama: 'Fazla mesai çarpanı' },
       { anahtar: 'FIRMA_AD', deger: 'İK Saha A.Ş.', aciklama: 'Firma adı' },
       { anahtar: 'FIRMA_VERGINO', deger: '1234567890', aciklama: 'Vergi no' },
       { anahtar: 'FIRMA_TELEFON', deger: '+90 216 000 00 00', aciklama: 'Telefon' },
@@ -645,14 +837,14 @@ async function main() {
   })
 
   // ---- Aday havuzu ----
-  const adayPlan: Array<[string, string, string, number]> = [
-    ['Serkan Ateş', '+90 532 111 22 33', 'forklift', 65],
-    ['Burak Tuna', '+90 533 222 33 44', 'kaynak', 70],
-    ['Emrecan Sözen', '+90 535 333 44 55', 'depo', 60],
-    ['Deniz Aras', '+90 542 444 55 66', 'temizlik', 55],
-    ['Kaan Yüksel', '+90 536 555 66 77', 'insaat', 62],
+  const adayPlan: Array<[string, string, string, number, 'kocaeli' | 'balikesir' | null]> = [
+    ['Serkan Ateş', '+90 532 111 22 33', 'forklift', 65, 'kocaeli'],
+    ['Burak Tuna', '+90 533 222 33 44', 'kaynak', 70, 'balikesir'],
+    ['Emrecan Sözen', '+90 535 333 44 55', 'depo', 60, 'kocaeli'],
+    ['Deniz Aras', '+90 542 444 55 66', 'temizlik', 55, null],
+    ['Kaan Yüksel', '+90 536 555 66 77', 'insaat', 62, 'balikesir'],
   ]
-  for (const [ad, telefon, meslekAd, puan] of adayPlan) {
+  for (const [ad, telefon, meslekAd, puan, bolge] of adayPlan) {
     await prisma.aday.create({
       data: {
         ad,
@@ -661,6 +853,8 @@ async function main() {
         meslekId: meslekler[meslekAd].id,
         durum: rnd() > 0.6 ? 'basvurdu' : 'gorusuldu',
         puan,
+        bolge,
+        kaynak: bolge === null ? 'website_test' : null,
       },
     })
   }

@@ -9,7 +9,7 @@ import type { AtamaDurum } from '@prisma/client'
 
 // Bir atamanın hakedişini üret: işçi+firma+ay bazında TOPLA (upsert)
 // Avans dönemde yalnızca bir kez düşülür; tekrar "Üret" ile mükerrer kayıt oluşmaz.
-async function hakedisOlustur(atamaId: number) {
+export async function hakedisOlustur(atamaId: number) {
   const atama = await prisma.atama.findUnique({
     where: { id: atamaId },
     include: {

@@ -15,6 +15,7 @@ import {
   cvUzanti,
 } from '@/lib/integration'
 import { pushBildirimGonder } from '@/lib/push'
+import { bolgeCikarim, bolgeGecerli } from '@/lib/bolge'
 
 export const dynamic = 'force-dynamic'
 
@@ -100,6 +101,7 @@ export async function POST(req: Request) {
   let jobSlug = ''
   let cv: { ad: string; bytes: Buffer } | null = null
   let source: string | undefined
+  let bolgeRaw = ''
 
   try {
     if (isMultipart) {
@@ -120,6 +122,7 @@ export async function POST(req: Request) {
       if (Number.isFinite(jid) && jid > 0) jobId = jid
       jobSlug = temizle(fd.get('jobSlug'), 200)
       source = temizle(fd.get('source'), 40) || undefined
+      bolgeRaw = temizle(fd.get('bolge') ?? fd.get('region'), 40)
       const dosya = fd.get('cv')
       if (dosya && typeof dosya !== 'string') {
         cv = { ad: dosya.name, bytes: Buffer.from(await dosya.arrayBuffer()) }
@@ -141,10 +144,14 @@ export async function POST(req: Request) {
       jobId = Number(b.jobId) || null
       jobSlug = temizle(b.jobSlug, 200)
       source = temizle(b.source, 40) || undefined
+      bolgeRaw = temizle(b.bolge ?? b.region, 40)
     }
   } catch {
     return json({ success: false, error: 'invalid_body' }, 400, cors)
   }
+
+  // Bölge: form'daki bolge/region alanı → yoksa il/ilçeden tahmin → yoksa atanmamış (panelden atanır)
+  const bolge = bolgeGecerli(bolgeRaw.toLowerCase()) ?? bolgeCikarim([city, district].filter(Boolean).join(' '))
 
   const ad = islemAd(firstName, lastName, fullName)
   const valHata = validate({ ad, phone, email, kvkk })
@@ -218,6 +225,7 @@ export async function POST(req: Request) {
         data: {
           meslekId: mevcut.meslekId ?? meslekId,
           ilanId: ilan?.id ?? mevcut.ilanId,
+          bolge: mevcut.bolge ?? bolge,
           kaynak: mevcut.kaynak ?? kaynak,
           cvYolu: cvYolu ?? mevcut.cvYolu,
           cvDosyaAdi: cvDosyaAdi ?? mevcut.cvDosyaAdi,
@@ -234,6 +242,7 @@ export async function POST(req: Request) {
           email: email || null,
           meslekId,
           ilanId: ilan?.id ?? null,
+          bolge,
         kaynak,
         cvYolu,
         cvDosyaAdi,

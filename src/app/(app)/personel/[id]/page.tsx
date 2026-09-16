@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { requireRoles } from '@/lib/dal'
+import { prisma } from '@/lib/db'
 import { getPersonelProfil } from '@/lib/profil-queries'
 import { donemAralik, donemEtiket } from '@/lib/donem'
 import { tl, num, date, dateLong } from '@/lib/format'
@@ -10,6 +11,10 @@ import { DonemSecici } from '@/components/donem-secici'
 import { MaskedValue } from '@/components/masked-value'
 import { Suspense } from 'react'
 import { izinEkle } from '@/app/actions/personel'
+import { belgeYenile, silBelge } from '@/app/actions/belge'
+import { IsgForm } from '../isg-form'
+import { ISG_BELGE_TIPI } from '@/lib/belge'
+import { daysUntil } from '@/lib/dates'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,6 +34,12 @@ export default async function PersonelProfilPage({
   const personel = await getPersonelProfil(personelId)
   if (!personel) notFound()
 
+  const isgBelgeler = await prisma.belge.findMany({
+    where: { tip: ISG_BELGE_TIPI, personelId },
+    orderBy: { bitisTarihi: 'asc' },
+  })
+  const isgVar = isgBelgeler.length > 0
+
   const donemIzinler = personel.izinler.filter((i) => i.tarih >= donem.bas && i.tarih < donem.bit)
 
   return (
@@ -42,6 +53,7 @@ export default async function PersonelProfilPage({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-slate-900">{personel.ad}</h2>
+              {isgVar && <Badge tone="green">İSG √</Badge>}
               <Badge tone={personel.durum === 'aktif' ? 'green' : 'slate'}>{personel.durum}</Badge>
             </div>
             <p className="text-xs text-slate-500">{personel.departman} · {personel.rol}</p>
@@ -102,6 +114,60 @@ export default async function PersonelProfilPage({
           </div>
         </Card>
       </div>
+
+      {/* İSG belgesi */}
+      <Card>
+        <CardHeader
+          title="İSG Belgesi"
+          desc="İş Sağlığı ve Güvenliği belgesi — varsa Personel menüsünde İSG √ rozeti görünür"
+          action={<IsgForm personelId={personel.id} />}
+        />
+        <div className="px-5 py-4">
+          {isgBelgeler.length === 0 ? (
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <Badge tone="slate">İSG belgesi yok</Badge>
+              <span className="text-xs text-slate-400">Sağ üstten ekleyebilirsiniz</span>
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-50">
+              {isgBelgeler.map((b) => {
+                const g = daysUntil(b.bitisTarihi)
+                return (
+                  <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Badge tone="green">İSG √</Badge>
+                      <span className="text-slate-700">Bitiş: {date(b.bitisTarihi)}</span>
+                      {g < 0 ? (
+                        <Badge tone="red">{Math.abs(g)} gün önce doldu</Badge>
+                      ) : g <= 30 ? (
+                        <Badge tone="amber">{g} gün kaldı</Badge>
+                      ) : (
+                        <Badge tone="green">Geçerli</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <form action={belgeYenile} className="flex items-center gap-1">
+                        <input type="hidden" name="id" value={b.id} />
+                        <input name="bitisTarihi" type="date" defaultValue={b.bitisTarihi.toISOString().slice(0, 10)} className="w-28 rounded-lg border border-slate-200 px-1.5 py-1 text-[11px] outline-none focus:border-indigo-500" />
+                        <button type="submit" title="Yenile" className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2 py-1 text-[11px] font-medium text-indigo-700 transition hover:bg-indigo-100">
+                          <Icon name="yenile" size={12} />
+                          Yenile
+                        </button>
+                      </form>
+                      <form action={silBelge}>
+                        <input type="hidden" name="id" value={b.id} />
+                        <button className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Sil">
+                          <Icon name="x" size={14} />
+                        </button>
+                      </form>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+      </Card>
 
       {/* İzin geçmişi */}
       <Card>

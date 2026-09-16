@@ -18,6 +18,14 @@ enum Rol {
   operasyon
   muhasebe
   saha_sorumlusu
+  ik
+  izleyici
+}
+
+// Hizmet verilen bölgeler
+enum Bolge {
+  kocaeli
+  balikesir
 }
 
 enum IsciDurum {
@@ -139,6 +147,62 @@ enum EvrakTip {
   diger
 }
 
+enum ServisciDurum {
+  aktif
+  pasif
+}
+
+// İK & Puantaj/Ödeme modülü
+enum CalismaTipi {
+  GUNLUK
+  SAATLIK
+}
+
+enum OdemeYontemi {
+  ELDEN
+  IBAN
+}
+
+enum OdemeDonemiDurum {
+  BEKLIYOR
+  KISMI_ODENDI
+  ODENDI
+}
+
+enum KesintiTuru {
+  sgk
+  avans_mahsup
+  ceza
+  diger
+}
+
+// Vergi & Resmi Ödemeler modülü
+enum VergiTuru {
+  KDV
+  MUHTASAR
+  STOPAJ
+  GECICI_VERGI
+  KURUMLAR
+  SGK
+  BAGKUR
+  DAMGA
+  DIGER
+}
+
+enum VergiOdemeYontemi {
+  BANKA
+  KREDI_KARTI
+  NAKIT
+}
+
+// Esnek ödeme periyodu (maaş sabit aylık varsayılmaz)
+enum OdemePeriyot {
+  GUN_ARALIGI // kaç günde bir (gunAraligi alanı)
+  HAFTALIK
+  AYLIK
+  SERBEST // elle yönetilir
+}
+
 // ============================================================
 // ÇOKTAN-ÇOĞA BAĞLANTILAR
 // ============================================================
@@ -179,6 +243,12 @@ model Isci {
   durum                 IsciDurum @default(aktif)
   tercihBolgeler        String[]
   not                   String?
+  bolge                 Bolge     @default(kocaeli)
+  firmaId               Int? // İK modülü: personelin halihazırda çalıştığı firma
+  calismaTipi           CalismaTipi       @default(GUNLUK)
+  varsayilanOdemeYontemi OdemeYontemi      @default(ELDEN)
+  odemePeriyot          OdemePeriyot? // null = firma varsayılanı
+  gunAraligi            Int? // GUN_ARALIGI periyodunda kaç günde bir
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -190,18 +260,27 @@ model Isci {
   atamalar     Atama[]
   odemeler     Odeme[]
   evraklar     Evrak[]
+  aramalar     Arama[]
+  firma        MusteriFirma?      @relation(fields: [firmaId], references: [id], onDelete: SetNull)
+  personelUcretler  PersonelUcret[]
+  puantajKayitlari  PuantajKayit[]
+  kesintiler        Kesinti[]
+  odemeDonemleri    OdemeDonemi[]
 }
 
 model Belge {
   id            Int      @id @default(autoincrement())
-  isciId        Int
-  tip           String // ör: "Kimlik", "SGK", "Adli Sicil", "Vardiya Belgesi"
+  isciId        Int?
+  personelId    Int?
+  tip           String // ör: "Kimlik", "SGK", "Adli Sicil", "Vardiya Belgesi", "İSG Belgesi"
   verilisTarihi DateTime
   bitisTarihi   DateTime
 
-  isci Isci @relation(fields: [isciId], references: [id], onDelete: Cascade)
+  isci     Isci?     @relation(fields: [isciId], references: [id], onDelete: Cascade)
+  personel Personel? @relation(fields: [personelId], references: [id], onDelete: Cascade)
 
   @@index([isciId, bitisTarihi])
+  @@index([personelId, bitisTarihi])
 }
 
 model Musaitlik {
@@ -231,6 +310,22 @@ model Avans {
 }
 
 // ============================================================
+// TELEFON ARAMALARI
+// ============================================================
+
+model Arama {
+  id         Int      @id @default(autoincrement())
+  isciId     Int
+  kullaniciId Int?
+  tarih      DateTime @default(now())
+
+  isci     Isci?     @relation(fields: [isciId], references: [id], onDelete: Cascade)
+  kullanici Kullanici? @relation(fields: [kullaniciId], references: [id], onDelete: SetNull)
+
+  @@index([isciId, tarih])
+}
+
+// ============================================================
 // MÜŞTERİ FİRMALAR
 // ============================================================
 
@@ -241,6 +336,9 @@ model MusteriFirma {
   telefon   String?
   email     String?
   adres     String?
+  bolge     Bolge    @default(kocaeli)
+  odemePeriyot OdemePeriyot @default(AYLIK)
+  gunAraligi Int      @default(30)
   createdAt DateTime @default(now())
 
   yetkililer  Yetkili[]
@@ -250,6 +348,12 @@ model MusteriFirma {
   faturalar   Fatura[]
   hakedisler  Hakedis[]
   evraklar    Evrak[]
+  isciler     Isci[]
+  ucretAyarlari  FirmaUcret[]
+  puantajKayitlari PuantajKayit[]
+  odemeDonemleri  OdemeDonemi[]
+  vergiOdemeleri  VergiOdemesi[]
+  vergiSablonlari  VergiSablon[]
 }
 
 model Yetkili {
@@ -455,11 +559,13 @@ model Personel {
   sgkDurum     String
   izinBakiyesi Int           @default(0)
   durum        PersonelDurum @default(aktif)
+  bolge        Bolge         @default(kocaeli)
   createdAt    DateTime      @default(now())
 
   izinler  Izin[]
   gecmis   PersonelGecmisi[]
   odemeler Odeme[]
+  belgeler Belge[]
 }
 
 model Izin {
@@ -505,6 +611,9 @@ model Kullanici {
   lokasyon    Lokasyon?  @relation(fields: [lokasyonId], references: [id], onDelete: SetNull)
   bildirimler Bildirim[]
   pushAbonelikler PushAbonelik[]
+  aramalar    Arama[]
+  etkinlikler KullaniciEtkinlik[]
+  etkinlikKayitlari EtkinlikKayit[]
 }
 
 model Bildirim {
@@ -526,6 +635,227 @@ model Bildirim {
 }
 
 // ============================================================
+// SERVİSÇİLER (servis şoförleri — kavli, KDV'siz ödeme)
+// ============================================================
+
+model Servisci {
+  id        Int           @id @default(autoincrement())
+  ad        String
+  telefon   String
+  bolge     Bolge         @default(kocaeli)
+  durum     ServisciDurum @default(aktif)
+  not       String?
+  createdAt DateTime      @default(now())
+
+  servisler Servis[]
+
+  @@index([bolge])
+}
+
+model Servis {
+  id         Int      @id @default(autoincrement())
+  servisciId Int
+  tarih      DateTime
+  guzergah   String? // ne yaptı / nereye servis
+  tutar      Decimal  @db.Decimal(10, 2) // kavli tutar — KDV'siz
+  not        String?
+  createdAt  DateTime @default(now())
+
+  servisci Servisci @relation(fields: [servisciId], references: [id], onDelete: Cascade)
+
+  @@index([servisciId])
+}
+
+// ============================================================
+// İK & PUANTAJ / ÖDEME MODÜLÜ
+// (personel = saha işçisi; ücret: personel > firma > sistem varsayılanı)
+// ============================================================
+
+model PersonelUcret {
+  id                   Int       @id @default(autoincrement())
+  isciId               Int
+  gunlukUcret          Decimal   @db.Decimal(12, 2)
+  saatlikUcret         Decimal   @db.Decimal(12, 2)
+  gecerlilikBaslangic  DateTime
+  gecerlilikBitis      DateTime?
+  olusturanKullaniciId Int?
+  createdAt            DateTime  @default(now())
+
+  isci Isci @relation(fields: [isciId], references: [id], onDelete: Cascade)
+
+  @@index([isciId])
+}
+
+model FirmaUcret {
+  id                  Int      @id @default(autoincrement())
+  firmaId             Int
+  gunlukUcret         Decimal  @db.Decimal(12, 2)
+  saatlikUcret        Decimal  @db.Decimal(12, 2)
+  gecerlilikBaslangic DateTime
+  gecerlilikBitis     DateTime?
+  createdAt           DateTime @default(now())
+
+  firma MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+
+  @@unique([firmaId, gecerlilikBaslangic])
+  @@index([firmaId])
+}
+
+model PuantajKayit {
+  id                    Int          @id @default(autoincrement())
+  isciId                Int
+  firmaId               Int
+  tarih                 DateTime
+  fsi                   Decimal      @default(1) @db.Decimal(3, 2) // 1 tam gün | 0.5 yarım gün
+  calismaTipi           CalismaTipi  @default(GUNLUK)
+  calisilanSaat         Decimal      @default(0) @db.Decimal(5, 2)
+  mesaiSaat             Decimal      @default(0) @db.Decimal(5, 2)
+  uygulananGunlukUcret  Decimal      @db.Decimal(12, 2)
+  uygulananSaatlikUcret Decimal      @db.Decimal(12, 2)
+  hesaplananTutar       Decimal      @db.Decimal(12, 2)
+  ucretManuelMi         Boolean      @default(false) // ücret elle ezildi mi
+  aciklama              String?
+  createdAt             DateTime     @default(now())
+
+  isci  Isci         @relation(fields: [isciId], references: [id], onDelete: Cascade)
+  firma MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+
+  @@unique([isciId, tarih])
+  @@index([isciId, tarih])
+}
+
+model Kesinti {
+  id       Int         @id @default(autoincrement())
+  isciId   Int
+  tarih    DateTime    @default(now())
+  tutar    Decimal     @db.Decimal(12, 2)
+  tur      KesintiTuru @default(diger)
+  aciklama String?
+
+  isci Isci @relation(fields: [isciId], references: [id], onDelete: Cascade)
+
+  @@index([isciId])
+}
+
+model OdemeDonemi {
+  id            Int               @id @default(autoincrement())
+  isciId        Int
+  firmaId       Int
+  baslangic     DateTime
+  bitis         DateTime
+  brutHakedis   Decimal           @db.Decimal(12, 2)
+  toplamAvans   Decimal           @default(0) @db.Decimal(12, 2)
+  toplamKesinti Decimal           @default(0) @db.Decimal(12, 2)
+  netOdenecek   Decimal           @db.Decimal(12, 2)
+  durum         OdemeDonemiDurum  @default(BEKLIYOR)
+  kilitli       Boolean           @default(false) // ödenen dönem kilitli
+  createdAt     DateTime          @default(now())
+
+  isci    Isci         @relation(fields: [isciId], references: [id], onDelete: Cascade)
+  firma   MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+  odemeler OdemeKayit[]
+
+  @@unique([isciId, firmaId, baslangic, bitis])
+  @@index([isciId])
+}
+
+model OdemeKayit {
+  id                    Int           @id @default(autoincrement())
+  donemId               Int
+  tarih                 DateTime      @default(now())
+  tutar                 Decimal       @db.Decimal(12, 2)
+  yontem                OdemeYontemi
+  ibanSnapshot          String?
+  hesapSahibi           String?
+  yakininaOdeme         Boolean       @default(false)
+  yakinlikNotu          String?
+  zarfNo                String?
+  teslimAlan            String?
+  teslimEdenKullaniciId Int?
+  dekontUrl             String?
+  not                    String?
+  createdAt             DateTime      @default(now())
+
+  donem OdemeDonemi @relation(fields: [donemId], references: [id], onDelete: Cascade)
+
+  @@index([donemId])
+}
+
+model UcretLog {
+  id          Int      @id @default(autoincrement())
+  kayitTipi   String // personel | firma | sistem
+  ilgiliId    Int?
+  alan        String // gunlukUcret | saatlikUcret | varsayilanUcret | mesaiCarpan | calismaTipi | odemeYontemi
+  eskiDeger   String?
+  yeniDeger   String?
+  kullaniciId Int?
+  tarih       DateTime @default(now())
+
+  @@index([kayitTipi, ilgiliId])
+}
+
+// ============================================================
+// VERGİ & RESMİ ÖDEMELER MODÜLÜ
+// (firma bazlı vergi kaydı + dekont arşivi + tekrarlayan şablon)
+// ============================================================
+
+model VergiOdemesi {
+  id                  Int                 @id @default(autoincrement())
+  firmaId             Int
+  vergiTuru           VergiTuru
+  vergiTuruDiger      String? // DIGER seçilirse serbest metin
+  donem               String // "2026-09" veya "2026 Q3"
+  tahakkukTutari      Decimal             @db.Decimal(12, 2)
+  sonOdemeTarihi      DateTime
+  odemeTarihi         DateTime?
+  odenenTutar         Decimal?            @db.Decimal(12, 2)
+  odemeYontemi        VergiOdemeYontemi?
+  not                  String?
+  olusturanKullaniciId Int?
+  createdAt           DateTime            @default(now())
+  silindi             Boolean             @default(false) // soft delete
+
+  firma      MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+  dekontlar  VergiDekont[]
+
+  @@index([firmaId])
+  @@index([sonOdemeTarihi])
+  @@index([vergiTuru])
+}
+
+model VergiDekont {
+  id                  Int       @id @default(autoincrement())
+  vergiOdemeId        Int
+  dosyaUrl            String
+  dosyaAdi            String
+  dosyaTipi           String // pdf | jpg | png | ...
+  dosyaBoyutu         Int?
+  yukleyenKullaniciId Int?
+  createdAt           DateTime  @default(now())
+  silindi             Boolean   @default(false) // soft delete
+
+  vergiOdeme VergiOdemesi @relation(fields: [vergiOdemeId], references: [id], onDelete: Cascade)
+
+  @@index([vergiOdemeId])
+}
+
+model VergiSablon {
+  id              Int       @id @default(autoincrement())
+  firmaId         Int
+  vergiTuru       VergiTuru
+  vergiTuruDiger  String?
+  tahakkukTutari  Decimal   @db.Decimal(12, 2)
+  sonOdemeGun     Int // ayın kaçında (1-28)
+  donemEtiketi    String? // ör: "Q3" — boşsa aylık
+  aktif           Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  firma MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+
+  @@index([firmaId])
+}
+
+// ============================================================
 // İŞE ALIM / BORDRO-ÖDEME / EVRAK / AYARLAR
 // ============================================================
 
@@ -538,6 +868,7 @@ model Aday {
   durum     AdayDurum @default(basvurdu)
   puan      Int       @default(50)
   not       String?
+  bolge     Bolge? // website'ten gelen aday atanmamış olabilir — panelden atanır
   createdAt DateTime  @default(now())
 
   // Website entegrasyonu
@@ -624,4 +955,34 @@ model PushAbonelik {
   kullanici Kullanici @relation(fields: [kullaniciId], references: [id], onDelete: Cascade)
 
   @@index([kullaniciId])
+}
+
+// ============================================================
+// KULLANICI ETKİNLİK LOGU (yalnızca admin görür)
+// ============================================================
+
+model KullaniciEtkinlik {
+  id           Int      @id @default(autoincrement())
+  kullaniciId  Int
+  tarih        DateTime // gün (startOfDay)
+  girisSayisi  Int      @default(0)
+  aktifDakika  Int      @default(0)
+  sonAktivite  DateTime?
+
+  kullanici Kullanici @relation(fields: [kullaniciId], references: [id], onDelete: Cascade)
+
+  @@unique([kullaniciId, tarih])
+  @@index([tarih])
+}
+
+model EtkinlikKayit {
+  id          Int      @id @default(autoincrement())
+  kullaniciId Int
+  tarih       DateTime @default(now())
+  islem       String // "Giriş yaptı", "Çıkış yaptı", "Sayfa: /puantaj"
+
+  kullanici Kullanici @relation(fields: [kullaniciId], references: [id], onDelete: Cascade)
+
+  @@index([kullaniciId, tarih])
+  @@index([tarih])
 }

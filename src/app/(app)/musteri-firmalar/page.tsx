@@ -1,20 +1,31 @@
 import { requireRoles, requireUser } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { tl, num } from '@/lib/format'
-import { Card, EmptyState } from '@/components/ui'
+import { Card, EmptyState, Badge } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { FirmaForm } from './firma-form'
 import { setFirmaFiyat, addLokasyon, addYetkili, silFirma } from '@/app/actions/firma'
 import { SilOnayForm } from '@/components/sil-onay'
+import { FirmaBolgeSelect } from './firma-bolge-select'
+import { BolgeFiltre } from '@/components/bolge-filtre'
+import { BolgeSubMenu } from '@/components/bolge-submenu'
+import { bolgeGecerli, bolgeEtiket, BOLGE_TONE } from '@/lib/bolge'
 
 export const dynamic = 'force-dynamic'
 
-export default async function MusteriFirmalarPage() {
+export default async function MusteriFirmalarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ bolge?: string }>
+}) {
   const user = await requireUser()
   await requireRoles(['patron', 'operasyon'])
   const isPatron = user.rol === 'patron'
+  const sp = await searchParams
+  const bolge = bolgeGecerli(sp.bolge)
 
   const firmalar = await prisma.musteriFirma.findMany({
+    where: bolge ? { bolge } : {},
     include: {
       lokasyonlar: true,
       yetkililer: true,
@@ -27,11 +38,16 @@ export default async function MusteriFirmalarPage() {
 
   return (
     <div className="space-y-5">
+      {bolge && <BolgeSubMenu bolge={bolge} rol={user.rol} />}
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">
           <b className="text-slate-900">{num(firmalar.length)}</b> müşteri firma
+          {bolge && <span className="text-slate-400"> · {bolgeEtiket(bolge)}</span>}
         </p>
-        <FirmaForm />
+        <div className="flex items-center gap-2">
+          <BolgeFiltre aktif={bolge} />
+          <FirmaForm varsayilanBolge={bolge ?? 'kocaeli'} />
+        </div>
       </div>
 
       {firmalar.length === 0 ? (
@@ -54,6 +70,10 @@ export default async function MusteriFirmalarPage() {
                       <h3 className="text-sm font-semibold text-slate-900">
                         <a href={`/musteri-firmalar/${f.id}`} className="hover:text-indigo-600">{f.ad}</a>
                       </h3>
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <Badge tone={BOLGE_TONE[f.bolge]}>{bolgeEtiket(f.bolge)}</Badge>
+                        <FirmaBolgeSelect firmaId={f.id} bolge={f.bolge} />
+                      </div>
                       <p className="mt-0.5 text-xs text-slate-500">
                         {f.vergiNo ? `Vergi No: ${f.vergiNo}` : ''}
                         {f.telefon ? ` · ${f.telefon}` : ''}

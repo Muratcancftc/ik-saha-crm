@@ -52,7 +52,7 @@ export async function takvimTalepDetay(talepId: number) {
 }
 
 // Belirli bir günde boşta olan (ataması olmayan) aktif işçiler
-export async function musaitIsciler(tarihIso: string, meslekId?: number) {
+export async function musaitIsciler(tarihIso: string, meslekId?: number, bolge?: string) {
   await requireRoles(['patron', 'operasyon', 'saha_sorumlusu'])
 
   const gun = startOfDay(new Date(`${tarihIso}T00:00:00`))
@@ -69,6 +69,7 @@ export async function musaitIsciler(tarihIso: string, meslekId?: number) {
     where: {
       durum: 'aktif',
       ...(meslekId ? { meslekler: { some: { meslekId } } } : {}),
+      ...(bolge === 'kocaeli' || bolge === 'balikesir' ? { bolge } : {}),
     },
     include: {
       meslekler: { include: { meslek: true } },

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { startOfDay, addDays } from '@/lib/dates'
 import { pushBildirimGonder } from '@/lib/push'
+import { ISG_BELGE_TIPI } from '@/lib/belge'
 import type { BildirimTur } from '@prisma/client'
 
 export type BelgeState = { error?: string; ok?: boolean } | undefined
@@ -32,9 +33,12 @@ export async function createBelge(_prev: BelgeState, formData: FormData): Promis
 
 export async function silBelge(formData: FormData) {
   await requireRoles(['patron', 'operasyon'])
+  const belge = await prisma.belge.findUnique({ where: { id: Number(formData.get('id')) } })
   await prisma.belge.delete({ where: { id: Number(formData.get('id')) } })
   revalidatePath('/belge-sgk')
   revalidatePath('/isci-havuzu')
+  if (belge?.personelId) revalidatePath('/personel')
+  if (belge?.personelId) revalidatePath(`/personel/${belge.personelId}`)
   return
 }
 
@@ -49,8 +53,31 @@ export async function belgeYenile(formData: FormData) {
   await prisma.belge.update({ where: { id }, data: { bitisTarihi: new Date(`${bitis}T23:59:00`) } })
   revalidatePath('/belge-sgk')
   revalidatePath('/isci-havuzu')
-  revalidatePath(`/isci-havuzu/${belge.isciId}`)
+  if (belge.isciId) revalidatePath(`/isci-havuzu/${belge.isciId}`)
+  if (belge.personelId) revalidatePath('/personel')
+  if (belge.personelId) revalidatePath(`/personel/${belge.personelId}`)
   return
+}
+
+// Personel için İSG belgesi ekle
+export async function createPersonelIsg(_prev: BelgeState, formData: FormData): Promise<BelgeState> {
+  await requireRoles(['patron', 'operasyon'])
+  const personelId = Number(formData.get('personelId'))
+  const bitis = String(formData.get('bitisTarihi') ?? '')
+  if (!personelId || !bitis) return { error: 'Personel ve bitiş tarihi zorunludur.' }
+
+  await prisma.belge.create({
+    data: {
+      personelId,
+      tip: ISG_BELGE_TIPI,
+      verilisTarihi: new Date(),
+      bitisTarihi: new Date(`${bitis}T23:59:00`),
+    },
+  })
+  revalidatePath('/belge-sgk')
+  revalidatePath('/personel')
+  revalidatePath(`/personel/${personelId}`)
+  return { ok: true }
 }
 
 // Profil sayfasında düz form ile belge ekleme
@@ -83,7 +110,7 @@ export async function bildirimleriTara() {
 
   const belgeler = await prisma.belge.findMany({
     where: { bitisTarihi: { lte: limit } },
-    include: { isci: true },
+    include: { isci: true, personel: true },
   })
   const gecikenFaturalar = await prisma.fatura.findMany({ where: { durum: 'gecikti' } })
   const sgkEksik = await prisma.atama.findMany({
@@ -95,7 +122,8 @@ export async function bildirimleriTara() {
 
   for (const b of belgeler) {
     const durum = b.bitisTarihi < bugun ? 'süresi doldu' : '30 gün içinde doluyor'
-    const mesaj = `${b.isci.ad} — ${b.tip} belgesi ${durum}.`
+    const ad = b.isci?.ad ?? b.personel?.ad ?? 'Kayıt'
+    const mesaj = `${ad} — ${b.tip} belgesi ${durum}.`
     const mevcut = await prisma.bildirim.findFirst({ where: { mesaj, okundu: false } })
     if (!mevcut) {
       await prisma.bildirim.create({ data: { tur: 'belge', mesaj } })

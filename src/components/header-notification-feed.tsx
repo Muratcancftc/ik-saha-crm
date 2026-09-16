@@ -30,7 +30,7 @@ function turHedef(tur: string, mesaj: string): string {
 
 export default function HeaderNotificationFeed({ onUnreadCount }: { onUnreadCount: (n: number) => void }) {
   const [items, setItems] = useState<FeedItem[]>([])
-  const [ses, setSes] = useState(() => localStorage.getItem(SES_KEY) !== '0')
+  const [ses, setSes] = useState(() => (typeof localStorage !== 'undefined' ? localStorage.getItem(SES_KEY) !== '0' : true))
   const audioReady = useRef(false)
   const sonId = useRef<number | null>(null)
   const audioEl = useRef<HTMLAudioElement | null>(null)

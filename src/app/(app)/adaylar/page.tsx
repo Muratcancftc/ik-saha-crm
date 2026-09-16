@@ -4,8 +4,10 @@ import { date, num } from '@/lib/format'
 import { Card, CardHeader, Th, Td, Badge, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { AdayForm } from './aday-form'
+import { AdayBolgeSelect } from './aday-bolge-select'
 import { adayDurumDegistir, adayAktar, adaySil } from '@/app/actions/aday'
 import { SilOnayForm } from './sil-onay'
+import { bolgeGecerli, bolgeEtiket, BOLGE_TONE } from '@/lib/bolge'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,11 +18,21 @@ const DURUM: Record<string, { label: string; tone: string }> = {
   reddedildi: { label: 'Reddedildi', tone: 'red' },
 }
 
-export default async function AdaylarPage() {
+export default async function AdaylarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ bolge?: string; atanmamis?: string }>
+}) {
   await requireRoles(['patron', 'operasyon'])
+  const sp = await searchParams
+  const bolge = bolgeGecerli(sp.bolge)
+  const atanmamis = sp.atanmamis === '1'
 
   const [adaylar, meslekler] = await Promise.all([
     prisma.aday.findMany({
+      where: {
+        ...(atanmamis ? { bolge: null } : bolge ? { bolge } : {}),
+      },
       include: { meslek: true, ilan: true },
       orderBy: { createdAt: 'desc' },
     }),
@@ -43,7 +55,25 @@ export default async function AdaylarPage() {
           <span className="text-amber-600">{num(sayilar.gorusuldu)} görüşüldü</span> ·{' '}
           <span className="text-emerald-600">{num(sayilar.onaylandi)} onaylandı</span>
         </p>
-        <AdayForm meslekler={meslekler.map((m) => ({ id: m.id, ad: m.ad }))} />
+        <div className="flex flex-wrap items-center gap-2">
+          <form method="get" className="flex items-center gap-2">
+            <select
+              name="bolge"
+              defaultValue={bolge ?? ''}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-indigo-500"
+            >
+              <option value="">Tüm Bölgeler</option>
+              <option value="kocaeli">Kocaeli</option>
+              <option value="balikesir">Balıkesir</option>
+            </select>
+            <label className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-slate-600">
+              <input type="checkbox" name="atanmamis" value="1" defaultChecked={atanmamis} className="rounded accent-indigo-600" />
+              Atanmamış
+            </label>
+            <button type="submit" className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">Filtrele</button>
+          </form>
+          <AdayForm meslekler={meslekler.map((m) => ({ id: m.id, ad: m.ad }))} />
+        </div>
       </div>
 
       <Card>
@@ -55,7 +85,8 @@ export default async function AdaylarPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <Th>Aday</Th>
+                  <th className="border-b border-slate-100 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Aday</th>
+                  <Th>Bölge</Th>
                   <Th>Meslek</Th>
                   <Th>İletişim</Th>
                   <Th>Başvuru</Th>
@@ -79,6 +110,12 @@ export default async function AdaylarPage() {
                             Başvurduğu ilan: <b className="font-medium">{a.ilan.baslik}</b>
                           </div>
                         )}
+                      </Td>
+                      <Td>
+                        <div className="flex items-center gap-1.5">
+                          {a.bolge ? <Badge tone={BOLGE_TONE[a.bolge]}>{bolgeEtiket(a.bolge)}</Badge> : <Badge tone="slate">Atanmamış</Badge>}
+                          <AdayBolgeSelect adayId={a.id} bolge={a.bolge} />
+                        </div>
                       </Td>
                       <Td>{a.meslek?.ad ?? '—'}</Td>
                       <Td>

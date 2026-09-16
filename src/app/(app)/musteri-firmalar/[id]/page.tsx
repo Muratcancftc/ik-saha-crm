@@ -5,12 +5,15 @@ import { prisma } from '@/lib/db'
 import { getFirmaProfil } from '@/lib/profil-queries'
 import { donemAralik, donemEtiket } from '@/lib/donem'
 import { tl, num, date } from '@/lib/format'
-import { Card, CardHeader, Th, Td, EmptyState } from '@/components/ui'
+import { Card, CardHeader, Th, Td, EmptyState, Badge } from '@/components/ui'
 import { TalepBadge, FaturaBadge } from '@/components/status-badge'
 import { Icon } from '@/components/icons'
 import { DonemSecici } from '@/components/donem-secici'
 import { Suspense } from 'react'
 import { setFirmaFiyat } from '@/app/actions/firma'
+import { bolgeEtiket, BOLGE_TONE } from '@/lib/bolge'
+import PersonellerSekme from './personeller-sekme'
+import PuantajSekme from './puantaj-sekme'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,13 +22,14 @@ export default async function FirmaProfilPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ donem?: string; bas?: string; bit?: string }>
+  searchParams: Promise<{ donem?: string; bas?: string; bit?: string; tab?: string }>
 }) {
-  await requireRoles(['patron', 'operasyon', 'muhasebe'])
+  const user = await requireRoles(['patron', 'operasyon', 'muhasebe'])
   const { id } = await params
   const firmaId = Number(id)
   const sp = await searchParams
   const donem = donemAralik(sp)
+  const tab = sp.tab ?? 'genel'
 
   const firma = await getFirmaProfil(firmaId, donem.bas, donem.bit)
   if (!firma) notFound()
@@ -44,7 +48,10 @@ export default async function FirmaProfilPage({
           </Link>
           <div>
             <h2 className="text-lg font-semibold text-slate-900">{firma.ad}</h2>
-            <p className="text-xs text-slate-500">
+            <div className="mt-0.5 flex items-center gap-1.5">
+              <Badge tone={BOLGE_TONE[firma.bolge]}>{bolgeEtiket(firma.bolge)}</Badge>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-500">
               {firma.vergiNo ? `Vergi No: ${firma.vergiNo}` : ''} {firma.telefon ? `· ${firma.telefon}` : ''}
             </p>
           </div>
@@ -55,6 +62,15 @@ export default async function FirmaProfilPage({
         </div>
       </div>
 
+      {/* Sekmeler */}
+      <div className="flex flex-wrap gap-1.5">
+        <TabLink aktif={tab === 'genel'} href={`/musteri-firmalar/${firmaId}?tab=genel`}>Genel</TabLink>
+        <TabLink aktif={tab === 'personeller'} href={`/musteri-firmalar/${firmaId}?tab=personeller`}>Personeller</TabLink>
+        <TabLink aktif={tab === 'puantaj'} href={`/musteri-firmalar/${firmaId}?tab=puantaj`}>Puantaj & Ödeme Dönemleri</TabLink>
+      </div>
+
+      {tab === 'genel' ? (
+        <>
       {/* Özet kutuları */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Ozet label="Ciro (dönem)" value={tl(firma.ciro)} tone="text-indigo-600" />
@@ -232,6 +248,12 @@ export default async function FirmaProfilPage({
           </div>
         </div>
       </Card>
+        </>
+      ) : tab === 'personeller' ? (
+        <PersonellerSekme firmaId={firmaId} yazabilir={['patron', 'muhasebe', 'operasyon'].includes(user.rol)} />
+      ) : (
+        <PuantajSekme firmaId={firmaId} yazabilir={['patron', 'muhasebe', 'operasyon'].includes(user.rol)} />
+      )}
     </div>
   )
 }
@@ -265,5 +287,17 @@ function YasKutu({ label, tutar, tone, oran }: { label: string; tutar: number; t
         <div className={`h-full rounded-full ${tone.split(' ')[0].replace('bg-', 'bg-')}`} style={{ width: `${Math.round(oran * 100)}%` }} />
       </div>
     </div>
+  )
+}
+function TabLink({ aktif, href, children }: { aktif: boolean; href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className={`rounded-lg px-3.5 py-2 text-sm font-medium transition ${
+        aktif ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+      }`}
+    >
+      {children}
+    </Link>
   )
 }

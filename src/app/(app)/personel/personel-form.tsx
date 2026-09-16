@@ -15,9 +15,10 @@ type PersonelDto = {
   sgkDurum: string
   izinBakiyesi: number
   durum: string
+  bolge: string
 }
 
-export function PersonelForm({ mode, personel }: { mode: 'create' | 'edit'; personel?: PersonelDto }) {
+export function PersonelForm({ mode, personel, varsayilanBolge = 'kocaeli' }: { mode: 'create' | 'edit'; personel?: PersonelDto; varsayilanBolge?: string }) {
   const [open, setOpen] = useState(false)
   const [iban, setIban] = useState('')
   const [gizli, setGizli] = useState<string | null>(null)
@@ -105,6 +106,13 @@ export function PersonelForm({ mode, personel }: { mode: 'create' | 'edit'; pers
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">İzin Bakiyesi (gün)</label>
                   <input name="izinBakiyesi" type="number" defaultValue={personel?.izinBakiyesi ?? 0} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-600">Bölge</label>
+                  <select name="bolge" defaultValue={personel?.bolge ?? varsayilanBolge} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                    <option value="kocaeli">Kocaeli</option>
+                    <option value="balikesir">Balıkesir</option>
+                  </select>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">SGK Durum</label>
