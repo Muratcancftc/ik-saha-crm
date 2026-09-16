@@ -143,7 +143,7 @@ export default async function IkHakedisPage({
                             <input type="hidden" name="isciId" value={s.isci.id} />
                             <input type="hidden" name="firmaId" value={seciliFirmaId} />
                             <input type="hidden" name="baslangic" value={iso(ayBas)} />
-                            <input type="hidden" name="bitis" value={iso(new Date(ayBit.getTime() - 86400000))} />
+                            <input type="hidden" name="bitis" value={iso(ayBit)} />
                             <button className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200">Hesapla</button>
                           </form>
                         ) : (

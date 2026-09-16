@@ -118,7 +118,7 @@ export default async function PuantajSekme({ firmaId, yazabilir }: { firmaId: nu
                               <input type="hidden" name="bitis" value={d.bitis.toISOString().slice(0, 10)} />
                               <button className="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">Hesapla</button>
                             </form>
-                            <DonemDuzenle donemId={d.id} baslangic={d.baslangic.toISOString().slice(0, 10)} bitis={d.bitis.toISOString().slice(0, 10)} />
+                            <DonemDuzenle donemId={d.id} baslangic={d.baslangic.toISOString().slice(0, 10)} bitis={new Date(d.bitis.getTime() - 86400000).toISOString().slice(0, 10)} />
                             <Link href="/ik/hakedis" className="rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50">Öde</Link>
                           </div>
                         )}

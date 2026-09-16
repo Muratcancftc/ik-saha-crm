@@ -64,9 +64,9 @@ export default async function OdemePlaniPage({
     const gunAraligi = p.gunAraligi ?? p.firma?.gunAraligi ?? 30
     const donem = guncelDonem(periyot, gunAraligi, bugun)
 
-    const brut = yuvarla(puantajList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih <= donem.bitis).reduce((a, x) => a + Number(x.hesaplananTutar), 0))
-    const avans = yuvarla(avansList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih <= donem.bitis).reduce((a, x) => a + Number(x.tutar), 0))
-    const kesinti = yuvarla(kesintiList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih <= donem.bitis).reduce((a, x) => a + Number(x.tutar), 0))
+    const brut = yuvarla(puantajList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih < donem.bitis).reduce((a, x) => a + Number(x.hesaplananTutar), 0))
+    const avans = yuvarla(avansList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih < donem.bitis).reduce((a, x) => a + Number(x.tutar), 0))
+    const kesinti = yuvarla(kesintiList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih < donem.bitis).reduce((a, x) => a + Number(x.tutar), 0))
     const net = yuvarla(brut - avans - kesinti)
     const donemKayit = donemler.find((d) => d.isciId === p.id && d.baslangic.getTime() === donem.baslangic.getTime() && d.bitis.getTime() === donem.bitis.getTime())
     const odenen = donemKayit ? yuvarla(donemKayit.odemeler.reduce((a, o) => a + Number(o.tutar), 0)) : 0
@@ -182,8 +182,8 @@ export default async function OdemePlaniPage({
                     <Td className="tabular-nums text-slate-500">{tamGorur ? decrypt(s.p.iban) : maskIBAN(decrypt(s.p.iban))}</Td>
                     <Td className="text-xs text-slate-500">{periyotEtiket(s.periyot, s.gunAraligi)}</Td>
                     <Td className="tabular-nums">
-                      {s.donem.bitis.toLocaleDateString('tr-TR')}
-                      <div className="text-[10px] text-slate-400">{s.donem.baslangic.toLocaleDateString('tr-TR')} – {s.donem.bitis.toLocaleDateString('tr-TR')}</div>
+                      {new Date(s.donem.bitis.getTime() - 86400000).toLocaleDateString('tr-TR')}
+                      <div className="text-[10px] text-slate-400">{s.donem.baslangic.toLocaleDateString('tr-TR')} – {new Date(s.donem.bitis.getTime() - 86400000).toLocaleDateString('tr-TR')}</div>
                     </Td>
                     <Td className="text-right font-semibold tabular-nums">{tl(s.net)}</Td>
                     <Td className="text-right tabular-nums text-emerald-700">{s.odenen > 0 ? tl(s.odenen) : '—'}</Td>

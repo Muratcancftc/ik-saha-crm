@@ -28,39 +28,40 @@ export function periyotEtiket(p: OdemePeriyot | null | undefined, gunAraligi?: n
   return 'Aylık'
 }
 
-// Periyoda göre ardışık ödeme dönemlerini üret (bitis dahil, sonraki dönem bitis+1'den başlar)
+// Periyoda göre ardışık ödeme dönemlerini üret. Dönem [baslangic, bitis) şeklindedir
+// (bitis DIŞLAYICI = son çalışma gününün ertesi). Sonraki dönem bitis'ten başlar.
 export function periyotUret(p: OdemePeriyot, gunAraligi: number, bas: Date, adet: number): Array<{ baslangic: Date; bitis: Date }> {
   const sonuclar: Array<{ baslangic: Date; bitis: Date }> = []
   let cur = startOfDay(bas)
   for (let i = 0; i < adet; i++) {
     let bitis: Date
-    if (p === 'GUN_ARALIGI') bitis = addDays(cur, Math.max(1, gunAraligi) - 1)
-    else if (p === 'HAFTALIK') bitis = addDays(cur, 6)
-    else if (p === 'AYLIK') bitis = new Date(cur.getFullYear(), cur.getMonth() + 1, 0)
-    else bitis = addDays(cur, 6) // SERBEST: 7 günlük varsayılan (elle düzenlenir)
+    if (p === 'GUN_ARALIGI') bitis = addDays(cur, Math.max(1, gunAraligi))
+    else if (p === 'HAFTALIK') bitis = addDays(cur, 7)
+    else if (p === 'AYLIK') bitis = new Date(cur.getFullYear(), cur.getMonth() + 1, 1)
+    else bitis = addDays(cur, 7) // SERBEST: 7 günlük varsayılan (elle düzenlenir)
     sonuclar.push({ baslangic: cur, bitis })
-    cur = addDays(bitis, 1)
+    cur = bitis
   }
   return sonuclar
 }
 
-// Bugünü içeren güncel ödeme dönemini bul (periyota göre)
+// Bugünü içeren güncel ödeme dönemini bul (bitis dışlayıcı)
 export function guncelDonem(periyot: OdemePeriyot, gunAraligi: number, bugun: Date): { baslangic: Date; bitis: Date } {
   const y = bugun.getFullYear()
   const m = bugun.getMonth()
-  if (periyot === 'AYLIK') return { baslangic: new Date(y, m, 1), bitis: new Date(y, m + 1, 0) }
+  if (periyot === 'AYLIK') return { baslangic: new Date(y, m, 1), bitis: new Date(y, m + 1, 1) }
   if (periyot === 'HAFTALIK') {
     const gun = (bugun.getDay() + 6) % 7
     const bas = addDays(startOfDay(bugun), -gun)
-    return { baslangic: bas, bitis: addDays(bas, 6) }
+    return { baslangic: bas, bitis: addDays(bas, 7) }
   }
   if (periyot === 'GUN_ARALIGI') {
     const n = Math.max(1, gunAraligi)
     const araliklar = periyotUret('GUN_ARALIGI', n, new Date(y, m, 1), 60)
-    return araliklar.find((a) => a.baslangic <= bugun && addDays(a.bitis, 1) > bugun) ?? araliklar[araliklar.length - 1]
+    return araliklar.find((a) => a.baslangic <= bugun && a.bitis > bugun) ?? araliklar[araliklar.length - 1]
   }
   // SERBEST: içinde bulunulan ay (elle yönetilir)
-  return { baslangic: new Date(y, m, 1), bitis: new Date(y, m + 1, 0) }
+  return { baslangic: new Date(y, m, 1), bitis: new Date(y, m + 1, 1) }
 }
 
 // ---- Para / format ----

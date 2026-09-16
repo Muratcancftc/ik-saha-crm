@@ -410,8 +410,8 @@ export async function donemHesapla(formData: FormData) {
   const isciId = Number(formData.get('isciId'))
   const firmaId = Number(formData.get('firmaId'))
   const bas = parseTarih(String(formData.get('baslangic') ?? ''))
-  const bit = addDays(parseLocalDate(String(formData.get('bitis') ?? '')), 1)
-  if (!isciId || !firmaId || !bas) return
+  const bit = parseTarih(String(formData.get('bitis') ?? '')) // dışlayıcı (exclusive) bitiş
+  if (!isciId || !firmaId || !bas || !bit) return
 
   const puantajlar = await prisma.puantajKayit.findMany({
     where: { isciId, firmaId, tarih: { gte: bas, lt: bit } },
@@ -575,7 +575,7 @@ export async function donemUret(formData: FormData) {
   return
 }
 
-// ---- Dönem tarihlerini elle düzenle (kilitli değilse) ----
+// ---- Dönem tarihlerini elle düzenle (kilitli değilse). Girilen bitiş = son gün; DB'ye dışlayıcı kaydedilir ----
 export async function donemDuzenle(formData: FormData) {
   await requireRoles([...YAZANLAR])
   const id = Number(formData.get('id'))
@@ -586,7 +586,7 @@ export async function donemDuzenle(formData: FormData) {
   if (!donem || donem.kilitli) return
   await prisma.odemeDonemi.update({
     where: { id },
-    data: { baslangic: bas, bitis: bit, brutHakedis: 0, toplamAvans: 0, toplamKesinti: 0, netOdenecek: 0, durum: 'BEKLIYOR' },
+    data: { baslangic: bas, bitis: addDays(bit, 1), brutHakedis: 0, toplamAvans: 0, toplamKesinti: 0, netOdenecek: 0, durum: 'BEKLIYOR' },
   })
   revalidatePath('/musteri-firmalar')
   revalidatePath('/ik/hakedis')
