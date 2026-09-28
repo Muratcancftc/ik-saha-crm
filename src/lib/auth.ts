@@ -9,6 +9,7 @@ const encodedKey = new TextEncoder().encode(SECRET)
 export type SessionPayload = {
   userId: number
   rol: Rol
+  menuler: string[]
   expiresAt: string
 }
 
@@ -32,9 +33,9 @@ export async function decrypt(token: string | undefined = ''): Promise<SessionPa
 
 export const SESSION_COOKIE = 'ik_session'
 
-export async function createSession(userId: number, rol: Rol) {
+export async function createSession(userId: number, rol: Rol, menuler: string[] = []) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-  const session = await encrypt({ userId, rol, expiresAt: expiresAt.toISOString() })
+  const session = await encrypt({ userId, rol, menuler, expiresAt: expiresAt.toISOString() })
   const cookieStore = await cookies()
   cookieStore.set(SESSION_COOKIE, session, {
     httpOnly: true,

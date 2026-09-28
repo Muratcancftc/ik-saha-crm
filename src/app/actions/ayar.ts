@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
+import { PATRON_ONLY_ROUTES } from '@/lib/permissions'
 import type { Rol } from '@prisma/client'
 
 export type AyarState = { error?: string; ok?: boolean } | undefined
@@ -41,11 +42,18 @@ export async function kullaniciEkle(_prev: AyarState, formData: FormData): Promi
   const varMi = await prisma.kullanici.findUnique({ where: { email } })
   if (varMi) return { error: 'Bu e-posta zaten kayıtlı.' }
 
+  const menuler =
+    rol === 'patron'
+      ? [] // patron her zaman tam erişim (rol varsayılanı)
+      : formData
+          .getAll('menuler')
+          .map((m) => String(m))
+          .filter((m) => !PATRON_ONLY_ROUTES.includes(m))
   const lokasyonId = rol === 'saha_sorumlusu' ? Number(formData.get('lokasyonId')) || null : null
   await prisma.kullanici.create({
-    data: { ad, email, sifreHash: await bcrypt.hash(sifre, 10), rol, lokasyonId },
+    data: { ad, email, sifreHash: await bcrypt.hash(sifre, 10), rol, lokasyonId, menuler },
   })
-  revalidatePath('/ayarlar')
+  revalidatePath('/kullanicilar')
   return { ok: true }
 }
 
@@ -54,8 +62,27 @@ export async function kullaniciRolDegistir(formData: FormData) {
   const id = Number(formData.get('id'))
   const rol = String(formData.get('rol') ?? 'operasyon') as Rol
   const lokasyonId = rol === 'saha_sorumlusu' ? Number(formData.get('lokasyonId')) || null : null
-  await prisma.kullanici.update({ where: { id }, data: { rol, lokasyonId } })
-  revalidatePath('/ayarlar')
+  const mevcut = await prisma.kullanici.findUnique({ where: { id }, select: { rol: true } })
+  if (!mevcut) return
+  // Rol değiştiyse kullanıcıya özel menüleri varsayılana döndür (öngörülebilir davranış).
+  const menuler = mevcut.rol === rol ? undefined : []
+  await prisma.kullanici.update({ where: { id }, data: { rol, lokasyonId, ...(menuler !== undefined ? { menuler } : {}) } })
+  revalidatePath('/kullanicilar')
+  return
+}
+
+export async function kullaniciMenulerGuncelle(formData: FormData) {
+  await requireRoles(['patron'])
+  const id = Number(formData.get('id'))
+  const hedef = await prisma.kullanici.findUnique({ where: { id }, select: { rol: true } })
+  if (!hedef) return
+  if (hedef.rol === 'patron') return // patron menüleri sabit (tüm erişim)
+  const menuler = formData
+    .getAll('menuler')
+    .map((m) => String(m))
+    .filter((m) => !(hedef.rol !== 'patron' && PATRON_ONLY_ROUTES.includes(m)))
+  await prisma.kullanici.update({ where: { id }, data: { menuler } })
+  revalidatePath('/kullanicilar')
   return
 }
 

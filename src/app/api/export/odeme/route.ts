@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/dal'
+import { requireApiAccess } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { decrypt } from '@/lib/crypto'
 
@@ -10,8 +10,8 @@ function csvSatir(hucreler: Array<string | number>): string {
 }
 
 export async function GET() {
-  const user = await getSession()
-  if (!user || !['patron', 'muhasebe'].includes(user.rol)) {
+  const user = await requireApiAccess('/api/export/odeme', ['patron', 'muhasebe'])
+  if (!user) {
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 403 })
   }
 

@@ -1,9 +1,11 @@
 /* eslint-disable */
 // ATALAY İK CRM — veri bütünlüğü / puantaj / aday onay QA regression testi
 // Kullanım: npm run dev açıkken → node scripts/qa-test.mjs
-const { chromium } = require('playwright')
+import { chromium } from 'playwright'
+import { createRequire } from 'module'
+const require = createRequire(import.meta.url)
 const { Client } = require('/Users/adada/Desktop/ik-saha-crm/node_modules/pg')
-const BASE = 'http://localhost:3000'
+const BASE = 'http://localhost:3001'
 const DB = { connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/ik_crm' }
 const R = []
 function rapor(name, ok, extra) { R.push({ name, ok }); console.log(`${ok ? '✓' : '✗'} ${name}${extra ? ' — ' + extra : ''}`) }

@@ -21,7 +21,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const ok = await bcrypt.compare(password, user.sifreHash)
   if (!ok) return { error: 'E-posta veya şifre hatalı.' }
 
-  await createSession(user.id, user.rol)
+  await createSession(user.id, user.rol, user.menuler)
 
   // Etkinlik logu: günlük giriş sayısı + giriş kaydı
   const bugun = startOfDay()

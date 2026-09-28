@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/dal'
+import { requireApiAccess } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { parseLocalDate } from '@/lib/donem'
 import { startOfDay, addDays } from '@/lib/dates'
@@ -11,8 +11,8 @@ function csvSatir(hucreler: Array<string | number>): string {
 }
 
 export async function GET(req: Request) {
-  const user = await getSession()
-  if (!user || !['patron', 'muhasebe', 'operasyon', 'ik'].includes(user.rol)) {
+  const user = await requireApiAccess('/api/export/ik-rapor', ['patron', 'muhasebe', 'operasyon', 'ik'])
+  if (!user) {
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 403 })
   }
 

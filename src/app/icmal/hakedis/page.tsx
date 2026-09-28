@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/dal'
+import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { tl, num, dateLong } from '@/lib/format'
 import { PrintButton } from './print-button'
@@ -6,8 +6,7 @@ import { PrintButton } from './print-button'
 export const dynamic = 'force-dynamic'
 
 export default async function HakedisIcmalPage() {
-  const user = await requireUser()
-  if (!['patron', 'muhasebe'].includes(user.rol)) return null
+  const user = await requireRoles(['patron', 'muhasebe'])
 
   const hakedisler = await prisma.hakedis.findMany({
     include: { isci: true, firma: true },

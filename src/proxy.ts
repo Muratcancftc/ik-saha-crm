@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { decrypt, SESSION_COOKIE } from '@/lib/auth'
-import { canAccess } from '@/lib/permissions'
+import { canAccessPath } from '@/lib/permissions'
+import { prisma } from '@/lib/db'
 
 const PUBLIC_PATHS = ['/giris']
 
@@ -13,7 +14,8 @@ export async function proxy(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p))
   const isStatic =
     path.startsWith('/_next') ||
-    path.startsWith('/api') ||
+    path.startsWith('/api/integrations') ||
+    path.startsWith('/api/public') ||
     path.startsWith('/static') ||
     path.includes('.')
 
@@ -29,8 +31,18 @@ export async function proxy(request: NextRequest) {
   // bayat/silinmiş kullanıcı çereziyle /giris ↔ / arasında sonsuz loop oluşur.
   // /giris her zaman render olsun; gerçek koruma DAL'da yapılır.
 
-  // rol tabanlı route koruması (optimistik kontrol)
-  if (session?.userId && session.rol && !canAccess(path, session.rol)) {
+  if (!session?.userId) return NextResponse.next()
+
+  // Kullanıcıya özel menü yetkisi: her istekte DB'den taze okunur, böylece
+  // patron menü değişikliği kullanıcının yeniden giriş yapmasını beklemez.
+  const user = await prisma.kullanici.findUnique({
+    where: { id: session.userId },
+    select: { rol: true, menuler: true },
+  })
+  if (!user) return NextResponse.redirect(new URL('/giris', request.url))
+
+  // rota tabanlı koruma (sayfalar + server action POST'ları + gated API'ler)
+  if (!canAccessPath(path, user)) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 

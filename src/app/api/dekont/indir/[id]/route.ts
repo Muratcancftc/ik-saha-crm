@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getDownloadUrl } from '@vercel/blob'
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
-import { getSession } from '@/lib/dal'
+import { requireApiAccess } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { dekontYerelYol } from '@/lib/dekont'
 
@@ -18,8 +18,8 @@ const MIME: Record<string, string> = {
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getSession()
-  if (!user || !['patron', 'muhasebe', 'ik', 'operasyon', 'izleyici'].includes(user.rol)) {
+  const user = await requireApiAccess('/api/dekont/indir', ['patron', 'muhasebe', 'ik', 'operasyon', 'izleyici'])
+  if (!user) {
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 403 })
   }
   const { id } = await params

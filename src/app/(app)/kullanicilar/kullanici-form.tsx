@@ -3,13 +3,22 @@
 import { useActionState, useEffect, useState } from 'react'
 import { kullaniciEkle } from '@/app/actions/ayar'
 import { Icon } from '@/components/icons'
+import { roleMenuKeys, PATRON_ONLY_ROUTES } from '@/lib/permissions'
+import type { Rol } from '@prisma/client'
+import { MenuSecimi } from './menu-secimi'
 
 type LokasyonDto = { id: number; ad: string }
 
 export function KullaniciForm({ lokasyonlar }: { lokasyonlar: LokasyonDto[] }) {
   const [open, setOpen] = useState(false)
-  const [rol, setRol] = useState('operasyon')
+  const [rol, setRol] = useState<Rol>('operasyon')
+  const [menuler, setMenuler] = useState<string[]>(roleMenuKeys('operasyon').filter((h) => !PATRON_ONLY_ROUTES.includes(h)))
   const [state, formAction, pending] = useActionState(kullaniciEkle, undefined)
+
+  const rolDegisti = (r: Rol) => {
+    setRol(r)
+    setMenuler(roleMenuKeys(r).filter((h) => r === 'patron' || !PATRON_ONLY_ROUTES.includes(h)))
+  }
 
   useEffect(() => {
     if (state && 'ok' in state) setOpen(false)
@@ -49,10 +58,12 @@ export function KullaniciForm({ lokasyonlar }: { lokasyonlar: LokasyonDto[] }) {
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">Rol</label>
-                <select name="rol" value={rol} onChange={(e) => setRol(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                <select name="rol" value={rol} onChange={(e) => rolDegisti(e.target.value as Rol)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
                   <option value="operasyon">Operasyon</option>
                   <option value="muhasebe">Muhasebe</option>
                   <option value="saha_sorumlusu">Saha Sorumlusu</option>
+                  <option value="ik">İK</option>
+                  <option value="izleyici">İzleyici</option>
                   <option value="patron">Patron</option>
                 </select>
               </div>
@@ -67,6 +78,8 @@ export function KullaniciForm({ lokasyonlar }: { lokasyonlar: LokasyonDto[] }) {
                   </select>
                 </div>
               )}
+
+              <MenuSecimi rol={rol} selected={menuler} onChange={setMenuler} />
 
               {state && 'error' in state && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</div>

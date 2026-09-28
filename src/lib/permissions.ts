@@ -98,8 +98,70 @@ export const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; ico
   },
 ]
 
-export function canAccess(path: string, rol: Rol): boolean {
-  const route = ROUTES[path]
-  if (!route) return true
-  return route.roles.includes(rol)
+// ============================================================
+// MENÜ / ROTA YETKİ HESAPLAMA
+// menuler boş [] ise rolün varsayılan menüleri; dolu ise yalnızca
+// listedeki rotalar (kullanıcıya özel yetki) geçerlidir.
+// ============================================================
+
+export type MenuUser = { rol: Rol; menuler: string[] }
+
+// Yalnızca patron rolüne özgü yönetim menüleri (diğer roller asla alamaz).
+export const PATRON_ONLY_ROUTES = ['/kullanicilar', '/ayarlar', '/etkinlik']
+
+export function roleMenuKeys(rol: Rol): string[] {
+  return Object.keys(ROUTES).filter((k) => ROUTES[k].roles.includes(rol))
+}
+
+export function userMenuKeys(user: MenuUser): string[] {
+  return user.menuler.length > 0 ? user.menuler : roleMenuKeys(user.rol)
+}
+
+// Herhangi bir istek yolu (nested sayfa, icmal, API) → kontrol eden menü anahtarı.
+// Uzun prefix önceliklidir. route: '' → herkese açık (engelleme).
+const PATH_ROUTE: Array<{ prefix: string; route: string }> = [
+  // herkese açık API'ler (proxy hiç engellemez)
+  { prefix: '/api/integrations/website', route: '' },
+  { prefix: '/api/public', route: '' },
+  // dışa aktarma / önizleme API'leri → ilgili menüye bağla
+  { prefix: '/api/export/odeme', route: '/odeme' },
+  { prefix: '/api/export/faturalar', route: '/faturalar' },
+  { prefix: '/api/export/hakedis', route: '/hakedis' },
+  { prefix: '/api/export/rapor-isci', route: '/raporlar' },
+  { prefix: '/api/export/ik-rapor', route: '/ik/raporlar' },
+  { prefix: '/api/export/vergi-rapor', route: '/vergi-odemeler' },
+  { prefix: '/api/dekont', route: '/vergi-odemeler' },
+  { prefix: '/api/odeme/onizle', route: '/odeme' },
+  { prefix: '/api/hakedis/onizle', route: '/hakedis' },
+  { prefix: '/api/evrak', route: '/evrak' },
+  // bildirim feed'i / push tüm giriş yapan kullanıcılar içindir (header herkeste var)
+  { prefix: '/api/bildirimler', route: '' },
+  { prefix: '/api/push', route: '' },
+  // yazdırma icmal sayfası → hakediş menüsü
+  { prefix: '/icmal/hakedis', route: '/hakedis' },
+  // ana uygulama rotaları (uzun prefix önce gelir)
+  { prefix: '/isci-havuzu', route: '/isci-havuzu' },
+  { prefix: '/musteri-firmalar', route: '/musteri-firmalar' },
+  ...Object.keys(ROUTES).map((k) => ({ prefix: k, route: k })),
+]
+
+export function routeKeyForPath(path: string): string {
+  let best = ''
+  let bestLen = -1
+  for (const { prefix, route } of PATH_ROUTE) {
+    if (path === prefix || path.startsWith(prefix + '/')) {
+      if (prefix.length > bestLen) {
+        best = route
+        bestLen = prefix.length
+      }
+    }
+  }
+  return best
+}
+
+export function canAccessPath(path: string, user: MenuUser): boolean {
+  const route = routeKeyForPath(path)
+  if (route === '') return true // herkese açık
+  if (!route) return true // bilinmeyen yol → engelleme (defansif)
+  return userMenuKeys(user).includes(route)
 }

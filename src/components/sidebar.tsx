@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import type { Rol } from '@prisma/client'
-import { NAV_GROUPS } from '@/lib/permissions'
+import { NAV_GROUPS, userMenuKeys } from '@/lib/permissions'
 import { logout } from '@/app/actions/auth'
 import { Icon, type IconName } from './icons'
 import { cn } from '@/lib/utils'
@@ -24,16 +24,17 @@ function LogoutButton() {
   )
 }
 
-export default function Sidebar({ rol, userAd }: { rol: Rol; userAd: string }) {
+export default function Sidebar({ rol, menuler, userAd }: { rol: Rol; menuler: string[]; userAd: string }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
 
+  const izinliMenuler = userMenuKeys({ rol, menuler })
   const nav = NAV_GROUPS.map((g) => ({
     ...g,
-    items: g.items.filter((i) => i.roles.includes(rol)),
+    items: g.items.filter((i) => izinliMenuler.includes(i.href)),
   })).filter((g) => g.items.length > 0)
 
   return (

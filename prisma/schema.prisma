@@ -606,6 +606,9 @@ model Kullanici {
   sifreHash  String
   rol        Rol      @default(operasyon)
   lokasyonId Int? // yalnızca saha_sorumlusu için
+  // Kullanıcıya özel menü yetkileri (route anahtarları).
+  // Boş [] = rolün varsayılan menüleri; dolu = yalnızca bu menüler görünür/erişilebilir.
+  menuler    String[] @default([])
   createdAt  DateTime @default(now())
 
   lokasyon    Lokasyon?  @relation(fields: [lokasyonId], references: [id], onDelete: SetNull)

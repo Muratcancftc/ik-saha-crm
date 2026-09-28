@@ -3,15 +3,18 @@ import { prisma } from '@/lib/db'
 import { Card, CardHeader, Th, Td, Badge } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { KullaniciForm } from './kullanici-form'
+import { MenuEditor } from './menu-editor'
 import { kullaniciRolDegistir, kullaniciSil } from '@/app/actions/ayar'
 
 export const dynamic = 'force-dynamic'
 
 const ROLLER: Record<string, { label: string; desc: string; alanlar: string; tone: string }> = {
-  patron: { label: 'Patron', desc: 'Tüm erişim + kullanıcı/yetki yönetimi', alanlar: 'Her şey', tone: 'indigo' },
-  operasyon: { label: 'Operasyon', desc: 'Sahadaki işgücü operasyonu', alanlar: 'İşçi havuzu, talepler & atama, puantaj, müşteri firmalar, belge & SGK', tone: 'blue' },
-  muhasebe: { label: 'Muhasebe', desc: 'Finans ve bordro', alanlar: 'Hakediş, ödeme, fatura, vergi, personel, raporlar', tone: 'violet' },
-  saha_sorumlusu: { label: 'Saha Sorumlusu', desc: 'Lokasyon bazlı saha takibi', alanlar: 'Yalnızca kendi lokasyonunun puantajı ve takvimi', tone: 'amber' },
+  patron: { label: 'Patron', desc: 'Tüm erişim + kullanıcı/yetki yönetimi', alanlar: 'Her şey (menüler sabit)', tone: 'indigo' },
+  operasyon: { label: 'Operasyon', desc: 'Sahadaki işgücü operasyonu', alanlar: 'Varsayılan: işçi havuzu, talepler & atama, puantaj, müşteri firmalar, belge & SGK — patron kişiye özel daraltabilir/genişletebilir', tone: 'blue' },
+  muhasebe: { label: 'Muhasebe', desc: 'Finans ve bordro', alanlar: 'Varsayılan: hakediş, ödeme, fatura, vergi, personel, raporlar — patron kişiye özel daraltabilir/genişletebilir', tone: 'violet' },
+  saha_sorumlusu: { label: 'Saha Sorumlusu', desc: 'Lokasyon bazlı saha takibi', alanlar: 'Varsayılan: yalnızca kendi lokasyonunun puantajı ve takvimi — patron kişiye özel daraltabilir', tone: 'amber' },
+  ik: { label: 'İK', desc: 'İK personel ve ödeme modülü', alanlar: 'Varsayılan: İK personel, puantaj, hakediş & ödeme, ödeme planı, raporlar — patron kişiye özel daraltabilir/genişletebilir', tone: 'teal' },
+  izleyici: { label: 'İzleyici', desc: 'Salt okunur izleme', alanlar: 'Varsayılan: kontrol paneli, telefon aramaları, vergi ödemeleri — patron kişiye özel daraltabilir', tone: 'slate' },
 }
 
 export default async function KullanicilarPage() {
@@ -53,7 +56,7 @@ export default async function KullanicilarPage() {
       <Card>
         <CardHeader
           title={`Ekip Üyeleri (${kullanicilar.length})`}
-          desc="Rolü değiştirmek için seçim yapıp onayla; saha sorumlusuna lokasyon bağlayın"
+          desc="Rolü değiştirmek için seçim yapıp onayla; Menüler ile kişiye özel menü yetkisi ver"
         />
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -62,6 +65,7 @@ export default async function KullanicilarPage() {
                 <Th>Kullanıcı</Th>
                 <Th>Rol</Th>
                 <Th>Rol & Lokasyon</Th>
+                <Th>Menü Yetkileri</Th>
                 <Th className="text-right">İşlem</Th>
               </tr>
             </thead>
@@ -113,6 +117,9 @@ export default async function KullanicilarPage() {
                           <Icon name="check" size={14} />
                         </button>
                       </form>
+                    </Td>
+                    <Td>
+                      <MenuEditor id={u.id} ad={u.ad} rol={u.rol} menuler={u.menuler} />
                     </Td>
                     <Td className="text-right">
                       {u.rol !== 'patron' && (
