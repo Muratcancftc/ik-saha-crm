@@ -27,6 +27,7 @@ export const TALEP_DURUM: Record<string, { label: string; tone: string }> = {
 
 export const FATURA_DURUM: Record<string, { label: string; tone: string }> = {
   vadede: { label: 'Vadede', tone: 'blue' },
+  kismi: { label: 'Kısmi Ödendi', tone: 'amber' },
   odendi: { label: 'Ödendi', tone: 'green' },
   gecikti: { label: 'Gecikti', tone: 'red' },
 }

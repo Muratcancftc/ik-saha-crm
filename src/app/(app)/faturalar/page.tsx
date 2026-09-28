@@ -6,7 +6,8 @@ import { Card, CardHeader, StatCard, Th, Td, EmptyState, Badge } from '@/compone
 import { FaturaBadge } from '@/components/status-badge'
 import { Icon } from '@/components/icons'
 import { FaturaForm } from './fatura-form'
-import { createTahsilat, faturaDurumDegistir } from '@/app/actions/muhasebe'
+import { createTahsilat, faturaDurumDegistir, faturaIptal } from '@/app/actions/muhasebe'
+import { SilOnayForm } from '@/components/sil-onay'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export default async function FaturalarPage() {
   await requireRoles(['patron', 'muhasebe'])
 
   const faturalar = await prisma.fatura.findMany({
+    where: { silindi: false },
     include: { firma: true, tahsilatlar: true },
     orderBy: { createdAt: 'desc' },
   })
@@ -47,7 +49,7 @@ export default async function FaturalarPage() {
                 <tr className="border-b border-slate-100">
                   <Th>No / Dönem</Th>
                   <Th>Firma</Th>
-                  <Th>Vade</Th>
+                  <Th>Kesim / Vade</Th>
                   <Th className="text-right">Net (ara toplam)</Th>
                   <Th className="text-right">KDV %20</Th>
                   <Th className="text-right">Genel Toplam</Th>
@@ -69,10 +71,15 @@ export default async function FaturalarPage() {
                       </Td>
                       <Td className="font-medium">{f.firma.ad}</Td>
                       <Td>
-                        {date(f.vadeTarihi)}
-                        {gecikme !== null && gecikme < 0 && f.durum !== 'odendi' && (
-                          <Badge tone="red" className="ml-1.5">{Math.abs(gecikme)} gün gecikti</Badge>
-                        )}
+                        <div className="text-xs text-slate-500">
+                          Kesim: <span className="text-slate-700">{date(f.kesimTarihi)}</span>
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          Vade: {date(f.vadeTarihi)}
+                          {gecikme !== null && gecikme < 0 && f.durum !== 'odendi' && (
+                            <Badge tone="red" className="ml-1.5">{Math.abs(gecikme)} gün gecikti</Badge>
+                          )}
+                        </div>
                       </Td>
                       <Td className="text-right tabular-nums">{tl(f.araToplam)}</Td>
                       <Td className="text-right tabular-nums">{tl(f.kdvTutar)}</Td>
@@ -105,6 +112,22 @@ export default async function FaturalarPage() {
                                 <Icon name="check" size={15} />
                               </button>
                             </form>
+                          )}
+                          {odenen === 0 ? (
+                            <SilOnayForm
+                              action={faturaIptal}
+                              id={f.id}
+                              baslik={`${f.no} faturası`}
+                              onayMetni="Faturayı iptal et"
+                              buttonClass="rounded-lg p-1.5 text-slate-300 transition hover:bg-red-50 hover:text-red-600"
+                            />
+                          ) : (
+                            <span
+                              className="rounded-lg p-1.5 text-slate-300"
+                              title="Tahsilatı olan fatura iptal edilemez"
+                            >
+                              <Icon name="x" size={15} />
+                            </span>
                           )}
                         </div>
                       </Td>

@@ -60,10 +60,11 @@ export function OdemeUretForm() {
         {state && (() => {
           const isci = state.isci ?? 0
           const personel = state.personel ?? 0
+          const guncellenen = state.guncellenen ?? 0
           return (
-            <div className={`mt-2 rounded-lg border px-3 py-2 text-sm ${isci + personel > 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
-              {isci + personel > 0
-                ? `✓ ${isci} işçi + ${personel} personel ödeme kaydı oluşturuldu.`
+            <div className={`mt-2 rounded-lg border px-3 py-2 text-sm ${isci + personel > 0 || guncellenen > 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+              {isci + personel + guncellenen > 0
+                ? `✓ ${isci} işçi + ${personel} personel ödeme kaydı oluşturuldu${guncellenen > 0 ? `; ${guncellenen} bekleyen kayıt güncellendi.` : '.'}`
                 : 'Yeni ödeme kaydı eklenmedi (zaten üretilmiş veya bu dönemde hakediş/maaş yok).'}
             </div>
           )

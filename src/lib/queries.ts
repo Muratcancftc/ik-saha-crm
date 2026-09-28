@@ -34,23 +34,31 @@ export function atamaLokasyonFilter(user: SessionUser): Prisma.AtamaWhereInput {
 
 // KPI: ciro, alacak, saha işçi maliyeti, giderler — dönem bazlı (tüm sayfalar aynı kaynağı kullanır)
 export async function getMaliVeri(bas?: Date, bit?: Date) {
-  const faturaWhere = bas && bit ? { vadeTarihi: { gte: bas, lt: bit } } : {}
+  const faturaWhere = bas && bit ? { kesimTarihi: { gte: bas, lt: bit } } : {}
   const hakedisWhere = bas && bit ? { donemBitis: { gte: bas, lt: bit } } : {}
   const giderWhere = bas && bit ? { tarih: { gte: bas, lt: bit } } : {}
+  const tahsilatWhere = bas && bit ? { tarih: { gte: bas, lt: bit } } : {}
 
-  const [faturalar, hakedislerList, giderler, personel, odemeler] = await Promise.all([
-    prisma.fatura.findMany({ where: faturaWhere, include: { tahsilatlar: true } }),
+  const [faturalar, hakedislerList, giderler, personel, odemeler, tahsilatlar] = await Promise.all([
+    prisma.fatura.findMany({ where: { ...faturaWhere, silindi: false }, include: { tahsilatlar: true } }),
     prisma.hakedis.findMany({ where: hakedisWhere }),
     prisma.gider.findMany({ where: giderWhere }),
     prisma.personel.aggregate({ _sum: { maas: true } }),
     prisma.resmiOdeme.findMany({
       where: bas && bit ? { durum: 'odendi', odemeTarihi: { gte: bas, lt: bit } } : { durum: 'odendi' },
     }),
+    prisma.tahsilat.aggregate({ where: tahsilatWhere, _sum: { tutar: true } }),
   ])
 
   const ciro = faturalar.reduce((a, f) => a + Number(f.genelToplam), 0)
-  const tahsilat = faturalar.reduce((a, f) => a + f.tahsilatlar.reduce((x, t) => x + Number(t.tutar), 0), 0)
-  const alacak = ciro - tahsilat
+  const tahsilat = Number(tahsilatlar._sum.tutar ?? 0)
+
+  // Alacak bir BAKİYEDİR: dönemden bağımsız, tüm kesilen − tüm ödenen
+  const [tumFaturalar, tumTahsilatlar] = await Promise.all([
+    prisma.fatura.aggregate({ where: { silindi: false }, _sum: { genelToplam: true } }),
+    prisma.tahsilat.aggregate({ _sum: { tutar: true } }),
+  ])
+  const alacak = Number(tumFaturalar._sum.genelToplam ?? 0) - Number(tumTahsilatlar._sum.tutar ?? 0)
 
   // Saha işçi maliyeti = hakediş gün × yevmiye
   const sahaIsciMaliyeti = hakedislerList.reduce((acc, h) => acc + Number(h.gun) * Number(h.yevmiye), 0)

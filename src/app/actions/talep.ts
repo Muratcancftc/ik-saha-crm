@@ -112,9 +112,15 @@ export async function createAtama(_prev: TalepActionState, formData: FormData): 
     throw e
   }
 
-  // SMS/WhatsApp bildirim iskeleti: "Yarın 07:30 <lokasyon>" kaydı
+  // SMS/WhatsApp bildirim iskeleti: talep tarihine göre "Bugün"/"Yarın"/tarih
   const saat = talep.vardiya === 'gece' ? '21:30' : '07:30'
-  const etiket = daysUntil(talep.tarih) === 1 ? 'Yarın' : new Date(talep.tarih).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })
+  const fark = daysUntil(talep.tarih)
+  const etiket =
+    fark === 0
+      ? 'Bugün'
+      : fark === 1
+        ? 'Yarın'
+        : new Date(talep.tarih).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
   await prisma.bildirim.create({
     data: {
       tur: 'talep',

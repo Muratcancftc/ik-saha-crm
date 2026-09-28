@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useActionState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { musaitIsciler } from '@/app/actions/takvim'
 import { createAtama } from '@/app/actions/talep'
@@ -269,7 +270,7 @@ function HaftaGorunumu({
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400"><Icon name="talep" size={22} /></div>
               <p className="mt-3 text-sm font-medium text-slate-700">Bu hafta talep yok</p>
               <p className="mt-1 text-xs text-slate-400">Haftayı değiştir veya yeni talep oluştur.</p>
-              <a href="/talepler" className="mt-3 inline-block rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500">+ Yeni Talep</a>
+              <Link href="/talepler" className="mt-3 inline-block rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500">+ Yeni Talep</Link>
             </div>
           )}
 

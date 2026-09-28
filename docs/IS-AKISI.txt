@@ -1,0 +1,339 @@
+============================================================================
+ATALAY İK SAHA — CRM İŞ AKIŞI (UÇTAN UCA) DOKÜMANI
+============================================================================
+Kapsam: Tüm modüllerin girdi → süreç → çıktı akışları + modüller arası
+DİNAMİK veri yansımaları ("A menüsünde açılan kayıt B menüsüne nasıl düşer").
+Kaynak: prisma/schema.prisma + src/lib + src/app/actions + sayfalar.
+Tarih: 2026-09-28  |  Sürüm: main (a0e85c5 + kullanıcıya özel menü yetkileri)
+
+----------------------------------------------------------------------------
+0) GENEL MİMARİ
+----------------------------------------------------------------------------
+- Next.js 16 (App Router) + TypeScript + Prisma 7 + PostgreSQL.
+- Oturum: JWT (jose, HS256, 7 gün, httpOnly çerez "ik_session").
+- Dosya: Vercel Blob (production, private) / public/uploads (yerel).
+- Push bildirim: VAPID + web-push.  Etkinlik logu: heartbeat + giriş/çıkış.
+- Koruma 3 katman:
+    1) src/proxy.ts  → her istekte DB'den taze rol+menü okur, rota kapısı.
+    2) src/lib/dal.ts → requireUser / requireRoles / requireApiAccess.
+    3) Sidebar → menü filtreleme (userMenuKeys).
+- Roller: patron, operasyon, muhasebe, saha_sorumlusu, ik, izleyici.
+- Kullanıcıya özel yetki: Kullanici.menuler String[] — boş [] = rolün
+  varsayılan menüleri; dolu = yalnızca o menüler. Patron-only rotalar:
+  /kullanicilar, /ayarlar, /etkinlik (başka role verilemez).
+
+============================================================================
+1) MERKEZİ UÇTAN UCA ZİNCİR (Saha İşgücü)
+============================================================================
+Website/Aday → İşçi → Talep → Atama → Puantaj → Hakediş → Bordro → Banka CSV
+                                      │                        │
+                                      ├─ SGK bildirimi         ├─ Fatura → Tahsilat → Alacak
+                                      ├─ Takvim doluluğu       ├─ Gelir-Gider / Net Kâr
+                                      └─ Bildirim (SMS iskeleti)└─ Raporlar / Dashboard
+Ayrıca paralel bir İK bordro zinciri: İK Personel → İK Puantaj (PuantajKayit)
+→ Ödeme Dönemi → Ödeme Kaydı (kilit) → Yazdır (bordro) / Ödeme Planı.
+
+1.1 Web'ten talep (employer-lead) → CRM'e düşüş:
+    POST /api/integrations/website/employer-lead (Bearer secret, X-Idempotency-Key)
+    → Firma bul/oluştur → Yetkili bul/oluştur → "Genel" lokasyon oluştur
+    → Meslek bul/oluştur → YARINA Talep oluştur (kaynak: website + UTM alanları)
+    → Bildirim (tur: website) + push.  Sonuç CRM'de normal talep gibi görünür,
+      atama paneli/takvim/puantaj'a düşer.
+
+1.2 Web'ten aday (candidate) → İşçi havuzuna:
+    POST /api/integrations/website/candidate (CV opsiyonel, multipart/JSON)
+    → Bölge çöz (form ya da il/ilçe tahmini; yoksa null → panelden atanır)
+    → CV → Blob private → Meslek bul/oluştur → Aday oluştur/dedupe (telefon/email)
+    → Bildirim (tur: website) + push.
+    Adaylar → /adaylar → "Onayla & Havuza Aktar" (adayAktar):
+       reddedilen AKTARILAMAZ; mock TC/IBAN üretilir (şifreli); Isci(aktif,
+       bölge, meslek) oluşturulur → anında atama önerisi/takvim/puantaj zincirine girer.
+
+1.3 İşçi → aday havuzuna geri gönderme (geri dönüş):
+    İşçi havuzunda aktif işçi → "Geri Gönder" → transaction: Aday(basvurdu) oluşur,
+    işçi PASİF yapılır → atama önerisi ve takvim "boşta" listesinden anında çıkar;
+    geçmiş atama/hakediş verisi KORUNUR. Geri gelen kişi yeniden aktarılırsa
+    havuzda yeni işçi olur.
+
+1.4 Talep → Atama:
+    Talep (firma+lokasyon+tarih+vardiya+meslek×adet) oluşturulur (durum: acik).
+    "Uygun İşçi Öner" → skor = güvenilirlik + bölge uyumu − belge yaklaşan cezası;
+    uygunluk % gösterilir; belgesi DOLAN ve aynı gün atanmış hariç.
+    Atama yapılırsa: aktif olmayan reddedilir; süresi dolmuş belge = HARD ERROR;
+    aynı işçi aynı gün = DB unique (çakışma engeli); SMS bildirim iskeleti
+    (Bildirim tur:talep, kanal:sms, hedef: telefon) + push; SGK "bekliyor";
+    talep doluluğu acik→kismi/dolu; takvim hücresi dolar.
+
+1.5 Atama → Puantaj → Hakediş:
+    Puantaj (geldi=8sa / gec=7 / yarim=4 / gelmedi=0) girilir.
+    "gelmedi" → no-show bildirimi + güvenilirlik skoru düşer (öneri sıralaması iner).
+    Atama "tamamlandı" olunca → hakedisOlustur:
+       yevmiye = işçinin günlük beklentisi
+       müşteri = gün × FirmaFiyat (meslek bazlı)
+       avans = durum=verildi tüm avansların toplamı
+       isciNet = gün×yevmiye − avans − kesinti
+       marj = müşteri − gün×yevmiye
+       tekillik: isciId+firmaId+ay (donemKey) → mükerrer üretilemez.
+    Hakediş → /odeme'de "Üret" ile Odeme(tip:isci) kaydına dönüşür → Ödendi +
+    Banka CSV (IBAN şifre çözülerek).
+    Manuel puantaj (atamasız işçi) → Talep(kapandi)+Atama+Puantaj+Hakediş
+    zincirini otomatik tamamlar.
+
+1.6 Firma fiyatı / bölge değişikliği → her yere yansır:
+    FirmaFiyat güncellenince sonraki hakediş hesaplarında müşteri tutar/marj değişir
+    → firma kârlılığı, dashboard "En Kârlı Firmalar", raporlar etkilenir.
+    Firma bölgesi değişince talepler/takvim/puantaj görünümleri kayar.
+
+============================================================================
+2) MODÜL MODÜL İŞ AKIŞLARI
+============================================================================
+2.1 İŞÇİ HAVUZU (/isci-havuzu)
+- Kayıt: ad/telefon/TC(11)/IBAN(TR24)/ücret/çoklu meslek/bölge/tercih bölgeler.
+  TC+IBAN AES-256-GCM şifreli, arayüzde maskeli.
+- Rozetler: belge durumu (doldu/yaklaşıyor/geçerli) işçi listesine dinamik düşer.
+- İşçi profili (/isci-havuzu/[id]): dönem özeti, belgeler, çalışma geçmişi,
+  devamsızlık, avanslar, müsaitlik takvimi.
+- Avans: verildi/mahsup → hakediş net hesabına otomatik düşer (borçlu rozeti).
+- Belgesi dolan işçi: atanamaz, öneri listesinden düşer, takvim boşta listesinden elenir.
+
+2.2 TALEPLER & ATAMA (/talepler)
+- Şablon talep (sablon:true) + tekrarlayan (günlük/haftalık) + kopyala (N gün,
+  çakışan gün atlanır).
+- Doluluk otomatik: atanan≥ihtiyaç→dolu, >0→kismi, 0→acik.
+- İptal → talep acik/kismi'ye döner + takvim boşalır + "Yerine Bul" tetiklenebilir.
+- SGK bildirildi ✓ → belge-sgk SGK tablosundan ve dashboard uyarısından düşer.
+
+2.3 TAKVİM (/takvim)
+- Haftalık (Pazartesi başlangıç) + aylık görünüm; satır lokasyon, sütun gün.
+- Hücre: meslek + atanan/adet + doluluk % + ACİL; renk lejantı.
+- Hücreden atama (AtamaPaneli) + boştaki işçiler (QuickAta) → createAtama akışı.
+- Bölge filtresi. Saha sorumlusu yalnız kendi lokasyonunu görür.
+
+2.4 PUANTAJ (/puantaj)
+- 15 günlük pencere + ileri/geri + tarih seç + gün seçimi.
+- Durum butonları canlı giriş; saha sorumlusu lokasyon izole.
+- Manuel puantaj formu atamasız işçiyi tüm zincire bağlar (bkz. 1.5).
+
+2.5 ADAY HAVUZU (/adaylar) & İŞ İLANLARI (/is-ilanlari)
+- Website rozeti; bölge atanmamış adaylara bölge seçtirilir.
+- İlanlar: slug otomatik, yayınla/geçerlilik → public /api/public/jobs'a düşer;
+  adayın başvurduğu ilan ve ilanın başvuru sayısı görünür.
+
+2.6 MÜŞTERİ FIRMALAR (/musteri-firmalar)
+- Firma + lokasyon + yetkili + meslek bazlı FirmaFiyat.
+- Liste kartları: Ciro / Alacak (=ciro−tahsilat) / Son Fatura.
+- Firma profili: alacak yaşlandırma (0-30/30-60/60-90/90+), talep geçmişi,
+  en çok gönderilen işçiler, sekmeler (Genel/Personeller/Puantaj & Ödeme Dönemleri).
+- İK personeller firma profilinden yönetilebilir (periyot ezme).
+
+2.7 BELGE & SGK (/belge-sgk)
+- Belge ekle/yenile (süre takibi: doldu/yaklaşıyor≤30 gün/geçerli).
+- SGK: ataması olup sgkBildirildi=false olan işçiler tablosu; "Bugün/Yarın!" rozeti;
+  "Bildirildi ✓" → sgkBildirildi=true → listeden düşer.
+- Personel İSG belgeleri ayrı tablo; işçi profili → belge ekle.
+
+2.8 HAKEDİŞ & MARJ (/hakedis)
+- Dönem üret önizlemesi (kaç atama/işçi uygun) → Üret (mükerrer önlenir).
+- Excel (CSV) icmal + PDF yazdırma icmal (/icmal/hakedis).
+- isciNet<0 → "borçlu" rozeti.
+
+2.9 BORDRO/ÖDEME (/odeme)
+- Önizleme: hakediş isciNet toplamı + aktif personel maaş toplamı.
+- Üret: Odeme(tip:isci, dönem) + Odeme(tip:personel, aktif maaş) — idempotent.
+- Ödendi işaretle / toplu öde / geri al / sil.
+- Banka CSV (yalnız bekleyenler, IBAN decrypt).
+
+2.10 FATURALAR & TAHSİLAT (/faturalar)
+- Fatura: KDV = araToplam × KDV_ORANI (varsayılan %20), genelToplam otomatik;
+  canlı önizleme; vade gün sonu.
+- Tahsilat: kısmi ödeme destekli; toplam tahsilat = genelToplam olunca "odendi".
+- Vade: geciken kırmızı rozet; dashboard + firma alacak yaşlandırması.
+- Excel KDV icmal.
+- NOT: Fatura KDV'si vergi ekranına OTOMATİK kayıt OLUŞTURMAZ; KDV borcu
+  /vergi-odemeler'den manuel veya aylık şablonla açılır.
+
+2.11 GELİR – GİDER (/gelir-gider)
+- Net Kâr = ciro − (saha işçi maliyeti + genel giderler + bordro + ödenen vergi).
+- Nakit akışı: Tahsilat (+) ve Gider (−) tarih sıralı.
+- Gider ekle/sil (kategori bazlı).
+
+2.12 VERGİ & RESMİ ÖDEMELER (/vergi-odemeler)
+- VergiEkle (firma, tür: KDV/MUHTASAR/STOPAJ/GECICI_VERGI/KURUMLAR/SGK/BAGKUR/
+  DAMGA/DIGER, dönem/çeyrek, tahakkuk, son ödeme tarihi).
+- Ödendi (kısmi ödeme + yöntem + çoklu dekont yükleme); geri alma (yalnız patron);
+  soft delete; toplu ödendi (tek dekont).
+- Şablon: aylık/çeyreklik tekrarlayan kayıt üret (idempotent).
+- Durum türetilir: ÖDENMEDİ/ÖDENDİ/KISMİ/GECİKMİŞ (7 gün kala amber).
+- Vergi raporu + Excel CSV + dekont indirme (/api/dekont/indir/[id]).
+- NOT: Yeni VergiOdemesi ödemeleri net kâr hesabına OTOMATİK girmez; net kâr
+  legacy ResmiOdeme tablosundan beslenir (bilinen kopukluk).
+
+2.13 İK MODÜLÜ (/ik/*) — PARALEL BORDRO SİSTEMİ
+- Ücret çözümleme önceliği: PersonelUcret > FirmaUcret > sistem varsayılanı
+  (günlük 1800 / saatlik 225 / mesai 1.5×). Tarih aralıklı, geçmiş snapshot.
+- İK Personel (/ik/personel): GUNLUK/SAATLIK, Elden/IBAN ödeme, periyot
+  (X günde bir/Haftalık/Aylık/Serbest), TC/IBAN otomatik üretim + şifreleme.
+  Ücret değişince eski kapanır/yeni açılır + audit log (UcretLog).
+- İK Puantaj (/ik/puantaj): günlük (Tam/Yarım/Gelmedi) + saatlik/mesai + elle
+  ücret ezme (ucretManuelMi); toplu işaretleme; aylık takvim; kesinti
+  (sgk/avans_mahsup/ceza/diger). Aynı gün unique → tekrar giriş üzerine yazar.
+- İK Hakediş & Ödeme (/ik/hakedis): dönem üret (periyot bazlı, idempotent) →
+  donemHesapla (brüt − avans − kesinti = net) → odemeKaydet (Elden zarf/IBAN
+  mod97 + ibanSnapshot) → ödenen ≥ net → ODENDİ + KİLİTLİ (patron kilidi açabilir).
+  Bordro yazdırma (/ik/hakedis/yazdir/[id]): puantaj satırları + brüt/avans/kesinti/
+  net + imza alanları.
+- Ödeme Planı (/odeme-plani): her aktif personelin cari dönemi; alacak=kalan;
+  durum ODENDİ/KISMİ/BOS/BEKLİYOR; bölge/firma/yöntem/durum filtresi.
+- Ücret Ayarları (/ik/ucret-ayarlari): sistem varsayılanı + mesai çarpanı
+  (patron) + firma bazlı ücretler (tekil/toplu) + audit.
+- İK Raporları (/ik/raporlar): firma bazlı aylık maliyet, Elden/IBAN dağılımı,
+  bekleyen ödemeler + Excel CSV + yazdır.
+- NOT: İK zinciri (PuantajKayit→OdemeDonemi→OdemeKayit) KLASİK Hakedis→Odeme
+  zincirinden bağımsız/paraleldir; birbirine otomatik akmaz.
+
+2.14 PERSONEL & BORDRO (/personel) — İÇ KADRO
+- Personel (departman/rol/maaş/IBAN şifreli/SGK durumu/izinBakiyesi).
+- İzin: izin tipinde bakiye düşer; rapor düşmez. Değişiklikler PersonelGecmisi.
+- Maaş toplamı + işveren SGK ~%20,5 (Ayar SGK_ISVEREN_ORANI) + aylık/yıllık
+  işveren maliyeti. Aktif personel maaşları /odeme üretimine ve net kâr
+  (aylıkBordro) hesabına girer.
+
+2.15 SERVİSÇİLER (/servisciler) — BAĞIMSIZ MODÜL
+- Servisçi (araç sahibi) CRUD + servis kaydı (tarih, güzergah, KDV'siz kavli
+  tutar). Servisçi başına servis sayısı/toplam/son tarih; detay.
+- NOT: Servisçiler atama/hakediş/fatura/ödeme planı ile DOĞRUDAN DB ilişkisi
+  YOKTUR. Tek bütünleşme noktası Operasyon menü grubu. Ödemeleri Gelir-Gider'e
+  ancak manuel Gider kaydıyla girer.
+
+2.16 TELEFON ARAMALAR (/aramalar)
+- İşçi kartlarına "Arandı" butonu → Arama kaydı (tarih + arayan kullanıcı).
+- Filtre: tümü / hiç aranmamış / bugün aranan; metin arama; tel: linki.
+- izleyici salt-okunur (arayabilir=false). Geçmiş işçi profilinde de görünür.
+
+2.17 EVRAK / SÖZLEŞME (/evrak)
+- Yükleme: pdf/doc/docx/jpg/jpeg/png/xls/xlsx, max 10MB; production → Blob
+  private; local → /uploads. DB hatası → blob temizlenir.
+- Türler: firma_sozlesme / isci_is_sozlesme / kvkk_acik_riza / diger.
+- İndirme: /api/evrak/[id] (auth'lı, attachment). Silme DB sonra blob.
+
+2.18 ETKİNLİK LOGU (/etkinlik) — PATRON
+- Giriş/çıkış kayıtları + sayfa ziyareti + heartbeat (60 sn, aktifDakika +1
+  yalnız 45 sn sonra). Günlük özet: giriş sayısı, aktif dakika, "ne yaptı" akışı.
+
+2.19 BİLDİRİMLER (/bildirimler + header feed + push)
+- Üretenler: belge süresi, gecikmiş fatura, SGK eksik, yeni atama (SMS iskeleti),
+  no-show, website aday/talep. "Uyarıları Tara" manuel tetikleyici.
+- Header: son 3 + unread badge + ses (ilk etkileşimde açılır, localStorage).
+- Push: tarayıcı aboneliği (VAPID) → sendNotification; 404/410 Gone → abonelik
+  temizlenir. notificationclick → /bildirimler.
+- Kaldır → okundu + kaldirildi (geçmiş korunur, silinmez).
+- Bildirim sayfası: tür filtresi + toplu okundu + gönderim durumu rozeti.
+
+2.20 RAPORLAR (/raporlar) & DASHBOARD (/)
+- Dashboard: KPI (net kâr/brüt marj/ciro/alacak), bugünkü atamalar, uyarılar
+  (belge/SGK/fatura), doluluk/devamsızlık oranları, dönem raporu.
+- Raporlar: 6 aylık ciro-gider-net kâr trendi, En Kârlı Firmalar (hakediş marjı),
+  işçi başına kârlılık, Excel CSV, PDF (print).
+- Aynı sorguları (getMaliVeri / getDashboardRapor / getAylikTrend) kullanır.
+
+============================================================================
+3) DİNAMİK YANSIMA MATRİSİ (kim kimi etkiler — en kritik bölüm)
+============================================================================
+| TETİKLEYEN                        | YANSIDIĞI YERLER |
+|-----------------------------------|------------------|
+| Web'ten firma talebi              | Firma+Yetkili+Lokasyon+Meslek otomatik oluşur → Yarın Talebi → atama/takvim/puantaj/hakediş/fatura zincirine girer |
+| Web'ten aday başvurusu            | Aday(website) → Onayla → İşçi havuzuna aktif işçi → öneri/takvim/puantaj/SGK |
+| Aday onaylandı                    | İşçi havuzu + atama önerisi + takvim boşta + puantaj + SGK |
+| İşçi geri gönderildi              | Aday(basvurdu) oluşur; işçi pasif → tüm "aktif" filtrelerinden çıkar (öneri, takvim); geçmiş korunur |
+| Talep oluşturuldu                 | Dashboard açık talepler + takvim ızgarası + firma profili talep geçmişi |
+| Atama yapıldı                     | Takvim hücresi dolar; SGK "bekliyor"; SMS bildirim iskeleti; dashboard bugünkü atamalar; talep doluluğu acik→kismi/dolu |
+| Atama iptal                       | Talep acik/kismi'ye döner; takvim hücresi boşalır; Yerine Bul |
+| Atama tamamlandı + puantaj        | hakedisOlustur → Hakedis(avans mahsup dahil) → Odeme → Bordro CSV → Gelir-Gider/Net Kâr/Raporlar |
+| Puantaj "gelmedi"                 | No-show bildirimi; güvenilirlik skoru düşer → öneri sıralaması; hakediş üretilmez (ödeme yok) |
+| Manuel puantaj (atamasız)         | Talep+Atama+Puantaj+Hakediş zincirini otomatik tamamlar |
+| Belge eklendi/yenilendi           | Havuz rozeti, işçi profili, atama/öneri engelleri, belge-sgk listesi, bildirim |
+| Belge süresi doldu/30 güne girdi  | Dashboard uyarısı + bildirim; atama HARD ERROR; öneri/takvim boşta elenir |
+| Firma fiyatı güncellendi          | Hakediş müşteri tutar/marj; firma kârlılığı; dashboard En Kârlı Firmalar; raporlar |
+| Firma bölgesi değişti             | Talepler + takvim + puantaj görünümleri kayar |
+| Avans verildi/mahsup edildi       | Hakediş avansToplam / isciNet (borçlu rozeti) |
+| SGK bildirildi ✓                  | belge-sgk SGK tablosundan + dashboard uyarısından düşer |
+| Fatura kesildi                    | KDV saklanır; /vergi-odemeler revalidate; Excel KDV icmal; alacak/ciro hesapları |
+| Tahsilat alındı                   | Fatura "odendi"; nakit akışına +; alacak yaşlandırması; geciken kırmızı |
+| Hakediş üretildi                  | Odeme (bordro) dönem kayıtları; marj → Net Kâr/Raporlar |
+| İK puantaj girildi                | OdemeDonemi hesabı (brüt−avans−kesinti=net) → Ödeme Planı |
+| İK ödeme kaydedildi               | Dönem ODENDİ + KİLİTLİ; ödeme planı kalan; bordro yazdır |
+| Vergi ödemesi kaydedildi          | Vergi raporu; durum GECİKMİŞ/KISMİ; dekont; (net kâra otomatik GİRMEZ) |
+| Ücret/günlük beklenti değişti     | Sonraki hakediş/puantaj tutarları; UcretLog audit |
+| Yeni kullanıcı/menü yetkisi       | Sidebar menüleri + proxy + tüm sayfa/API erişimi anında (yeniden giriş gerekmez) |
+| Web ilanı yayınlandı              | public /api/public/jobs listesine düşer → website'te görünür; aday başvurusu ilana bağlanır |
+
+============================================================================
+4) ROLLER & YETKİLER
+============================================================================
+Rol            | Varsayılan erişim
+---------------|--------------------------------------------------------------
+patron         | Her şey + kullanıcı/yetki yönetimi + etkinlik logu (menüler sabit)
+operasyon      | İşçi havuzu, talepler/atama, takvim, puantaj, adaylar, müşteri
+               | firmalar, belge/SGK, iş ilanları, aramalar, raporlar
+muhasebe       | Hakediş, ödeme, fatura, gelir-gider, vergi, personel, raporlar
+saha_sorumlusu | Yalnız kendi lokasyonunun puantajı ve takvimi (lokasyon izole)
+ik             | İK personel, İK puantaj, hakediş & ödeme, ödeme planı, raporlar
+izleyici       | Kontrol paneli, aramalar (salt okunur), vergi ödemeleri
+
+- Kullanıcıya özel menü: patron /kullanicilar'da kişiye özel menüleri seçer;
+  sidebar + proxy + DAL hepsini uygular. /kullanicilar, /ayarlar, /etkinlik
+  yalnız patrona aittir.
+- saha_sorumlusu lokasyon bazlı izole (queries + puantaj girişi + bildirimler).
+
+============================================================================
+5) ENTEGRASYONLAR
+============================================================================
+- Website: public jobs (ilan listesi/detay), candidate (CV dahil aday),
+  employer-lead (firma personel talebi). Auth: Bearer secret (timing-safe),
+  idempotency (webRequestId), rate limit, CORS (izinli origin), UTM takibi.
+- Push bildirim: VAPID + service worker (abonelik upsert, Gone temizleme).
+- Evrak: Vercel Blob private depolama + auth'lu indirme route'u.
+- CSV dışa aktarma: odeme (IBAN'lı banka dosyası), hakedis, faturalar,
+  rapor-isci, ik-rapor, vergi-rapor.
+- SMS/WhatsApp: SADECE iskelet — gerçek gönderim yok; Bildirim.kanal/hedef/
+  gonderimDurum placeholder.
+
+============================================================================
+6) ÖNEMLİ İŞ KURALLARI / KISITLAR / BİLİNEN KOPUKLUKLAR
+============================================================================
+1.  Aynı işçi aynı güne tek atama (DB unique + P2002 yakalama).
+2.  Belgesi dolmuş işçi atanamaz (hard error); öneri/takvim boşta da eler.
+3.  Reddedilen aday aktarılamaz; yalnız aktif işçi geri gönderilebilir.
+4.  Hakediş yalnız tamamlandı + puantajlı + gelmedi değilse üretilir; donemKey ile mükerrer olamaz.
+5.  İK ödenen dönem kilitlenir; kilidi yalnız patron açar.
+6.  İşçi TC/IBAN AES şifreli; arayüz maskeli.
+7.  KOPUKLUK-1: Fatura KDV'si vergi ekranına otomatik kayıt oluşturmaz (manuel/şablon).
+8.  KOPUKLUK-2: Yeni VergiOdemesi ödemeleri net kâr hesabına girmez; net kâr legacy ResmiOdeme'den beslenir.
+9.  KOPUKLUK-3: İK bordro zinciri (PuantajKayit→OdemeDonemi→OdemeKayit) klasik Hakedis→Odeme zincirinden ayrı/paraleldir; otomatik aktarım yok.
+10. KOPUKLUK-4: Servisçiler diğer finans modülleriyle DB ilişkisizdir (gider kaydı manuel).
+11. KOPUKLUK-5: SMS/WhatsApp gönderimi gerçek değil (iskelet).
+12. "vergi" türü bildirim tanımlı ve filtrelenebilir ama şu an üreten aksiyon yok;
+    vergi uyarıları doğrudan /vergi-odemeler ve dashboard üzerinden yönetilir.
+
+============================================================================
+SON — VERİ AKIŞI ÖZET DİYAGRAMI
+============================================================================
+Website ──(ilan)──► /api/public/jobs ──► Website'te görünür
+Website ──(aday)──► Aday ──► onay ──► İşçi Havuzu ──►
+Website ──(talep)─► Firma/Yetkili/Lokasyon/Meslek(oto) ──► Talep
+
+İşçi ──► Talep ──► Atama ──► Puantaj ──► Hakediş ──► Odeme ──► Banka CSV
+              │        │          └─ no-show ─► güvenilirlik/öneri
+              │        └─ SGK bekliyor ─► belge-sgk ✓ ─► uyarı düşer
+              └─ Takvim hücresi / doluluk ─► dashboard
+
+Hakediş ──► Fatura(KDV) ──► Tahsilat ──► Alacak / Nakit Akışı
+            └─ KDV ──(manuel/şablon)──► VergiOdemesi ──► vergi raporu/Excel
+
+İK: İK Personel ──► İK Puantaj ──► OdemeDonemi ──► OdemeKayit (kilit)
+                                       └─► Ödeme Planı / İK Raporları / Bordro yazdır
+
+Hepsi ──► Bildirim (belge/sgk/fatura/talep/website) ──► header feed + push
+Giriş/heartbeat ──► Etkinlik Logu (patron)
+Tüm aksiyonlar ──► Dashboard KPI / Raporlar (getMaliVeri, getDashboardRapor)
+============================================================================

@@ -77,6 +77,7 @@ enum AvansDurum {
 
 enum FaturaDurum {
   vadede
+  kismi
   odendi
   gecikti
 }
@@ -497,17 +498,19 @@ model Hakedis {
 }
 
 model Fatura {
-  id          Int         @id @default(autoincrement())
-  firmaId     Int
-  no          String      @unique
-  donem       String // "2026-08"
-  araToplam   Decimal     @db.Decimal(10, 2)
-  kdvOran     Decimal     @default(0.20) @db.Decimal(4, 2)
-  kdvTutar    Decimal     @db.Decimal(10, 2)
-  genelToplam Decimal     @db.Decimal(10, 2)
-  vadeTarihi  DateTime
-  durum       FaturaDurum @default(vadede)
-  createdAt   DateTime    @default(now())
+  id           Int         @id @default(autoincrement())
+  firmaId      Int
+  no           String      @unique
+  donem        String // "2026-08"
+  araToplam    Decimal     @db.Decimal(10, 2)
+  kdvOran      Decimal     @default(0.20) @db.Decimal(4, 2)
+  kdvTutar     Decimal     @db.Decimal(10, 2)
+  genelToplam  Decimal     @db.Decimal(10, 2)
+  kesimTarihi  DateTime    @default(now()) // fatura kesim tarihi — ciro bu tarihe göre sayılır
+  vadeTarihi   DateTime
+  durum        FaturaDurum @default(vadede)
+  silindi      Boolean     @default(false) // iptal edilen fatura (soft delete)
+  createdAt    DateTime    @default(now())
 
   firma       MusteriFirma @relation(fields: [firmaId], references: [id], onDelete: Cascade)
   tahsilatlar Tahsilat[]

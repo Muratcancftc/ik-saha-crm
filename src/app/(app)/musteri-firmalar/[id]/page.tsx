@@ -116,6 +116,15 @@ export default async function FirmaProfilPage({
         <Card>
           <CardHeader title="Fiyat Anlaşması" desc="Meslek bazlı kişi/gün fiyatı (düzenlenebilir)" />
           <div className="px-5 py-4">
+            {meslekler.length === 0 ? (
+              <p className="text-sm text-slate-400">
+                Önce{' '}
+                <Link href="/ayarlar" className="font-medium text-indigo-600 hover:underline">
+                  Ayarlar &gt; Meslek Tanımları
+                </Link>{' '}
+                sayfasından meslek ekleyin.
+              </p>
+            ) : (
             <div className="space-y-1.5">
               {meslekler.map((m) => {
                 const fiyat = firma.fiyatlar.find((p) => p.meslekId === m.id)
@@ -139,6 +148,7 @@ export default async function FirmaProfilPage({
                 )
               })}
             </div>
+            )}
           </div>
         </Card>
 

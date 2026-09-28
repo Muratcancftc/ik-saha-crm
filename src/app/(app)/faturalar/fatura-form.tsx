@@ -3,21 +3,50 @@
 import { useActionState, useEffect, useState } from 'react'
 import { createFatura } from '@/app/actions/muhasebe'
 import { Icon } from '@/components/icons'
+import { tl } from '@/lib/format'
 
 type FirmaDto = { id: number; ad: string }
 
 export function FaturaForm({ firmalar }: { firmalar: FirmaDto[] }) {
   const [open, setOpen] = useState(false)
   const [net, setNet] = useState('')
+  const [firmaId, setFirmaId] = useState('')
+  const [donem, setDonem] = useState('')
+  const [resetKey, setResetKey] = useState(0)
+  const [ref, setRef] = useState<{ toplam: number; adet: number } | null>(null)
   const [state, formAction, pending] = useActionState(createFatura, undefined)
 
   useEffect(() => {
-    if (state && 'ok' in state) setOpen(false)
+    if (state && 'ok' in state) {
+      setNet('')
+      setResetKey((k) => k + 1)
+      setOpen(false)
+    }
   }, [state])
+
+  // Hakediş referansı: firma + dönem seçilince müşteri tutar toplamını göster
+  useEffect(() => {
+    let iptal = false
+    if (firmaId && /^\d{4}-\d{2}$/.test(donem)) {
+      setRef(null)
+      fetch(`/api/faturalar/referans?firmaId=${firmaId}&donem=${donem}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (!iptal) setRef({ toplam: d.toplam ?? 0, adet: d.adet ?? 0 })
+        })
+        .catch(() => {})
+    } else {
+      setRef(null)
+    }
+    return () => {
+      iptal = true
+    }
+  }, [firmaId, donem])
 
   const netSayi = Number(net) || 0
   const kdv = Math.round(netSayi * 0.2 * 100) / 100
   const genel = Math.round((netSayi + kdv) * 100) / 100
+  const bugun = new Date().toISOString().slice(0, 10)
 
   return (
     <>
@@ -38,11 +67,17 @@ export function FaturaForm({ firmalar }: { firmalar: FirmaDto[] }) {
                 <Icon name="x" size={18} />
               </button>
             </div>
-            <form action={formAction} className="space-y-4 px-6 py-5">
+            <form key={resetKey} action={formAction} className="space-y-4 px-6 py-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">Müşteri Firma *</label>
-                  <select name="firmaId" required className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                  <select
+                    name="firmaId"
+                    required
+                    value={firmaId}
+                    onChange={(e) => setFirmaId(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                  >
                     <option value="">Seçiniz</option>
                     {firmalar.map((f) => (
                       <option key={f.id} value={f.id}>{f.ad}</option>
@@ -51,17 +86,28 @@ export function FaturaForm({ firmalar }: { firmalar: FirmaDto[] }) {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">Fatura No</label>
-                  <input name="no" placeholder="IKR-2026-006" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
+                  <input name="no" placeholder="Boş bırakılırsa otomatik (IKR-2026-006)" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-600">Kesim Tarihi *</label>
+                  <input name="kesimTarihi" type="date" required defaultValue={bugun} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">Dönem *</label>
-                  <input name="donem" required placeholder="2026-09" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
+                  <input name="donem" required placeholder="2026-09" value={donem} onChange={(e) => setDonem(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
                 </div>
-                <div>
+                <div className="sm:col-span-2">
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">Vade Tarihi *</label>
                   <input name="vadeTarihi" type="date" required className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
                 </div>
               </div>
+
+              {ref && ref.toplam > 0 && (
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-xs text-indigo-700">
+                  {firmalar.find((f) => String(f.id) === firmaId)?.ad} — {donem} dönemi hakediş toplamı:
+                  <b className="ml-1">{tl(ref.toplam)}</b> ({ref.adet} kayıt)
+                </div>
+              )}
 
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">Net Tutar (ara toplam) *</label>

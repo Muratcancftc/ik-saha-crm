@@ -6,7 +6,7 @@ import { requireRoles } from '@/lib/dal'
 import { startOfDay } from '@/lib/dates'
 import type { OdemeKaynak } from '@prisma/client'
 
-export type OdemeUretState = { isci?: number; personel?: number; hazir?: number; zatenVar?: number } | undefined
+export type OdemeUretState = { isci?: number; personel?: number; hazir?: number; zatenVar?: number; guncellenen?: number } | undefined
 
 // Dönem için ödeme kayıtlarını üret (işçi hakediş net + personel maaş)
 export async function odemeUret(_prev: OdemeUretState, formData: FormData): Promise<OdemeUretState> {
@@ -29,27 +29,36 @@ export async function odemeUret(_prev: OdemeUretState, formData: FormData): Prom
   }
 
   let isciYeni = 0
+  let isciGuncellenen = 0
   for (const [isciId, tutar] of isciNet) {
     const varMi = await prisma.odeme.findFirst({ where: { tip: 'isci', isciId, donem } })
     if (!varMi) {
       await prisma.odeme.create({ data: { tip: 'isci', isciId, donem, tutar } })
       isciYeni++
+    } else if (varMi.durum === 'bekliyor' && Number(varMi.tutar) !== tutar) {
+      // Hakediş sonradan değiştiyse bekleyen (ödenmemiş) kaydı güncelle
+      await prisma.odeme.update({ where: { id: varMi.id }, data: { tutar } })
+      isciGuncellenen++
     }
   }
 
   // personel maaşları
   const personeller = await prisma.personel.findMany({ where: { durum: 'aktif' } })
   let personelYeni = 0
+  let personelGuncellenen = 0
   for (const p of personeller) {
     const varMi = await prisma.odeme.findFirst({ where: { tip: 'personel', personelId: p.id, donem } })
     if (!varMi) {
       await prisma.odeme.create({ data: { tip: 'personel', personelId: p.id, donem, tutar: p.maas } })
       personelYeni++
+    } else if (varMi.durum === 'bekliyor' && Number(varMi.tutar) !== Number(p.maas)) {
+      await prisma.odeme.update({ where: { id: varMi.id }, data: { tutar: p.maas } })
+      personelGuncellenen++
     }
   }
 
   revalidatePath('/odeme')
-  return { isci: isciYeni, personel: personelYeni, hazir: isciNet.size + personeller.length, zatenVar: isciNet.size + personeller.length - isciYeni - personelYeni }
+  return { isci: isciYeni, personel: personelYeni, hazir: isciNet.size + personeller.length, zatenVar: isciNet.size + personeller.length - isciYeni - personelYeni, guncellenen: isciGuncellenen + personelGuncellenen }
 }
 
 export async function odemeOdendi(formData: FormData) {

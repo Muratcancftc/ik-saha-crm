@@ -132,15 +132,20 @@ export async function getFirmaProfil(firmaId: number, bas: Date, bit: Date) {
   })
   if (!firma) return null
 
-  // dönem ciro (vadeTarihi dönemde olan faturalar)
-  const donemFaturalar = firma.faturalar.filter((f) => f.vadeTarihi >= bas && f.vadeTarihi < bit)
+  // dönem ciro — KESİM TARİHİNE göre (vade değil)
+  const aktifFaturalar = firma.faturalar.filter((f) => !f.silindi)
+  const donemFaturalar = aktifFaturalar.filter((f) => f.kesimTarihi >= bas && f.kesimTarihi < bit)
   const ciro = donemFaturalar.reduce((a, f) => a + Number(f.genelToplam), 0)
-  const tahsilat = donemFaturalar.reduce((a, f) => a + f.tahsilatlar.reduce((x, t) => x + Number(t.tutar), 0), 0)
+  // dönem tahsilat — TAHsilatın KENDİ tarihine göre
+  const tahsilat = aktifFaturalar.reduce(
+    (a, f) => a + f.tahsilatlar.filter((t) => t.tarih >= bas && t.tarih < bit).reduce((x, t) => x + Number(t.tutar), 0),
+    0
+  )
 
   // alacak yaşlandırma (vadesi geçen, ödenmemiş faturalar)
   const kategoriler = { vadesiGelmemis: 0, g0_30: 0, g30_60: 0, g60_90: 0, g90: 0 }
   const acikFaturalar: Array<{ id: number; no: string; genelToplam: number; odenen: number; kalan: number; vadeTarihi: Date; gun: number }> = []
-  for (const f of firma.faturalar) {
+  for (const f of aktifFaturalar) {
     const odenen = f.tahsilatlar.reduce((a, t) => a + Number(t.tutar), 0)
     const kalan = Number(f.genelToplam) - odenen
     if (kalan <= 0) continue
@@ -206,7 +211,7 @@ export async function getFirmaProfil(firmaId: number, bas: Date, bit: Date) {
     talepGecmisi,
     enCokGonderilen,
     // faturalar + yaşlandırma
-    faturalar: firma.faturalar.map((f) => ({
+    faturalar: aktifFaturalar.map((f) => ({
       id: f.id,
       no: f.no,
       donem: f.donem,
@@ -267,7 +272,7 @@ export async function getDashboardRapor(user: SessionUser, bas: Date, bit: Date)
       where: { tarih: { gte: bas, lt: bit }, durum: { not: 'iptal' }, ...lokFilter },
       include: { puantaj: true, isci: true, talep: { include: { firma: true } } },
     }),
-    prisma.fatura.findMany({ where: { vadeTarihi: { gte: bas, lt: bit } }, include: { tahsilatlar: true, firma: true } }),
+    prisma.fatura.findMany({ where: { kesimTarihi: { gte: bas, lt: bit }, silindi: false }, include: { tahsilatlar: true, firma: true } }),
     prisma.gider.findMany({ where: { tarih: { gte: bas, lt: bit } } }),
     prisma.hakedis.findMany({ where: { donemBitis: { gte: bas, lt: bit } } }),
     prisma.talep.findMany({
@@ -277,7 +282,7 @@ export async function getDashboardRapor(user: SessionUser, bas: Date, bit: Date)
   ])
 
   const ciro = faturalar.reduce((a, f) => a + Number(f.genelToplam), 0)
-  const tahsilat = faturalar.reduce((a, f) => a + f.tahsilatlar.reduce((x, t) => x + Number(t.tutar), 0), 0)
+  const tahsilat = faturalar.reduce((a, f) => a + f.tahsilatlar.filter((t) => t.tarih >= bas && t.tarih < bit).reduce((x, t) => x + Number(t.tutar), 0), 0)
   const gider = giderler.reduce((a, g) => a + Number(g.tutar), 0)
   const netKar = ciro - gider
 
@@ -362,14 +367,14 @@ export async function getIsciKarlilik(bas: Date, bit: Date) {
 export async function getAylikTrend() {
   const bugun = startOfDay()
   const ay = new Date(bugun.getFullYear(), bugun.getMonth() - 5, 1)
-  const faturalar = await prisma.fatura.findMany({ where: { vadeTarihi: { gte: ay } }, include: { tahsilatlar: true } })
+  const faturalar = await prisma.fatura.findMany({ where: { kesimTarihi: { gte: ay }, silindi: false }, include: { tahsilatlar: true } })
   const giderler = await prisma.gider.findMany({ where: { tarih: { gte: ay } } })
 
   const aylar: Array<{ etiket: string; ciro: number; gider: number; netKar: number }> = []
   for (let i = 5; i >= 0; i--) {
     const mBas = new Date(bugun.getFullYear(), bugun.getMonth() - i, 1)
     const mBit = new Date(bugun.getFullYear(), bugun.getMonth() - i + 1, 1)
-    const fCiro = faturalar.filter((f) => f.vadeTarihi >= mBas && f.vadeTarihi < mBit).reduce((a, f) => a + Number(f.genelToplam), 0)
+    const fCiro = faturalar.filter((f) => f.kesimTarihi >= mBas && f.kesimTarihi < mBit).reduce((a, f) => a + Number(f.genelToplam), 0)
     const gGider = giderler.filter((g) => g.tarih >= mBas && g.tarih < mBit).reduce((a, g) => a + Number(g.tutar), 0)
     aylar.push({ etiket: mBas.toLocaleDateString('tr-TR', { month: 'short' }), ciro: fCiro, gider: gGider, netKar: fCiro - gGider })
   }

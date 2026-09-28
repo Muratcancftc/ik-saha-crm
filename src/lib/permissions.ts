@@ -131,6 +131,7 @@ const PATH_ROUTE: Array<{ prefix: string; route: string }> = [
   { prefix: '/api/export/ik-rapor', route: '/ik/raporlar' },
   { prefix: '/api/export/vergi-rapor', route: '/vergi-odemeler' },
   { prefix: '/api/dekont', route: '/vergi-odemeler' },
+  { prefix: '/api/faturalar', route: '/faturalar' },
   { prefix: '/api/odeme/onizle', route: '/odeme' },
   { prefix: '/api/hakedis/onizle', route: '/hakedis' },
   { prefix: '/api/evrak', route: '/evrak' },

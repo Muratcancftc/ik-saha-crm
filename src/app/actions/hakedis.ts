@@ -7,8 +7,10 @@ import { startOfDay, addDays } from '@/lib/dates'
 import { parseLocalDate } from '@/lib/donem'
 import type { AtamaDurum } from '@prisma/client'
 
-// Bir atamanın hakedişini üret: işçi+firma+ay bazında TOPLA (upsert)
-// Avans dönemde yalnızca bir kez düşülür; tekrar "Üret" ile mükerrer kayıt oluşmaz.
+// Bir atamanın hakedişini üret: işçi+firma+ay bazında TOPLA.
+// Idempotent: dönemdeki TÜM uygun atamalar her seferinde baştan sayılır;
+// "Üret"e kaç kez basılırsa basılsın gün/tutarlar aynı kalır. Atama iptal
+// edilirse ya da puantajı "gelmedi"ye çekilirse bir sonraki üretimde düşer.
 export async function hakedisOlustur(atamaId: number) {
   const atama = await prisma.atama.findUnique({
     where: { id: atamaId },
@@ -21,68 +23,79 @@ export async function hakedisOlustur(atamaId: number) {
   if (!atama || atama.durum !== 'tamamlandi' || !atama.puantaj) return null
   if (atama.puantaj.durum === 'gelmedi') return null // gelmedi = ödeme yok
 
-  const meslekId = atama.meslekId ?? atama.talep.kalemler[0]?.meslekId ?? null
-  let musteriGun = 0
-  if (meslekId) {
-    const fiyat = await prisma.firmaFiyat.findFirst({
-      where: { firmaId: atama.talep.firmaId, meslekId },
-    })
-    musteriGun = fiyat ? Number(fiyat.kisiGunFiyat) : 0
+  const firmaId = atama.talep.firmaId
+  const isciId = atama.isciId
+  const tarih = atama.talep.tarih
+  const donemKey = `${tarih.getFullYear()}-${tarih.getMonth() + 1}`
+  const donemBas = new Date(tarih.getFullYear(), tarih.getMonth(), 1)
+  const donemBitis = new Date(tarih.getFullYear(), tarih.getMonth() + 1, 1)
+
+  // Aynı işçi+firma+ay içindeki tüm uygun atamaları baştan topla
+  const dönemAtamalar = await prisma.atama.findMany({
+    where: {
+      isciId,
+      talep: { firmaId },
+      durum: 'tamamlandi',
+      puantaj: { isNot: null },
+      tarih: { gte: donemBas, lt: donemBitis },
+    },
+    include: { puantaj: true, talep: { include: { kalemler: true } } },
+  })
+  const uygun = dönemAtamalar.filter((a) => a.puantaj && a.puantaj.durum !== 'gelmedi')
+  if (uygun.length === 0) return null
+
+  const fiyatlar = await prisma.firmaFiyat.findMany({ where: { firmaId } })
+  const fiyatMap = new Map(fiyatlar.map((f) => [f.meslekId, Number(f.kisiGunFiyat)]))
+
+  let gun = 0
+  let musteri = 0
+  let sonTarih = uygun[0].tarih
+  for (const a of uygun) {
+    gun++
+    const meslekId = a.meslekId ?? a.talep.kalemler[0]?.meslekId ?? null
+    musteri += meslekId ? (fiyatMap.get(meslekId) ?? 0) : 0
+    if (a.tarih > sonTarih) sonTarih = a.tarih
   }
 
   const yevmiye = Number(atama.isci.gunlukUcretBeklentisi)
-  const tarih = atama.talep.tarih
-  const donemKey = `${tarih.getFullYear()}-${tarih.getMonth() + 1}`
 
   const avansToplam = await prisma.avans.aggregate({
-    where: { isciId: atama.isciId, durum: 'verildi' },
+    where: { isciId, durum: 'verildi' },
     _sum: { tutar: true },
   })
   const avans = Number(avansToplam._sum.tutar ?? 0)
   const kesinti = 0
 
-  const mevcut = await prisma.hakedis.findFirst({
-    where: { isciId: atama.isciId, firmaId: atama.talep.firmaId, donemKey },
-  })
-
-  if (mevcut) {
-    const gun = mevcut.gun + 1
-    const musteri = Number(mevcut.musteriTutar) + musteriGun
-    const isciNet = gun * yevmiye - avans - kesinti
-    return prisma.hakedis.update({
-      where: { id: mevcut.id },
-      data: {
-        atamaId: atama.id,
-        donemBitis: tarih,
-        gun,
-        yevmiye,
-        avansToplam: avans,
-        kesinti,
-        isciNet,
-        musteriTutar: musteri,
-        marj: musteri - gun * yevmiye,
-      },
-    })
-  }
-
-  const gun = 1
-  const musteri = gun * musteriGun
   const isciNet = gun * yevmiye - avans - kesinti
-  return prisma.hakedis.create({
-    data: {
-      isciId: atama.isciId,
-      firmaId: atama.talep.firmaId,
-      atamaId: atama.id,
-      donemKey,
-      donemBas: new Date(tarih.getFullYear(), tarih.getMonth(), 1),
-      donemBitis: tarih,
+  const marj = musteri - gun * yevmiye
+
+  return prisma.hakedis.upsert({
+    where: { isciId_firmaId_donemKey: { isciId, firmaId, donemKey } },
+    update: {
+      atamaId,
+      donemBitis: sonTarih,
       gun,
       yevmiye,
       avansToplam: avans,
       kesinti,
       isciNet,
       musteriTutar: musteri,
-      marj: musteri - gun * yevmiye,
+      marj,
+    },
+    create: {
+      isciId,
+      firmaId,
+      atamaId,
+      donemKey,
+      donemBas,
+      donemBitis: sonTarih,
+      gun,
+      yevmiye,
+      avansToplam: avans,
+      kesinti,
+      isciNet,
+      musteriTutar: musteri,
+      marj,
     },
   })
 }

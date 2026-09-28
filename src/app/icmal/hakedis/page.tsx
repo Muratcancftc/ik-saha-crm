@@ -1,6 +1,7 @@
 import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { tl, num, dateLong } from '@/lib/format'
+import Link from 'next/link'
 import { PrintButton } from './print-button'
 
 export const dynamic = 'force-dynamic'
@@ -30,7 +31,7 @@ export default async function HakedisIcmalPage() {
       `}</style>
 
       <div className="print-btn mb-5 flex items-center justify-between">
-        <a href="/hakedis" className="text-sm text-slate-500 hover:underline">← Hakediş&apos;e dön</a>
+        <Link href="/hakedis" className="text-sm text-slate-500 hover:underline">← Hakediş&apos;e dön</Link>
         <PrintButton />
       </div>
 

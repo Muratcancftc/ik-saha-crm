@@ -35,6 +35,18 @@ export async function silGider(formData: FormData) {
 }
 
 // ---- Fatura ----
+async function siradakiFaturaNo(): Promise<string> {
+  const yil = new Date().getFullYear()
+  const prefix = `IKR-${yil}-`
+  const mevcut = await prisma.fatura.findMany({ where: { no: { startsWith: prefix }, silindi: false }, select: { no: true } })
+  let max = 0
+  for (const f of mevcut) {
+    const m = f.no.match(/(\d+)$/)
+    if (m) max = Math.max(max, Number(m[1]))
+  }
+  return `${prefix}${String(max + 1).padStart(3, '0')}`
+}
+
 export async function createFatura(_prev: MuhasebeState, formData: FormData): Promise<MuhasebeState> {
   await requireRoles(['patron', 'muhasebe'])
   const firmaId = Number(formData.get('firmaId'))
@@ -50,20 +62,46 @@ export async function createFatura(_prev: MuhasebeState, formData: FormData): Pr
   const kdvTutar = Math.round(araToplam * kdvOran * 100) / 100
   const genelToplam = Math.round((araToplam + kdvTutar) * 100) / 100
 
-  const no = String(formData.get('no') ?? '').trim() || `IKR-${Date.now()}`
-  await prisma.fatura.create({
-    data: {
-      firmaId,
-      no,
-      donem,
-      araToplam,
-      kdvOran,
-      kdvTutar,
-      genelToplam,
-      vadeTarihi: new Date(`${vadeTarihi}T23:59:00`),
-      durum: 'vadede',
-    },
-  })
+  const noGirildi = String(formData.get('no') ?? '').trim()
+  const no = noGirildi || (await siradakiFaturaNo())
+  const kesimTarihi = String(formData.get('kesimTarihi') ?? '')
+  try {
+    await prisma.fatura.create({
+      data: {
+        firmaId,
+        no,
+        donem,
+        araToplam,
+        kdvOran,
+        kdvTutar,
+        genelToplam,
+        kesimTarihi: kesimTarihi ? new Date(`${kesimTarihi}T00:00:00`) : new Date(),
+        vadeTarihi: new Date(`${vadeTarihi}T23:59:00`),
+        durum: 'vadede',
+      },
+    })
+  } catch (e: unknown) {
+    // Fatura no çakışırsa (eşzamanlı kayıt) sıradaki numarayla bir kez daha dene
+    if ((e as { code?: string }).code === 'P2002' && !noGirildi) {
+      const yeniden = await siradakiFaturaNo()
+      await prisma.fatura.create({
+        data: {
+          firmaId,
+          no: yeniden,
+          donem,
+          araToplam,
+          kdvOran,
+          kdvTutar,
+          genelToplam,
+          kesimTarihi: kesimTarihi ? new Date(`${kesimTarihi}T00:00:00`) : new Date(),
+          vadeTarihi: new Date(`${vadeTarihi}T23:59:00`),
+          durum: 'vadede',
+        },
+      })
+    } else {
+      throw e
+    }
+  }
   revalidatePath('/faturalar')
   revalidatePath('/vergi-odemeler')
   revalidatePath('/')
@@ -77,25 +115,48 @@ export async function createTahsilat(formData: FormData) {
   if (!faturaId || !tutar || tutar <= 0) return
   await prisma.tahsilat.create({ data: { faturaId, tutar, tarih: new Date() } })
 
-  // Ödendi durumu güncelle
+  // Ödendi / kısmi durumu güncelle: kalan varsa kismi, tamamı ödenmişse odendi
   const fatura = await prisma.fatura.findUnique({ where: { id: faturaId }, include: { tahsilatlar: true } })
   if (fatura) {
-    const toplam = fatura.tahsilatlar.reduce((a, t) => a + Number(t.tutar), 0) + tutar
-    if (toplam >= Number(fatura.genelToplam)) {
+    const toplam = fatura.tahsilatlar.reduce((a, t) => a + Number(t.tutar), 0)
+    const genel = Number(fatura.genelToplam)
+    if (toplam >= genel) {
       await prisma.fatura.update({ where: { id: faturaId }, data: { durum: 'odendi' } })
+    } else if (toplam > 0 && fatura.durum !== 'odendi') {
+      await prisma.fatura.update({ where: { id: faturaId }, data: { durum: 'kismi' } })
     }
   }
   revalidatePath('/faturalar')
   revalidatePath('/')
+  if (fatura?.firmaId) revalidatePath(`/musteri-firmalar/${fatura.firmaId}`)
+  revalidatePath('/musteri-firmalar')
   return
 }
 
 export async function faturaDurumDegistir(formData: FormData) {
   await requireRoles(['patron', 'muhasebe'])
   const id = Number(formData.get('id'))
-  const durum = String(formData.get('durum') ?? 'vadede') as 'vadede' | 'odendi' | 'gecikti'
+  const durum = String(formData.get('durum') ?? 'vadede') as 'vadede' | 'kismi' | 'odendi' | 'gecikti'
   await prisma.fatura.update({ where: { id }, data: { durum } })
   revalidatePath('/faturalar')
+  revalidatePath('/')
+  return
+}
+
+// İptal (soft delete): silindi=true — geçmiş/rapor verisi korunur.
+export async function faturaIptal(formData: FormData) {
+  await requireRoles(['patron', 'muhasebe'])
+  const id = Number(formData.get('id'))
+  const mevcut = await prisma.fatura.findUnique({ where: { id }, include: { tahsilatlar: { select: { id: true } } } })
+  if (!mevcut) return
+  if (mevcut.tahsilatlar.length > 0) {
+    // Tahsilatı olan fatura iptal edilemez; önce tahsilatlar geri alınmalı
+    return
+  }
+  await prisma.fatura.update({ where: { id }, data: { silindi: true, durum: 'vadede' } })
+  revalidatePath('/faturalar')
+  revalidatePath('/')
+  revalidatePath('/musteri-firmalar')
   return
 }
 

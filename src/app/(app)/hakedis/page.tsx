@@ -47,10 +47,12 @@ export default async function HakedisPage() {
           desc="İşçi + firma + ay bazında otomatik toplanır"
           action={
             <div className="flex flex-wrap items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a href="/api/export/hakedis" className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-50">
                 <Icon name="excel" size={15} />
                 Excel İcmal
               </a>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a href="/icmal/hakedis" className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-red-600 ring-1 ring-red-200 transition hover:bg-red-50">
                 <Icon name="pdf" size={15} />
                 PDF İcmal

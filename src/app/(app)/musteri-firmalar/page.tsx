@@ -1,6 +1,7 @@
 import { requireRoles, requireUser } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { tl, num } from '@/lib/format'
+import Link from 'next/link'
 import { Card, EmptyState, Badge } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { FirmaForm } from './firma-form'
@@ -158,35 +159,49 @@ export default async function MusteriFirmalarPage({
                       Fiyat Anlaşması (kişi/gün)
                     </h4>
                     <div className="space-y-1.5">
-                      {f.fiyatlar.map((p) => (
-                        <form key={p.meslekId} action={setFirmaFiyat} className="flex items-center gap-2">
-                          <input type="hidden" name="firmaId" value={f.id} />
-                          <input type="hidden" name="meslekId" value={p.meslekId} />
-                          <span className="w-24 text-xs text-slate-600">{p.meslek.ad}</span>
-                          <input
-                            name="fiyat"
-                            type="number"
-                            step="10"
-                            defaultValue={Number(p.kisiGunFiyat)}
-                            className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs tabular-nums outline-none focus:border-indigo-500"
-                          />
-                          <button
-                            type="submit"
-                            title="Kaydet"
-                            className="rounded-lg p-1 text-emerald-600 transition hover:bg-emerald-50"
-                          >
-                            <Icon name="check" size={14} />
-                          </button>
-                        </form>
-                      ))}
-                      {f.fiyatlar.length === 0 && (
-                        <p className="text-xs text-slate-400">Henüz fiyat anlaşması yok</p>
+                      {meslekler.length === 0 ? (
+                        <p className="text-xs text-slate-400">
+                          Önce{' '}
+                          <Link href="/ayarlar" className="font-medium text-indigo-600 hover:underline">
+                            Ayarlar &gt; Meslek Tanımları
+                          </Link>{' '}
+                          sayfasından meslek ekleyin.
+                        </p>
+                      ) : (
+                        <>
+                          {f.fiyatlar.map((p) => (
+                            <form key={p.meslekId} action={setFirmaFiyat} className="flex items-center gap-2">
+                              <input type="hidden" name="firmaId" value={f.id} />
+                              <input type="hidden" name="meslekId" value={p.meslekId} />
+                              <span className="w-28 text-xs text-slate-600">{p.meslek.ad}</span>
+                              <span className="text-xs font-semibold tabular-nums text-slate-900">{tl(Number(p.kisiGunFiyat))}</span>
+                              <input
+                                name="fiyat"
+                                type="number"
+                                step="10"
+                                defaultValue={Number(p.kisiGunFiyat)}
+                                title="Yeni fiyat yazıp kaydedin"
+                                className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs tabular-nums outline-none focus:border-indigo-500"
+                              />
+                              <button
+                                type="submit"
+                                title="Kaydet"
+                                className="rounded-lg p-1 text-emerald-600 transition hover:bg-emerald-50"
+                              >
+                                <Icon name="check" size={14} />
+                              </button>
+                            </form>
+                          ))}
+                          {f.fiyatlar.length === 0 && (
+                            <p className="text-xs text-slate-400">Henüz fiyat anlaşması yok</p>
+                          )}
+                        </>
                       )}
                     </div>
                     {/* Fiyat Ekle: tanımlı olmayan mesleklerden seç */}
                     {(() => {
                       const eklenebilir = meslekler.filter((m) => !f.fiyatlar.some((p) => p.meslekId === m.id))
-                      if (eklenebilir.length === 0) return null
+                      if (meslekler.length === 0 || eklenebilir.length === 0) return null
                       return (
                         <form action={setFirmaFiyat} className="mt-2 flex items-center gap-2 border-t border-slate-100 pt-2">
                           <input type="hidden" name="firmaId" value={f.id} />

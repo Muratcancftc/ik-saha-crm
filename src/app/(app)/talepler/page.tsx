@@ -93,11 +93,12 @@ export default async function TaleplerPage({
   // Özet şeridi verileri
   const acikSayi = talepler.filter((t) => t.durum === 'acik').length
   const kismiSayi = talepler.filter((t) => t.durum === 'kismi').length
-  const eksikOlan = talepler.filter((t) => {
+  // Eksik = ihtiyaç ile atanan arasındaki KİŞİ farkı toplamı (talep sayısı değil)
+  const eksikKisi = talepler.reduce((toplam, t) => {
     const ihtiyac = t.kalemler.reduce((a, k) => a + k.adet, 0)
     const atanan = t.atamalar.filter((a) => a.durum !== 'iptal').length
-    return atanan < ihtiyac
-  })
+    return toplam + Math.max(0, ihtiyac - atanan)
+  }, 0)
   const yarinIhtiyac = talepler
     .filter((t) => sameDay(t.tarih, addDaysT(bugun, 1)))
     .reduce((a, t) => a + t.kalemler.reduce((x, k) => x + k.adet, 0), 0)
@@ -112,7 +113,7 @@ export default async function TaleplerPage({
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <OzetKutu label="Açık" value={acikSayi} tone="text-amber-600" />
           <OzetKutu label="Kısmi" value={kismiSayi} tone="text-blue-600" />
-          <OzetKutu label="Eksik" value={eksikOlan.length} tone="text-red-600" />
+          <OzetKutu label="Eksik Kişi" value={eksikKisi} tone="text-red-600" />
           <OzetKutu label="Yarın İhtiyaç" value={yarinIhtiyac} tone="text-indigo-600" />
         </div>
 

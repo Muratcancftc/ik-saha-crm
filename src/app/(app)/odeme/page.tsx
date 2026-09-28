@@ -51,6 +51,7 @@ export default async function OdemePage() {
                 <input type="hidden" name="donem" value="" />
                 <Button variant="secondary" size="sm" type="submit">Tümünü Ödendi İşaretle</Button>
               </form>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a
                 href="/api/export/odeme"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-50"
