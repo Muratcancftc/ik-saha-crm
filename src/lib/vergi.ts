@@ -62,6 +62,14 @@ export function tarihTr(d: Date): string {
   return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
 }
 
+// "26'sında", "15'inde", "10'unda" gibi doğru iyelik ekini üretir (1-31 gün için).
+export function gunEki(gun: number): string {
+  const son = gun % 10
+  if (son === 0) return gun % 100 === 20 ? 'sinde' : 'unda'
+  const ekler: Record<number, string> = { 1: 'inde', 2: 'sinde', 3: 'ünde', 4: 'dünde', 5: 'inde', 6: 'sında', 7: 'sinde', 8: 'inde', 9: 'unda' }
+  return ekler[son]
+}
+
 // Aynı dönem etiketi: "2026-09" → bir sonraki ay "2026-10"
 export function sonrakiDonem(donem: string): string {
   const m = donem.trim().match(/^(\d{4})-(\d{2})$/)

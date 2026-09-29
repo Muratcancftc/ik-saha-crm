@@ -15,13 +15,14 @@ const DATE_LONG = new Intl.DateTimeFormat('tr-TR', {
   weekday: 'long',
 })
 const DATETIME = new Intl.DateTimeFormat('tr-TR', {
+  timeZone: 'Europe/Istanbul',
   day: '2-digit',
   month: '2-digit',
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
 })
-const TIME = new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' })
+const TIME = new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit' })
 
 export function tl(n: Numeric): string {
   return TRY.format(toNum(n))

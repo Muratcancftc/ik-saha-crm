@@ -138,7 +138,17 @@ export async function faturaDurumDegistir(formData: FormData) {
   await requireRoles(['patron', 'muhasebe'])
   const id = Number(formData.get('id'))
   const durum = String(formData.get('durum') ?? 'vadede') as 'vadede' | 'kismi' | 'odendi' | 'gecikti'
-  await prisma.fatura.update({ where: { id }, data: { durum } })
+  if (!id) return
+  if (durum === 'odendi') {
+    const fatura = await prisma.fatura.findUnique({ where: { id }, include: { tahsilatlar: true } })
+    if (!fatura) return
+    const toplam = fatura.tahsilatlar.reduce((a, t) => a + Number(t.tutar), 0)
+    // Kalan bakiye varken "ödendi" işaretlenemez; önce tahsilat kaydedilmeli.
+    const hedefDurum = toplam >= Number(fatura.genelToplam) ? 'odendi' : toplam > 0 ? 'kismi' : 'vadede'
+    await prisma.fatura.update({ where: { id }, data: { durum: hedefDurum } })
+  } else {
+    await prisma.fatura.update({ where: { id }, data: { durum } })
+  }
   revalidatePath('/faturalar')
   revalidatePath('/')
   return

@@ -16,13 +16,16 @@ export async function createBelge(_prev: BelgeState, formData: FormData): Promis
   const tip = String(formData.get('tip') ?? '').trim()
   const bitis = String(formData.get('bitisTarihi') ?? '')
   if (!isciId || !tip || !bitis) return { error: 'İşçi, belge tipi ve bitiş tarihi zorunludur.' }
+  const verilis = formData.get('verilisTarihi') ? new Date(String(formData.get('verilisTarihi'))) : new Date()
+  const bitisTarihi = new Date(`${bitis}T23:59:00`)
+  if (verilis.getTime() > bitisTarihi.getTime()) return { error: 'Veriliş tarihi bitiş tarihinden sonra olamaz.' }
 
   await prisma.belge.create({
     data: {
       isciId,
       tip,
-      verilisTarihi: formData.get('verilisTarihi') ? new Date(String(formData.get('verilisTarihi'))) : new Date(),
-      bitisTarihi: new Date(`${bitis}T23:59:00`),
+      verilisTarihi: verilis,
+      bitisTarihi,
     },
   })
   revalidatePath('/belge-sgk')
@@ -65,6 +68,7 @@ export async function createPersonelIsg(_prev: BelgeState, formData: FormData): 
   const personelId = Number(formData.get('personelId'))
   const bitis = String(formData.get('bitisTarihi') ?? '')
   if (!personelId || !bitis) return { error: 'Personel ve bitiş tarihi zorunludur.' }
+  if (new Date().getTime() > new Date(`${bitis}T23:59:00`).getTime()) return { error: 'Bitiş tarihi geçmişte olamaz.' }
 
   await prisma.belge.create({
     data: {

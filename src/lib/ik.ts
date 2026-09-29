@@ -77,7 +77,7 @@ export function tarihTr(d: Date): string {
 }
 
 export function tarihSaatTr(d: Date): string {
-  return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d)
+  return new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d)
 }
 
 // ---- IBAN doğrulama (TR + mod97 checksum) ----
@@ -100,6 +100,19 @@ export function ibanGecerli(iban: string): boolean {
 
 export function ibanGrup(iban: string): string {
   return iban.replace(/\s+/g, '').toUpperCase().slice(0, 26).replace(/(.{4})/g, '$1 ').trim()
+}
+
+// Aynı IBAN'ın başka bir işçiye tanımlı olup olmadığını kontrol eder.
+export async function ibanBaskaIsciVarMi(iban: string, haricId?: number): Promise<boolean> {
+  const hedef = iban.replace(/\s+/g, '').toUpperCase()
+  if (!hedef) return false
+  const isciler = await prisma.isci.findMany({ select: { id: true, iban: true } })
+  const { decrypt } = await import('@/lib/crypto')
+  for (const i of isciler) {
+    if (haricId && i.id === haricId) continue
+    if (decrypt(i.iban).replace(/\s+/g, '').toUpperCase() === hedef) return true
+  }
+  return false
 }
 
 // ---- Ücret çözümleme: personel > firma > işçinin günlük beklentisi > sistem ----

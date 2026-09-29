@@ -9,6 +9,7 @@ function getKey(): Buffer {
 }
 
 export function encrypt(plain: string): string {
+  if (!plain) return ''
   const iv = crypto.randomBytes(12)
   const cipher = crypto.createCipheriv(ALGO, getKey(), iv)
   const enc = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()])
@@ -17,14 +18,19 @@ export function encrypt(plain: string): string {
 }
 
 export function decrypt(payload: string): string {
-  const [ivHex, tagHex, dataHex] = payload.split(':')
-  if (!ivHex || !tagHex || !dataHex) throw new Error('Geçersiz şifreli veri')
-  const decipher = crypto.createDecipheriv(ALGO, getKey(), Buffer.from(ivHex, 'hex'))
-  decipher.setAuthTag(Buffer.from(tagHex, 'hex'))
-  return Buffer.concat([
-    decipher.update(Buffer.from(dataHex, 'hex')),
-    decipher.final(),
-  ]).toString('utf8')
+  if (!payload) return ''
+  const [ivHex, tagHex, dataHex = ''] = payload.split(':')
+  if (!ivHex || !tagHex) return ''
+  try {
+    const decipher = crypto.createDecipheriv(ALGO, getKey(), Buffer.from(ivHex, 'hex'))
+    decipher.setAuthTag(Buffer.from(tagHex, 'hex'))
+    return Buffer.concat([
+      decipher.update(Buffer.from(dataHex, 'hex')),
+      decipher.final(),
+    ]).toString('utf8')
+  } catch {
+    return ''
+  }
 }
 
 // Görüntüleme için maskeleme. TC: son 3 hane + baştaki ilk hane gösterilir.

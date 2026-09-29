@@ -285,15 +285,23 @@ export async function sablonOlustur(formData: FormData) {
   if (!sablon) return
 
   const bugun = new Date()
-  const donem = sablon.donemEtiketi
-    ? `${bugun.getFullYear()} ${sablon.donemEtiketi}`
-    : `${bugun.getFullYear()}-${String(bugun.getMonth() + 1).padStart(2, '0')}`
+  // Bu ayın son ödeme günü geçmişse kaydı bir sonraki aya oluştur (anında "gecikmiş" görünmesin).
+  let yil = bugun.getFullYear()
+  let ay = bugun.getMonth()
+  if (bugun.getDate() > sablon.sonOdemeGun) {
+    ay += 1
+    if (ay > 11) {
+      ay = 0
+      yil += 1
+    }
+  }
+  const donem = sablon.donemEtiketi ? `${yil} ${sablon.donemEtiketi}` : `${yil}-${String(ay + 1).padStart(2, '0')}`
   const varMi = await prisma.vergiOdemesi.findFirst({
     where: { firmaId: sablon.firmaId, vergiTuru: sablon.vergiTuru, donem, silindi: false },
   })
   if (varMi) return
 
-  const sonOdeme = new Date(bugun.getFullYear(), bugun.getMonth(), sablon.sonOdemeGun)
+  const sonOdeme = new Date(yil, ay, sablon.sonOdemeGun)
   await prisma.vergiOdemesi.create({
     data: {
       firmaId: sablon.firmaId,

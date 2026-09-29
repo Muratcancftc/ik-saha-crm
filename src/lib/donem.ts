@@ -28,8 +28,8 @@ export function donemAralik(sp: { donem?: string; bas?: string; bit?: string }):
     ozel: 'Özel aralık',
   }
 
-  if (secim === 'hafta') return { bas: haftaBas, bit: haftaBit, etiket: etiketler.hafta }
-  if (secim === 'gecenay') return { bas: gecenAyBas, bit: gecenAyBit, etiket: etiketler.gecenay }
+  if (secim === 'hafta') return { bas: haftaBas, bit: addDays(haftaBit, 1), etiket: etiketler.hafta }
+  if (secim === 'gecenay') return { bas: gecenAyBas, bit: addDays(gecenAyBit, 1), etiket: etiketler.gecenay }
   if (secim === 'ozel' && sp.bas && sp.bit) {
     const bas = startOfDay(parseLocalDate(sp.bas))
     const bit = addDays(parseLocalDate(sp.bit), 1)

@@ -17,6 +17,7 @@ import {
   varsayilanSaatlikUcret,
   mesaiCarpan,
   ibanGecerli,
+  ibanBaskaIsciVarMi,
   periyotUret,
   AYAR_VARSAYILAN_UCRET,
   AYAR_SAATLIK_UCRET,
@@ -108,20 +109,41 @@ export async function ikPersonelKaydet(_prev: IkState, formData: FormData): Prom
       },
     })
 
-    // Ücret değiştiyse eski kaydı kapat, yeni aç (tarihsel korunur, geçmiş puantaj/hakediş etkilenmez)
+    // Girilen ücret, kişisel kayıt olmadan çözülen değere eşitse override oluşturma;
+    // böylece personel > firma > beklenti > sistem önceliği korunur.
+    const aktifFirmaUcret = firmaId
+      ? await prisma.firmaUcret.findFirst({
+          where: { firmaId, gecerlilikBitis: null },
+          orderBy: { gecerlilikBaslangic: 'desc' },
+        })
+      : null
+    const beklenti = Number(mevcut.gunlukUcretBeklentisi ?? 0)
+    const refGunluk = aktifFirmaUcret ? Number(aktifFirmaUcret.gunlukUcret) : beklenti > 0 ? beklenti : await varsayilanUcret()
+    const refSaatlik = aktifFirmaUcret ? Number(aktifFirmaUcret.saatlikUcret) : 0
+    const ozel = yuvarla(gunlukUcret) !== yuvarla(refGunluk) || yuvarla(saatlikUcret) !== yuvarla(refSaatlik)
+
     const aktif = await prisma.personelUcret.findFirst({
       where: { isciId: id, gecerlilikBitis: null },
       orderBy: { gecerlilikBaslangic: 'desc' },
     })
-    const ayni = aktif && Number(aktif.gunlukUcret) === yuvarla(gunlukUcret) && Number(aktif.saatlikUcret) === yuvarla(saatlikUcret)
-    if (!ayni) {
+
+    if (!ozel) {
+      // Kişisel ücret gerekmiyor: varsa kapat, firma/beklenti/sistem uygulansın (tarihsel kayıt korunur).
       if (aktif) {
         await prisma.personelUcret.update({ where: { id: aktif.id }, data: { gecerlilikBitis: addDays(gecerlilikBaslangic, -1) } })
+        await ucretLog('personel', id, 'gunlukUcret', String(aktif.gunlukUcret), 'kaldirildi (firma/beklenti geçerli)', user.id)
       }
-      await prisma.personelUcret.create({
-        data: { isciId: id, gunlukUcret: yuvarla(gunlukUcret), saatlikUcret: yuvarla(saatlikUcret), gecerlilikBaslangic, olusturanKullaniciId: user.id },
-      })
-      await ucretLog('personel', id, 'gunlukUcret', aktif ? String(aktif.gunlukUcret) : null, String(gunlukUcret), user.id)
+    } else {
+      const ayni = aktif && Number(aktif.gunlukUcret) === yuvarla(gunlukUcret) && Number(aktif.saatlikUcret) === yuvarla(saatlikUcret)
+      if (!ayni) {
+        if (aktif) {
+          await prisma.personelUcret.update({ where: { id: aktif.id }, data: { gecerlilikBitis: addDays(gecerlilikBaslangic, -1) } })
+        }
+        await prisma.personelUcret.create({
+          data: { isciId: id, gunlukUcret: yuvarla(gunlukUcret), saatlikUcret: yuvarla(saatlikUcret), gecerlilikBaslangic, olusturanKullaniciId: user.id },
+        })
+        await ucretLog('personel', id, 'gunlukUcret', aktif ? String(aktif.gunlukUcret) : null, String(gunlukUcret), user.id)
+      }
     }
     revalidatePath('/ik/personel')
     revalidatePath(`/ik/personel/${id}`)
@@ -131,6 +153,7 @@ export async function ikPersonelKaydet(_prev: IkState, formData: FormData): Prom
   // ---- Yeni personel ----
   const tc = String(formData.get('tc') ?? '').replace(/\s/g, '')
   const iban = String(formData.get('iban') ?? '').replace(/\s/g, '')
+  if (iban && (await ibanBaskaIsciVarMi(iban))) return { error: 'Bu IBAN başka bir işçiye kayıtlı.' }
   const iseBaslama = parseTarih(String(formData.get('iseBaslama') ?? ''))
   const ilce = bolge === 'balikesir' ? 'Karesi' : 'İzmit'
   const yeni = await prisma.isci.create({
@@ -506,7 +529,11 @@ export async function donemKilidiAc(formData: FormData) {
   const id = Number(formData.get('id'))
   const donem = await prisma.odemeDonemi.findUnique({ where: { id } })
   if (!donem) return
-  await prisma.odemeDonemi.update({ where: { id }, data: { kilitli: false, durum: 'KISMI_ODENDI' as OdemeDonemiDurum } })
+  // Kilidi açarken durumu gerçek ödemelere göre yeniden hesapla (tam ödenmiş dönem "Kısmi" görünmesin).
+  const odenen = await prisma.odemeKayit.aggregate({ where: { donemId: id }, _sum: { tutar: true } })
+  const toplamOdenen = yuvarla(Number(odenen._sum.tutar ?? 0))
+  const durum: OdemeDonemiDurum = toplamOdenen >= Number(donem.netOdenecek) ? 'ODENDI' : toplamOdenen > 0 ? 'KISMI_ODENDI' : 'BEKLIYOR'
+  await prisma.odemeDonemi.update({ where: { id }, data: { kilitli: false, durum } })
   await ucretLog('odemeDonemi', id, 'kilit', 'kilitli', 'acik', user.id)
   revalidatePath('/ik/hakedis')
   return

@@ -124,6 +124,17 @@ export async function adayBolgeDegistir(formData: FormData) {
   return
 }
 
+// Adayın mesleğini ata / değiştir (website'ten gelen mesleksiz adaylar için)
+export async function adayMeslekDegistir(formData: FormData) {
+  await requireRoles(['patron', 'operasyon'])
+  const id = Number(formData.get('id'))
+  const meslekId = Number(formData.get('meslekId')) || null
+  if (!id) return
+  await prisma.aday.update({ where: { id }, data: { meslekId } })
+  revalidatePath('/adaylar')
+  return
+}
+
 export async function adaySil(formData: FormData) {
   await requireRoles(['patron', 'operasyon'])
   const id = Number(formData.get('id'))

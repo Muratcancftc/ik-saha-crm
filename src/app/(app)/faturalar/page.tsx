@@ -7,7 +7,7 @@ import { FaturaBadge } from '@/components/status-badge'
 import { Icon } from '@/components/icons'
 import { FaturaForm } from './fatura-form'
 import { createTahsilat, faturaDurumDegistir, faturaIptal } from '@/app/actions/muhasebe'
-import { SilOnayForm } from '@/components/sil-onay'
+import { SilOnayForm, OnayForm } from '@/components/sil-onay'
 
 export const dynamic = 'force-dynamic'
 
@@ -117,14 +117,27 @@ export default async function FaturalarPage() {
                               </button>
                             </form>
                           )}
-                          {f.durum !== 'odendi' && (
-                            <form action={faturaDurumDegistir}>
-                              <input type="hidden" name="id" value={f.id} />
-                              <input type="hidden" name="durum" value="odendi" />
-                              <button type="submit" title="Ödendi işaretle" className="rounded-lg p-1.5 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600">
-                                <Icon name="check" size={15} />
-                              </button>
-                            </form>
+                          {f.durum !== 'odendi' && kalan <= 0 && (
+                            <OnayForm
+                              action={faturaDurumDegistir}
+                              gizli={{ id: f.id, durum: 'odendi' }}
+                              onayMetni={`${f.no} faturası ödendi olarak işaretlensin mi?`}
+                              title="Ödendi işaretle"
+                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600"
+                            >
+                              <Icon name="check" size={15} />
+                            </OnayForm>
+                          )}
+                          {f.durum === 'odendi' && odenen === 0 && (
+                            <OnayForm
+                              action={faturaDurumDegistir}
+                              gizli={{ id: f.id, durum: 'vadede' }}
+                              onayMetni={`${f.no} faturasının "Ödendi" işareti geri alınsın mı?`}
+                              title="Ödendi işaretini geri al"
+                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-amber-50 hover:text-amber-600"
+                            >
+                              <Icon name="yenile" size={15} />
+                            </OnayForm>
                           )}
                           {odenen === 0 ? (
                             <SilOnayForm

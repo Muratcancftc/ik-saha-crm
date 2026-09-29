@@ -152,6 +152,7 @@ export default async function IkPersonelPage({
                                 meslekId: i.meslekler[0]?.meslekId ?? null,
                                 gunlukUcret: yuvarla(gunluk),
                                 saatlikUcret: yuvarla(saatlik),
+                                beklenti,
                                 odemePeriyot: i.odemePeriyot,
                                 gunAraligi: i.gunAraligi,
                               }}

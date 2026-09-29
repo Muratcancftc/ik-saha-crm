@@ -5,6 +5,7 @@ import { Card, CardHeader, Th, Td, Badge, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { AdayForm } from './aday-form'
 import { AdayBolgeSelect } from './aday-bolge-select'
+import { AdayMeslekSelect } from './aday-meslek-select'
 import { adayDurumDegistir, adayAktar, adaySil } from '@/app/actions/aday'
 import { SilOnayForm } from './sil-onay'
 import { bolgeGecerli, bolgeEtiket, BOLGE_TONE } from '@/lib/bolge'
@@ -117,7 +118,14 @@ export default async function AdaylarPage({
                           <AdayBolgeSelect adayId={a.id} bolge={a.bolge} />
                         </div>
                       </Td>
-                      <Td>{a.meslek?.ad ?? '—'}</Td>
+                      <Td>
+                        <div className="flex items-center gap-1.5">
+                          {a.meslek ? <span className="text-sm text-slate-700">{a.meslek.ad}</span> : <Badge tone="slate">Mesleksiz</Badge>}
+                          {a.durum !== 'onaylandi' && a.durum !== 'reddedildi' && (
+                            <AdayMeslekSelect adayId={a.id} meslekId={a.meslekId} meslekler={meslekler.map((m) => ({ id: m.id, ad: m.ad }))} />
+                          )}
+                        </div>
+                      </Td>
                       <Td>
                         <div>{a.telefon}</div>
                         {a.email && <div className="text-xs text-slate-400">{a.email}</div>}

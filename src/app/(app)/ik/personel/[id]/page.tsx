@@ -97,6 +97,7 @@ export default async function IkPersonelDetayPage({ params }: { params: Promise<
               meslekId: isci.meslekler[0]?.meslekId ?? null,
               gunlukUcret: cozum?.gunlukUcret ?? sistemGunluk,
               saatlikUcret: cozum?.saatlikUcret ?? 0,
+              beklenti: Number(isci.gunlukUcretBeklentisi ?? 0),
               odemePeriyot: isci.odemePeriyot,
               gunAraligi: isci.gunAraligi,
             }}

@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { encrypt, decrypt } from '@/lib/crypto'
 import { bolgeGecerli } from '@/lib/bolge'
+import { ibanBaskaIsciVarMi } from '@/lib/ik'
 import { hakedisOlustur } from './hakedis'
 import type { IsciDurum } from '@prisma/client'
 
@@ -34,6 +35,7 @@ export async function createIsci(_prev: IsciActionState, formData: FormData): Pr
 
   const iban = String(formData.get('iban') ?? '').replace(/\s/g, '')
   if (!/^TR\d{24}$/.test(iban)) return { error: 'IBAN geçersiz (TR + 24 hane).' }
+  if (await ibanBaskaIsciVarMi(iban)) return { error: 'Bu IBAN başka bir işçiye kayıtlı.' }
 
   // Doğum tarihi isteğe bağlı — boş bırakılırsa profil "—" gösterir (1990-01-01 placeholder)
   const dogumRaw = String(formData.get('dogumTarihi') ?? '')
@@ -75,6 +77,7 @@ export async function updateIsci(_prev: IsciActionState, formData: FormData): Pr
   const iban = String(formData.get('iban') ?? '').replace(/\s/g, '')
   if (tc && !/^\d{11}$/.test(tc)) return { error: 'TC Kimlik 11 haneli olmalıdır.' }
   if (iban && !/^TR\d{24}$/.test(iban)) return { error: 'IBAN geçersiz.' }
+  if (iban && (await ibanBaskaIsciVarMi(iban, id))) return { error: 'Bu IBAN başka bir işçiye kayıtlı.' }
 
   const meslekIds = parseMeslekler(formData)
   const bolgeler = parseBolgeler(formData)

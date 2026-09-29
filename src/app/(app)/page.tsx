@@ -38,6 +38,21 @@ export default async function DashboardPage({
 
   const bugunAtamaSayisi = atamalar.length
   const geldiSayisi = atamalar.filter((a) => a.puantaj?.durum === 'geldi').length
+  const gelmediSayisi = atamalar.filter((a) => a.puantaj?.durum === 'gelmedi').length
+  const bekleyenSayisi = bugunAtamaSayisi - geldiSayisi - gelmediSayisi
+  const atamaOzet = (
+    <span>
+      <b className="text-emerald-600">{num(geldiSayisi)}</b> geldi
+      {gelmediSayisi > 0 && (
+        <>
+          {' · '}
+          <b className="text-rose-600">{num(gelmediSayisi)}</b> gelmedi
+        </>
+      )}
+      {' · '}
+      {num(bekleyenSayisi)} bekliyor
+    </span>
+  )
 
   return (
     <div className="space-y-6">
@@ -70,7 +85,7 @@ export default async function DashboardPage({
       {/* KPI — 8 kart, 2/3/4 sütun, dengeli (saha_sorumlusu: mali veri görmez) */}
       {user.rol === 'saha_sorumlusu' ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-          <StatCard icon="puantaj" label="Bugünkü Atama" value={num(bugunAtamaSayisi)} valueTone="neutral" sub={<span><b className="text-emerald-600">{num(geldiSayisi)}</b> geldi · {num(atamalar.length - geldiSayisi)} bekliyor</span>} tone="blue" />
+          <StatCard icon="puantaj" label="Bugünkü Atama" value={num(bugunAtamaSayisi)} valueTone="neutral" sub={atamaOzet} tone="blue" />
           <StatCard icon="talep" label="Yarın İhtiyaç" value={`${num(ops.yarin.atanan)}/${num(ops.yarin.ihtiyac)}`} valueTone={ops.yarin.eksik > 0 ? 'amber' : 'green'} sub={<span>{num(ops.yarin.eksik)} kişi eksik</span>} tone="blue" />
           <StatCard icon="users" label="Açık Talepler" value={num(ops.acik.talepSayisi)} valueTone="amber" sub={`${num(ops.acik.adet)} ihtiyaç · ${num(ops.acik.eksik)} eksik`} tone="amber" />
           <StatCard icon="belge" label="Belge Uyarısı" value={num(ops.belge.dolan + ops.belge.yaklasan)} valueTone="red" sub={<span><b className="text-rose-600">{num(ops.belge.dolan)}</b> doldu · {num(ops.belge.yaklasan)} yakın</span>} tone="red" />
@@ -99,7 +114,7 @@ export default async function DashboardPage({
           label="Bugünkü Atama"
           value={num(bugunAtamaSayisi)}
           valueTone="neutral"
-          sub={<span><b className="text-emerald-600">{num(geldiSayisi)}</b> geldi · {num(atamalar.length - geldiSayisi)} bekliyor</span>}
+          sub={atamaOzet}
           tone="blue"
         />
         <StatCard

@@ -13,6 +13,7 @@ import {
   tl,
   yuvarla,
   tarihTr,
+  gunEki,
 } from '@/lib/vergi'
 import { vergiSil, vergiEkOdeme, sablonOlustur, sablonSil } from '@/app/actions/vergi'
 import { SilOnayForm } from '@/components/sil-onay'
@@ -248,7 +249,7 @@ export default async function VergiOdemelerPage({
                 <div className="text-sm">
                   <span className="font-medium text-slate-800">{s.firma.ad}</span>
                   <span className="text-slate-500"> · {s.vergiTuru === 'DIGER' ? s.vergiTuruDiger : VERGI_TUR_ETIKET[s.vergiTuru]} · {tl(Number(s.tahakkukTutari))}</span>
-                  <span className="text-slate-400"> · her ay {s.sonOdemeGun}&apos;unda{s.donemEtiketi ? ` · ${s.donemEtiketi}` : ''}</span>
+                  <span className="text-slate-400"> · her ay {s.sonOdemeGun}&apos;{gunEki(s.sonOdemeGun)}{s.donemEtiketi ? ` · ${s.donemEtiketi}` : ''}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {yazabilir && (

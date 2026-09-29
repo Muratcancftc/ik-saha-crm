@@ -18,6 +18,7 @@ type PersonelDto = {
   meslekId: number | null
   gunlukUcret: number
   saatlikUcret: number
+  beklenti: number
   odemePeriyot: string | null
   gunAraligi: number | null
 }
@@ -52,21 +53,23 @@ export function IkPersonelForm({
     if (state && 'ok' in state) setOpen(false)
   }, [state])
 
-  // Seçili firmanın varsayılan ücretleri (yoksa sistem varsayılanı)
+  const beklenti = personel?.beklenti ?? 0
+
+  // Seçili firmanın ücreti; yoksa işçinin beklentisi, yoksa sistem varsayılanı
   const firmaVarsayilan = useMemo(() => {
     const f = firmalar.find((x) => x.id === Number(firmaId))
     return {
-      gunluk: f?.gunlukUcret ?? varsayilanGunluk,
+      gunluk: f?.gunlukUcret ?? (beklenti > 0 ? beklenti : varsayilanGunluk),
       saatlik: f?.saatlikUcret ?? varsayilanSaatlik,
     }
-  }, [firmaId, firmalar, varsayilanGunluk, varsayilanSaatlik])
+  }, [firmaId, firmalar, varsayilanGunluk, varsayilanSaatlik, beklenti])
 
   function firmaDegisti(v: string) {
     const id = v ? Number(v) : ''
     setFirmaId(id)
-    // Ücret alanlarını firma varsayılanıyla doldur (kullanıcı üzerine yazabilir)
+    // Ücret alanlarını geçerli varsayılanla doldur (firma > beklenti > sistem; kullanıcı üzerine yazabilir)
     const f = firmalar.find((x) => x.id === Number(id))
-    setGunluk(String(f?.gunlukUcret ?? varsayilanGunluk))
+    setGunluk(String(f?.gunlukUcret ?? (beklenti > 0 ? beklenti : varsayilanGunluk)))
     setSaatlik(f?.saatlikUcret ? String(f.saatlikUcret) : String(varsayilanSaatlik))
   }
 
@@ -223,7 +226,7 @@ export function IkPersonelForm({
                       className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
                     />
                     <p className="mt-1 text-[11px] text-slate-500">
-                      Firma varsayılanı: <b>{tl(firmaVarsayilan.gunluk)}</b>{firmaId === '' ? ' (sistem)' : ''}
+                      Varsayılan: <b>{tl(firmaVarsayilan.gunluk)}</b>{firmaId === '' ? ' (sistem)' : ''}
                     </p>
                   </div>
                   <div>

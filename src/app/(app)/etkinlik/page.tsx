@@ -86,7 +86,7 @@ export default async function EtkinlikLoguPage({
                     </Td>
                     <Td className="text-right tabular-nums">{e.girisSayisi}</Td>
                     <Td className="text-right tabular-nums font-semibold">{e.aktifDakika} dk</Td>
-                    <Td className="tabular-nums">{e.sonAktivite ? new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(e.sonAktivite) : '—'}</Td>
+                    <Td className="tabular-nums">{e.sonAktivite ? new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(e.sonAktivite) : '—'}</Td>
                     <Td className="text-right">
                       <details className="inline-block">
                         <summary className="cursor-pointer rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50">Ne yaptı ({kullaniciKayitlari.get(e.kullaniciId)?.length ?? 0})</summary>
@@ -99,7 +99,7 @@ export default async function EtkinlikLoguPage({
                                 <li key={k.id} className="flex items-start gap-2 text-xs text-slate-600">
                                   <span className="mt-0.5 text-slate-300"><Icon name="clock" size={12} /></span>
                                   <span>
-                                    <span className="tabular-nums text-slate-400">{new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }).format(k.tarih)}</span>
+                                    <span className="tabular-nums text-slate-400">{new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit' }).format(k.tarih)}</span>
                                     <span className="ml-1.5">{k.islem.startsWith('Sayfa:') ? <><b>Sayfa</b>: {k.islem.slice(6)}</> : k.islem}</span>
                                   </span>
                                 </li>
@@ -135,7 +135,7 @@ export default async function EtkinlikLoguPage({
               <tbody className="divide-y divide-slate-50">
                 {kayitlar.slice().reverse().map((k) => (
                   <tr key={k.id} className="hover:bg-slate-50/60">
-                    <Td className="tabular-nums text-slate-500">{new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(k.tarih)}</Td>
+                    <Td className="tabular-nums text-slate-500">{new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(k.tarih)}</Td>
                     <Td className="font-medium text-slate-900">{k.kullanici.ad}</Td>
                     <Td className="text-slate-600">{k.islem.startsWith('Sayfa:') ? <>Sayfa: <span className="font-mono text-indigo-700">{k.islem.slice(6)}</span></> : <Badge tone={k.islem === 'Giriş yaptı' ? 'green' : k.islem === 'Çıkış yaptı' ? 'amber' : 'slate'}>{k.islem}</Badge>}</Td>
                   </tr>

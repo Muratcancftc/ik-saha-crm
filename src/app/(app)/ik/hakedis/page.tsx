@@ -6,6 +6,7 @@ import { istanbulBugun } from '@/lib/dates'
 import { Card, CardHeader, Badge, EmptyState, Th, Td } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { OdemeForm } from './odeme-form'
+import { OnayForm } from '@/components/sil-onay'
 import { donemHesapla, donemKilidiAc, odemeSil } from '@/app/actions/ik'
 import { tl, yuvarla, donemAvansKesinti } from '@/lib/ik'
 import { decrypt } from '@/lib/crypto'
@@ -162,13 +163,20 @@ export default async function IkHakedisPage({
                           <>
                             {s.donem.kilitli ? (
                               user.rol === 'patron' ? (
-                                <form action={donemKilidiAc}>
-                                  <input type="hidden" name="id" value={s.donem.id} />
-                                  <button className="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100">Kilidi Aç</button>
-                                </form>
+                                <OnayForm
+                                  action={donemKilidiAc}
+                                  gizli={{ id: s.donem.id }}
+                                  onayMetni="Dönem kilidi açılsın mı? Ödeme ve puantaj yeniden düzenlenebilir."
+                                  className="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
+                                  title="Kilidi aç"
+                                >
+                                  Kilidi Aç
+                                </OnayForm>
                               ) : (
                                 <Badge tone="green">Kilitli</Badge>
                               )
+                            ) : s.odenen >= Number(s.donem.netOdenecek) ? (
+                              <Badge tone="green">Tam ödendi</Badge>
                             ) : (
                               <OdemeForm
                                 donem={{
