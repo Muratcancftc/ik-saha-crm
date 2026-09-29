@@ -15,6 +15,12 @@ import { belgeEkle, silBelge } from '@/app/actions/belge'
 
 export const dynamic = 'force-dynamic'
 
+// Boş bırakılan doğum tarihi placeholder'ı (1990-01-01) gerçek doğum tarihi olarak gösterilmez
+function dogumTarihiGirildi(d: Date): boolean {
+  const x = new Date(d)
+  return !(x.getFullYear() === 1990 && x.getMonth() === 0 && x.getDate() === 1)
+}
+
 const BELGE_TIPLERI = ['Kimlik Kartı', 'SGK İşe Giriş', 'Adli Sicil Kaydı', 'Vardiya Belgesi', 'Sağlık Raporu']
 
 export default async function IsciProfilPage({
@@ -74,7 +80,7 @@ export default async function IsciProfilPage({
               <Satir label="IBAN" value={<MaskedValue value={isci.iban} mask={isci.ibanMasked} />} />
               <Satir label="Telefon" value={isci.telefon} />
               <Satir label="İlçe" value={isci.ilce} />
-              <Satir label="Doğum Tarihi" value={date(isci.dogumTarihi)} />
+              <Satir label="Doğum Tarihi" value={dogumTarihiGirildi(isci.dogumTarihi) ? date(isci.dogumTarihi) : '—'} />
               <Satir label="Günlük Beklenti" value={tl(isci.beklenti)} />
               <Satir label="Puan" value={num(isci.puan)} />
               <Satir label="Tercih Bölgeler" value={isci.tercihBolgeler.join(', ') || '—'} />

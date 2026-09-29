@@ -282,6 +282,13 @@ export async function puantajGir(formData: FormData) {
 
   if (!isciId || !firmaId || !tarih) return
 
+  // Kilitli (ödendi) bir döneme puantaj girilemez
+  const kilitliDonem = await prisma.odemeDonemi.findFirst({
+    where: { isciId, firmaId, baslangic: { lte: tarih }, bitis: { gt: tarih }, kilitli: true },
+    select: { id: true },
+  })
+  if (kilitliDonem) return
+
   const mevcut = await prisma.puantajKayit.findUnique({ where: { isciId_tarih: { isciId, tarih } } })
   if (mevcut && !uzerineYaz) return
 
@@ -322,6 +329,13 @@ export async function puantajGir(formData: FormData) {
 export async function puantajSil(formData: FormData) {
   await requireRoles([...YAZANLAR])
   const id = Number(formData.get('id'))
+  const kayit = await prisma.puantajKayit.findUnique({ where: { id } })
+  if (!kayit) return
+  const kilitliDonem = await prisma.odemeDonemi.findFirst({
+    where: { isciId: kayit.isciId, firmaId: kayit.firmaId, baslangic: { lte: kayit.tarih }, bitis: { gt: kayit.tarih }, kilitli: true },
+    select: { id: true },
+  })
+  if (kilitliDonem) return
   await prisma.puantajKayit.delete({ where: { id } })
   revalidatePath('/ik/puantaj')
   return
@@ -337,6 +351,11 @@ export async function puantajToplu(formData: FormData) {
   if (!firmaId || !tarih || isciIds.length === 0) return
 
   for (const isciId of isciIds) {
+    const kilitliDonem = await prisma.odemeDonemi.findFirst({
+      where: { isciId, firmaId, baslangic: { lte: tarih }, bitis: { gt: tarih }, kilitli: true },
+      select: { id: true },
+    })
+    if (kilitliDonem) continue // kilitli döneme puantaj yazılamaz
     const cozum = await ucretCozumle(isciId, firmaId, tarih)
     const { tutar } = await puantajTutarHesapla({
       fsi,

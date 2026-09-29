@@ -14,7 +14,7 @@ import {
   yuvarla,
   tarihTr,
 } from '@/lib/vergi'
-import { vergiSil, sablonOlustur, sablonSil } from '@/app/actions/vergi'
+import { vergiSil, vergiEkOdeme, sablonOlustur, sablonSil } from '@/app/actions/vergi'
 import { SilOnayForm } from '@/components/sil-onay'
 import { GeriAlButon } from './geri-al'
 
@@ -64,8 +64,11 @@ export default async function VergiOdemelerPage({
     .filter((k) => k.sonOdemeTarihi >= ayBas && k.sonOdemeTarihi < ayBit && Number(k.odenenTutar ?? 0) === 0)
     .reduce((a, k) => a + Number(k.tahakkukTutari), 0)
   const odenenToplam = kayitlar.filter((k) => Number(k.odenenTutar ?? 0) > 0).reduce((a, k) => a + Number(k.odenenTutar), 0)
-  const bekleyenToplam = kayitlar.filter((k) => Number(k.odenenTutar ?? 0) === 0).reduce((a, k) => a + Number(k.tahakkukTutari), 0)
-  const gecikmisAdet = kayitlar.filter((k) => Number(k.odenenTutar ?? 0) === 0 && k.sonOdemeTarihi < bugun).length
+  // Bekleyen: ödenmemiş + KISMI ödenen kayıtların KALAN tutarları (tahakkuk − ödenen)
+  const bekleyenToplam = kayitlar
+    .filter((k) => Number(k.odenenTutar ?? 0) < Number(k.tahakkukTutari))
+    .reduce((a, k) => a + (Number(k.tahakkukTutari) - Number(k.odenenTutar ?? 0)), 0)
+  const gecikmisAdet = kayitlar.filter((k) => Number(k.odenenTutar ?? 0) < Number(k.tahakkukTutari) && k.sonOdemeTarihi < bugun).length
 
   // Rapor: firma bazlı yıl + tür kırılımı
   const yil = bugun.getFullYear()
@@ -198,6 +201,23 @@ export default async function VergiOdemelerPage({
                       <Td className="text-right">
                         <div className="flex flex-wrap justify-end gap-1.5">
                           {yazabilir && odenen === 0 && <OdeModal kayit={{ id: k.id, firmaAd: k.firma.ad, tur: k.vergiTuru === 'DIGER' ? k.vergiTuruDiger ?? 'Diğer' : VERGI_TUR_ETIKET[k.vergiTuru], donem: k.donem, tahakkuk: Number(k.tahakkukTutari) }} />}
+                          {yazabilir && durum === 'KISMI_ODENDI' && (
+                            <form action={vergiEkOdeme} className="flex items-center gap-1">
+                              <input type="hidden" name="id" value={k.id} />
+                              <input
+                                name="tutar"
+                                type="number"
+                                step="0.01"
+                                min={0}
+                                defaultValue={yuvarla(Number(k.tahakkukTutari) - odenen)}
+                                title="Ek ödeme tutarı"
+                                className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs tabular-nums outline-none focus:border-indigo-500"
+                              />
+                              <button type="submit" title="Kalanı öde (ek ödeme)" className="rounded-lg p-1 text-emerald-600 transition hover:bg-emerald-50">
+                                <Icon name="wallet" size={14} />
+                              </button>
+                            </form>
+                          )}
                           {admin && odenen > 0 && <GeriAlButon id={k.id} />}
                           {yazabilir && <VergiForm mode="edit" kayit={{ id: k.id, firmaId: k.firmaId, tur: k.vergiTuru, donem: k.donem, tahakkuk: Number(k.tahakkukTutari), sonOdemeTarihi: k.sonOdemeTarihi.toISOString().slice(0, 10), not: k.not ?? '', vergiTuruDiger: k.vergiTuruDiger ?? '' }} firmalar={firmalar.map((f) => ({ id: f.id, ad: f.ad }))} />}
                           {admin && <SilOnayForm action={vergiSil} id={k.id} baslik={`${k.firma.ad} ${k.donem} vergisi`} buttonClass="rounded-lg p-1.5 text-slate-300 transition hover:bg-red-50 hover:text-red-600" />}

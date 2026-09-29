@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getDownloadUrl } from '@vercel/blob'
+import { get } from '@vercel/blob'
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { requireApiAccess } from '@/lib/dal'
@@ -50,10 +50,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
   }
 
-  // Vercel Blob → imzalı (signed) URL
+  // Vercel Blob → OIDC ile kimlik doğrulamalı içerik (imzasız private URL 403 döner)
   try {
-    const signed = await getDownloadUrl(dekont.dosyaUrl)
-    return NextResponse.redirect(signed)
+    const result = await get(dekont.dosyaUrl, { access: 'private' })
+    if (!result) return NextResponse.json({ error: 'Dosya bulunamadı' }, { status: 404 })
+    const buf = await new Response(result.stream).arrayBuffer()
+    return new NextResponse(buf, {
+      headers: {
+        'Content-Type': MIME[dekont.dosyaTipi] ?? 'application/octet-stream',
+        'Content-Length': String(buf.byteLength),
+        'Content-Disposition': indir
+          ? `attachment; filename*=UTF-8''${encodeURIComponent(dekont.dosyaAdi)}`
+          : 'inline',
+        'Cache-Control': 'private, no-store',
+      },
+    })
   } catch {
     return NextResponse.json({ error: 'Dosya bulunamadı' }, { status: 404 })
   }

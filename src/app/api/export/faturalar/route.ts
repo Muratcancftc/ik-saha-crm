@@ -18,16 +18,18 @@ export async function GET() {
   }
 
   const faturalar = await prisma.fatura.findMany({
+    where: { silindi: false },
     include: { firma: true, tahsilatlar: true },
     orderBy: { createdAt: 'desc' },
   })
 
-  const baslik = ['No', 'Dönem', 'Firma', 'Vade', 'Net', 'KDV %20', 'Genel Toplam', 'Tahsilat', 'Alacak', 'Durum']
+  const baslik = ['No', 'Dönem', 'Kesim', 'Firma', 'Vade', 'Net', 'KDV %20', 'Genel Toplam', 'Tahsilat', 'Alacak', 'Durum']
   const satirlar = faturalar.map((f) => {
     const tahsilat = f.tahsilatlar.reduce((a, t) => a + Number(t.tutar), 0)
     return [
       f.no,
       f.donem,
+      f.kesimTarihi.toLocaleDateString('tr-TR'),
       f.firma.ad,
       f.vadeTarihi.toLocaleDateString('tr-TR'),
       Number(f.araToplam).toFixed(2),

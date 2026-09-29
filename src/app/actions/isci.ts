@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { encrypt, decrypt } from '@/lib/crypto'
 import { bolgeGecerli } from '@/lib/bolge'
+import { hakedisOlustur } from './hakedis'
 import type { IsciDurum } from '@prisma/client'
 
 function parseMeslekler(formData: FormData): number[] {
@@ -34,9 +35,9 @@ export async function createIsci(_prev: IsciActionState, formData: FormData): Pr
   const iban = String(formData.get('iban') ?? '').replace(/\s/g, '')
   if (!/^TR\d{24}$/.test(iban)) return { error: 'IBAN geçersiz (TR + 24 hane).' }
 
-  // Doğum tarihi isteğe bağlı — boş bırakılırsa Invalid Date crash'ini önle
+  // Doğum tarihi isteğe bağlı — boş bırakılırsa profil "—" gösterir (1990-01-01 placeholder)
   const dogumRaw = String(formData.get('dogumTarihi') ?? '')
-  const dogumTarihi = dogumRaw ? new Date(dogumRaw) : new Date()
+  const dogumTarihi = dogumRaw ? new Date(dogumRaw) : new Date(1990, 0, 1)
 
   await prisma.isci.create({
     data: {
@@ -88,7 +89,7 @@ export async function updateIsci(_prev: IsciActionState, formData: FormData): Pr
         tcKimlik: tc ? encrypt(tc) : mevcut.tcKimlik,
         ilce: String(formData.get('ilce') ?? mevcut.ilce),
         iban: iban ? encrypt(iban) : mevcut.iban,
-        dogumTarihi: formData.get('dogumTarihi') ? new Date(String(formData.get('dogumTarihi'))) : mevcut.dogumTarihi,
+        dogumTarihi: formData.get('dogumTarihi') ? new Date(String(formData.get('dogumTarihi'))) : new Date(1990, 0, 1),
         puan: Number(formData.get('puan') ?? mevcut.puan) || mevcut.puan,
         gunlukUcretBeklentisi:
           Number(formData.get('gunlukUcretBeklentisi') ?? mevcut.gunlukUcretBeklentisi) ||
@@ -187,11 +188,20 @@ export async function avansEkle(formData: FormData) {
   const isciId = Number(formData.get('isciId'))
   const tutar = Number(formData.get('tutar'))
   if (!isciId || !tutar || tutar <= 0) return
+  const tarih = formData.get('tarih') ? new Date(String(formData.get('tarih'))) : new Date()
   await prisma.avans.create({
-    data: { isciId, tutar, tarih: formData.get('tarih') ? new Date(String(formData.get('tarih'))) : new Date(), durum: 'verildi' },
+    data: { isciId, tutar, tarih, durum: 'verildi' },
   })
+  // Avans hakedişe otomatik düşsün: ilgili dönemdeki hakedişi yeniden hesapla
+  const ayBas = new Date(tarih.getFullYear(), tarih.getMonth(), 1)
+  const ayBit = new Date(tarih.getFullYear(), tarih.getMonth() + 1, 1)
+  const ornekAtama = await prisma.atama.findFirst({
+    where: { isciId, tarih: { gte: ayBas, lt: ayBit }, durum: 'tamamlandi', puantaj: { isNot: null } },
+  })
+  if (ornekAtama) await hakedisOlustur(ornekAtama.id)
   revalidatePath(`/isci-havuzu/${isciId}`)
   revalidatePath('/isci-havuzu')
+  revalidatePath('/hakedis')
   return
 }
 

@@ -17,8 +17,12 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url)
-  const bas = startOfDay(parseLocalDate(url.searchParams.get('bas') ?? ''))
-  const bit = addDays(parseLocalDate(url.searchParams.get('bit') ?? ''), 1)
+  // Parametresiz çağrıda içinde bulunulan ay kullanılır
+  const ay = new Date()
+  const basParam = url.searchParams.get('bas') ?? `${ay.getFullYear()}-${String(ay.getMonth() + 1).padStart(2, '0')}-01`
+  const bitParam = url.searchParams.get('bit') ?? new Date(ay.getFullYear(), ay.getMonth() + 1, 0).toISOString().slice(0, 10)
+  const bas = startOfDay(parseLocalDate(basParam))
+  const bit = addDays(parseLocalDate(bitParam), 1)
   const firmaId = Number(url.searchParams.get('firma')) || undefined
 
   const firmalar = firmaId ? await prisma.musteriFirma.findMany({ where: { id: firmaId } }) : await prisma.musteriFirma.findMany({ orderBy: { ad: 'asc' } })
@@ -31,11 +35,13 @@ export async function GET(req: Request) {
     for (const i of personel) {
       const puantajlar = await prisma.puantajKayit.findMany({ where: { isciId: i.id, firmaId: firma.id, tarih: { gte: bas, lt: bit } } })
       const brut = yuvarla(puantajlar.reduce((a, p) => a + Number(p.hesaplananTutar), 0))
+      // Puantaj günü: "Gelmedi" (fsi=0) sayılmaz — tam=1, yarım=0.5
+      const gun = yuvarla(puantajlar.reduce((a, p) => a + Number(p.fsi), 0))
       const { avans, kesinti } = await donemAvansKesinti(i.id, bas, bit)
       const net = yuvarla(brut - avans - kesinti)
       const donem = await prisma.odemeDonemi.findUnique({ where: { isciId_firmaId_baslangic_bitis: { isciId: i.id, firmaId: firma.id, baslangic: bas, bitis: bit } }, include: { odemeler: true } })
       const odenen = donem ? yuvarla(donem.odemeler.reduce((a, o) => a + Number(o.tutar), 0)) : 0
-      satirlar.push([firma.ad, i.ad, puantajlar.length, brut.toFixed(2), avans.toFixed(2), kesinti.toFixed(2), net.toFixed(2), odenen.toFixed(2), Math.max(0, net - odenen).toFixed(2)])
+      satirlar.push([firma.ad, i.ad, gun.toFixed(2), brut.toFixed(2), avans.toFixed(2), kesinti.toFixed(2), net.toFixed(2), odenen.toFixed(2), Math.max(0, net - odenen).toFixed(2)])
     }
   }
 
@@ -43,7 +49,7 @@ export async function GET(req: Request) {
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="ik-rapor-${url.searchParams.get('bas')}.csv"`,
+      'Content-Disposition': `attachment; filename="ik-rapor-${basParam}.csv"`,
     },
   })
 }

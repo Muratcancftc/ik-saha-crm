@@ -5,6 +5,7 @@ import { takvimTalepDetay } from '@/app/actions/takvim'
 import { updatePuantaj, sgkBildir, cikarAtama } from '@/app/actions/talep'
 import { setAtamaDurumOtomatik } from '@/app/actions/hakedis'
 import { AtamaPaneli } from '../talepler/atama-paneli'
+import { SilOnayForm } from '@/components/sil-onay'
 import { Icon } from '@/components/icons'
 import { Badge, Button } from '@/components/ui'
 import { AtamaBadge, PuantajBadge } from '@/components/status-badge'
@@ -72,7 +73,7 @@ export function TalepDetayModal({ talepId, acik, kapat, yenileAnahtari }: { tale
             </div>
             {d && (
               <p className="mt-1 text-sm text-indigo-100">
-                {d.lokasyon} · {d.tarih}
+                {d.lokasyon} · {d.tarih ? new Date(d.tarih + 'T00:00:00').toLocaleDateString('tr-TR') : ''}
                 {d.not && <span className="block text-xs text-indigo-200">Not: {d.not}</span>}
               </p>
             )}
@@ -142,12 +143,15 @@ export function TalepDetayModal({ talepId, acik, kapat, yenileAnahtari }: { tale
                           <input type="hidden" name="atamaId" value={a.id} />
                           {(['geldi', 'gec', 'gelmedi', 'yarim'] as const).map((pu) => {
                             const aktif = a.puantaj === pu
+                            const iptal = a.durum === 'iptal'
                             return (
                               <button
                                 key={pu}
                                 type="submit"
                                 name="durum"
                                 value={pu}
+                                disabled={iptal}
+                                title={iptal ? 'İptal edilen atamaya puantaj girilemez' : undefined}
                                 className={`px-2 py-1 text-[11px] font-medium transition ${
                                   aktif
                                     ? pu === 'geldi'
@@ -157,7 +161,9 @@ export function TalepDetayModal({ talepId, acik, kapat, yenileAnahtari }: { tale
                                         : pu === 'gelmedi'
                                           ? 'bg-red-500 text-white'
                                           : 'bg-sky-500 text-white'
-                                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                                    : iptal
+                                      ? 'cursor-not-allowed bg-slate-100 text-slate-300'
+                                      : 'bg-white text-slate-600 hover:bg-slate-50'
                                 }`}
                               >
                                 {pu === 'geldi' ? 'Geldi' : pu === 'gec' ? 'Geç' : pu === 'gelmedi' ? 'Gelmedi' : 'Yarım'}
@@ -177,12 +183,14 @@ export function TalepDetayModal({ talepId, acik, kapat, yenileAnahtari }: { tale
                             <Button variant="secondary" size="sm" type="submit">Tamamla</Button>
                           </form>
                         )}
-                        <form action={cikarAtama}>
-                          <input type="hidden" name="id" value={a.id} />
-                          <button className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Çıkar">
-                            <Icon name="x" size={14} />
-                          </button>
-                        </form>
+                        <SilOnayForm
+                          action={cikarAtama}
+                          id={a.id}
+                          baslik="Atama çıkarılıyor"
+                          onayMetni="Bu işlem kalıcıdır"
+                          ikon="x"
+                          buttonClass="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                        />
                       </div>
                     </li>
                   ))}

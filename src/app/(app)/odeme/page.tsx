@@ -1,6 +1,7 @@
 import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { decrypt, maskIBAN } from '@/lib/crypto'
+import { ibanGecerli } from '@/lib/ik'
 import { tl, num, date } from '@/lib/format'
 import { Card, CardHeader, Th, Td, Badge, EmptyState, Button } from '@/components/ui'
 import { Icon } from '@/components/icons'
@@ -81,14 +82,21 @@ export default async function OdemePage() {
               <tbody className="divide-y divide-slate-50">
                 {odemeler.map((o) => {
                   const ad = o.tip === 'isci' ? o.isci?.ad ?? '—' : o.personel?.ad ?? '—'
-                  const iban = o.tip === 'isci' && o.isci ? maskIBAN(decrypt(o.isci.iban)) : o.personel ? maskIBAN(decrypt(o.personel.iban)) : '—'
+                  const iban = o.tip === 'isci' && o.isci ? decrypt(o.isci.iban) : o.personel ? decrypt(o.personel.iban) : ''
+                  const ibanGecersiz = iban ? !ibanGecerli(iban) : false
                   return (
                     <tr key={o.id} className="hover:bg-slate-50/60">
                       <Td className="font-medium text-slate-900">{ad}</Td>
                       <Td>
                         <Badge tone={o.tip === 'isci' ? 'indigo' : 'violet'}>{o.tip === 'isci' ? 'İşçi' : 'Personel'}</Badge>
                       </Td>
-                      <Td className="tabular-nums text-slate-500">{iban}</Td>
+                      <Td className="tabular-nums text-slate-500">
+                        {ibanGecersiz ? (
+                          <Badge tone="red">IBAN eksik</Badge>
+                        ) : (
+                          <span className="text-slate-500">{iban ? maskIBAN(iban) : '—'}</span>
+                        )}
+                      </Td>
                       <Td className={`text-right font-semibold tabular-nums ${Number(o.tutar) < 0 ? 'text-red-600' : 'text-slate-900'}`}>{tl(o.tutar)}</Td>
                       <Td className="text-slate-500">{o.donem}</Td>
                       <Td>

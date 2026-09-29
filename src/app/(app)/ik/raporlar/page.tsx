@@ -29,10 +29,11 @@ export default async function IkRaporlarPage({
       const personel = await prisma.isci.findMany({ where: { firmaId: f.id, durum: 'aktif' }, select: { id: true } })
       const puantajlar = await prisma.puantajKayit.findMany({
         where: { firmaId: f.id, tarih: { gte: ayBas, lt: ayBit } },
-        select: { isciId: true, hesaplananTutar: true },
+        select: { isciId: true, hesaplananTutar: true, fsi: true },
       })
       const brut = yuvarla(puantajlar.reduce((a, p) => a + Number(p.hesaplananTutar), 0))
-      const gun = puantajlar.length
+      // Puantaj günü: "Gelmedi" (fsi=0) sayılmaz — tam=1, yarım=0.5
+      const gun = yuvarla(puantajlar.reduce((a, p) => a + Number(p.fsi), 0))
       const donemler = await prisma.odemeDonemi.findMany({ where: { firmaId: f.id, baslangic: ayBas, bitis: ayBit }, include: { odemeler: true } })
       const odenen = yuvarla(donemler.reduce((a, d) => a + d.odemeler.reduce((x, o) => x + Number(o.tutar), 0), 0))
       const net = yuvarla(donemler.reduce((a, d) => a + Number(d.netOdenecek), 0)) || brut

@@ -16,7 +16,7 @@ export default async function AramalarPage({
   const bolge = bolgeGecerli(sp.bolge)
 
   const personeller = await prisma.isci.findMany({
-    where: bolge ? { bolge } : {},
+    where: { ...(bolge ? { bolge } : {}), durum: 'aktif' },
     include: {
       firma: { select: { ad: true } },
       aramalar: { orderBy: { tarih: 'desc' }, take: 20, include: { kullanici: { select: { ad: true } } } },

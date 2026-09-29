@@ -7,7 +7,12 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-const CALISMA_TIPLERI = ['tam_zamanli', 'yari_zamanli', 'part_time', 'sozlesmeli']
+const CALISMA_TIPLERI: Record<string, string> = {
+  tam_zamanli: 'Tam zamanlı',
+  yari_zamanli: 'Yarı zamanlı',
+  part_time: 'Part-time',
+  sozlesmeli: 'Sözleşmeli',
+}
 
 export default async function IsIlanlariPage() {
   await requireRoles(['patron', 'operasyon'])
@@ -39,8 +44,8 @@ export default async function IsIlanlariPage() {
             <label className="mb-1 block text-xs font-medium text-slate-500">Çalışma Tipi</label>
             <select name="calismaTipi" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
               <option value="">—</option>
-              {CALISMA_TIPLERI.map((t) => (
-                <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
+              {Object.entries(CALISMA_TIPLERI).map(([deger, etiket]) => (
+                <option key={deger} value={deger}>{etiket}</option>
               ))}
             </select>
           </div>
@@ -70,6 +75,7 @@ export default async function IsIlanlariPage() {
             <thead>
               <tr className="border-b border-slate-100">
                 <Th>Başlık</Th>
+                <Th>Çalışma Tipi</Th>
                 <Th>Slug</Th>
                 <Th>Lokasyon</Th>
                 <Th>Başvuru</Th>
@@ -81,6 +87,7 @@ export default async function IsIlanlariPage() {
               {ilanlar.map((i) => (
                 <tr key={i.id} className="hover:bg-slate-50/60">
                   <Td className="font-medium text-slate-900">{i.baslik}</Td>
+                  <Td className="text-slate-500">{CALISMA_TIPLERI[i.calismaTipi ?? ''] ?? '—'}</Td>
                   <Td className="text-slate-500">{i.slug}</Td>
                   <Td className="text-slate-500">{i.lokasyon ?? '—'}</Td>
                   <Td className="tabular-nums">{i._count.adaylar}</Td>

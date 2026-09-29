@@ -187,20 +187,14 @@ export async function puantajTutarHesapla(input: {
   return { tutar: yuvarla(tutar), saatlikGunluk: 0 }
 }
 
-// ---- Dönem: avans + kesinti toplamları ----
+// ---- Dönem: İK kesintileri (klasik Avans tablosu İK zincirine karışmaz; çift düşümü önler) ----
 export async function donemAvansKesinti(isciId: number, bas: Date, bit: Date) {
-  const [avans, kesinti] = await Promise.all([
-    prisma.avans.aggregate({
-      where: { isciId, tarih: { gte: bas, lt: bit }, durum: 'verildi' },
-      _sum: { tutar: true },
-    }),
-    prisma.kesinti.aggregate({
-      where: { isciId, tarih: { gte: bas, lt: bit } },
-      _sum: { tutar: true },
-    }),
-  ])
+  const kesinti = await prisma.kesinti.aggregate({
+    where: { isciId, tarih: { gte: bas, lt: bit } },
+    _sum: { tutar: true },
+  })
   return {
-    avans: yuvarla(Number(avans._sum.tutar ?? 0)),
+    avans: 0, // İK avans mahsubu "kesinti" türüyle kaydedilir (avans_mahsup)
     kesinti: yuvarla(Number(kesinti._sum.tutar ?? 0)),
   }
 }

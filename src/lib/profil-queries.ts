@@ -132,10 +132,10 @@ export async function getFirmaProfil(firmaId: number, bas: Date, bit: Date) {
   })
   if (!firma) return null
 
-  // dönem ciro — KESİM TARİHİNE göre (vade değil)
+  // dönem ciro — KESİM TARİHİNE göre, KDV hariç (vade değil)
   const aktifFaturalar = firma.faturalar.filter((f) => !f.silindi)
   const donemFaturalar = aktifFaturalar.filter((f) => f.kesimTarihi >= bas && f.kesimTarihi < bit)
-  const ciro = donemFaturalar.reduce((a, f) => a + Number(f.genelToplam), 0)
+  const ciro = donemFaturalar.reduce((a, f) => a + Number(f.araToplam), 0)
   // dönem tahsilat — TAHsilatın KENDİ tarihine göre
   const tahsilat = aktifFaturalar.reduce(
     (a, f) => a + f.tahsilatlar.filter((t) => t.tarih >= bas && t.tarih < bit).reduce((x, t) => x + Number(t.tutar), 0),
@@ -238,7 +238,10 @@ export async function getPersonelProfil(personelId: number) {
 
   const maas = Number(personel.maas)
   const sgkOran = await getAyarSayi('SGK_ISVEREN_ORANI', 0.205)
-  const sgkIsveren = Math.round(maas * sgkOran)
+  // Maaş NET girilir; SGK işveren payı BRÜT üzerinden hesaplanır.
+  // Net → brüt (ilk %15 vergi dilimi): net = brüt × (1 − %14 SGK çalışan − %1 işsizlik − %15×(1−0.15) vergi − %0.759 damga)
+  const brut = maas / 0.71491
+  const sgkIsveren = Math.round(brut * sgkOran)
   const izinKullanilan = personel.izinler.filter((i) => i.tip === 'izin').reduce((a, i) => a + i.gun, 0)
   const raporGun = personel.izinler.filter((i) => i.tip === 'rapor').reduce((a, i) => a + i.gun, 0)
 
@@ -281,7 +284,7 @@ export async function getDashboardRapor(user: SessionUser, bas: Date, bit: Date)
     }),
   ])
 
-  const ciro = faturalar.reduce((a, f) => a + Number(f.genelToplam), 0)
+  const ciro = faturalar.reduce((a, f) => a + Number(f.araToplam), 0)
   const tahsilat = faturalar.reduce((a, f) => a + f.tahsilatlar.filter((t) => t.tarih >= bas && t.tarih < bit).reduce((x, t) => x + Number(t.tutar), 0), 0)
   const gider = giderler.reduce((a, g) => a + Number(g.tutar), 0)
   const netKar = ciro - gider
@@ -374,7 +377,7 @@ export async function getAylikTrend() {
   for (let i = 5; i >= 0; i--) {
     const mBas = new Date(bugun.getFullYear(), bugun.getMonth() - i, 1)
     const mBit = new Date(bugun.getFullYear(), bugun.getMonth() - i + 1, 1)
-    const fCiro = faturalar.filter((f) => f.kesimTarihi >= mBas && f.kesimTarihi < mBit).reduce((a, f) => a + Number(f.genelToplam), 0)
+    const fCiro = faturalar.filter((f) => f.kesimTarihi >= mBas && f.kesimTarihi < mBit).reduce((a, f) => a + Number(f.araToplam), 0)
     const gGider = giderler.filter((g) => g.tarih >= mBas && g.tarih < mBit).reduce((a, g) => a + Number(g.tutar), 0)
     aylar.push({ etiket: mBas.toLocaleDateString('tr-TR', { month: 'short' }), ciro: fCiro, gider: gGider, netKar: fCiro - gGider })
   }

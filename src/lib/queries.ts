@@ -39,8 +39,8 @@ export async function getMaliVeri(bas?: Date, bit?: Date) {
   const giderWhere = bas && bit ? { tarih: { gte: bas, lt: bit } } : {}
   const tahsilatWhere = bas && bit ? { tarih: { gte: bas, lt: bit } } : {}
 
-  const [faturalar, hakedislerList, giderler, personel, odemeler, tahsilatlar] = await Promise.all([
-    prisma.fatura.findMany({ where: { ...faturaWhere, silindi: false }, include: { tahsilatlar: true } }),
+  const [faturalar, hakedislerList, giderler, personel, odemeler, tahsilatlar, vergiOdemeleri] = await Promise.all([
+    prisma.fatura.findMany({ where: { ...faturaWhere, silindi: false } }),
     prisma.hakedis.findMany({ where: hakedisWhere }),
     prisma.gider.findMany({ where: giderWhere }),
     prisma.personel.aggregate({ _sum: { maas: true } }),
@@ -48,9 +48,14 @@ export async function getMaliVeri(bas?: Date, bit?: Date) {
       where: bas && bit ? { durum: 'odendi', odemeTarihi: { gte: bas, lt: bit } } : { durum: 'odendi' },
     }),
     prisma.tahsilat.aggregate({ where: tahsilatWhere, _sum: { tutar: true } }),
+    prisma.vergiOdemesi.aggregate({
+      where: { silindi: false, odenenTutar: { not: null }, ...(bas && bit ? { odemeTarihi: { gte: bas, lt: bit } } : {}) },
+      _sum: { odenenTutar: true },
+    }),
   ])
 
-  const ciro = faturalar.reduce((a, f) => a + Number(f.genelToplam), 0)
+  // Ciro KDV hariç (ara toplam) üzerinden sayılır
+  const ciro = faturalar.reduce((a, f) => a + Number(f.araToplam), 0)
   const tahsilat = Number(tahsilatlar._sum.tutar ?? 0)
 
   // Alacak bir BAKİYEDİR: dönemden bağımsız, tüm kesilen − tüm ödenen
@@ -78,7 +83,7 @@ export async function getMaliVeri(bas?: Date, bit?: Date) {
   // Dönemsel bordro tahmini (aylık personel maaş toplamı)
   const aylikBordro = Number(personel._sum.maas ?? 0)
 
-  const odenenVergi = odemeler.reduce((acc, o) => acc + Number(o.tutar), 0)
+  const odenenVergi = odemeler.reduce((acc, o) => acc + Number(o.tutar), 0) + Number(vergiOdemeleri._sum.odenenTutar ?? 0)
 
   // Net kâr = ciro − (saha işçi maliyeti + genel giderler + bordro + ödenen resmi ödeme)
   const netKar = ciro - (sahaIsciMaliyeti + genelGiderler + personelBordroGider + odenenVergi)

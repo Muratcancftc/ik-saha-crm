@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { startOfDay, addDays } from '@/lib/dates'
 import { parseLocalDate } from '@/lib/donem'
+import { yuvarla } from '@/lib/ik'
 import type { AtamaDurum } from '@prisma/client'
 
 // Bir atamanın hakedişini üret: işçi+firma+ay bazında TOPLA.
@@ -49,15 +50,17 @@ export async function hakedisOlustur(atamaId: number) {
 
   let gun = 0
   let musteri = 0
+  let sahaMaliyeti = 0
   let sonTarih = uygun[0].tarih
   for (const a of uygun) {
     gun++
     const meslekId = a.meslekId ?? a.talep.kalemler[0]?.meslekId ?? null
     musteri += meslekId ? (fiyatMap.get(meslekId) ?? 0) : 0
+    sahaMaliyeti += Number(a.yevmiye) // atama anındaki günlük ücret snapshot'ı
     if (a.tarih > sonTarih) sonTarih = a.tarih
   }
 
-  const yevmiye = Number(atama.isci.gunlukUcretBeklentisi)
+  const yevmiye = gun > 0 ? yuvarla(sahaMaliyeti / gun) : 0
 
   const avansToplam = await prisma.avans.aggregate({
     where: { isciId, durum: 'verildi' },
@@ -66,8 +69,9 @@ export async function hakedisOlustur(atamaId: number) {
   const avans = Number(avansToplam._sum.tutar ?? 0)
   const kesinti = 0
 
-  const isciNet = gun * yevmiye - avans - kesinti
-  const marj = musteri - gun * yevmiye
+  // Atama anındaki yevmiye snapshot'larıyla hesapla (güncel yevmiye değişikliği geçmişi bozmaz)
+  const isciNet = yuvarla(sahaMaliyeti - avans - kesinti)
+  const marj = yuvarla(musteri - sahaMaliyeti)
 
   return prisma.hakedis.upsert({
     where: { isciId_firmaId_donemKey: { isciId, firmaId, donemKey } },

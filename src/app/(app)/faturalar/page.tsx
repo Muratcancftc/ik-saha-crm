@@ -37,7 +37,20 @@ export default async function FaturalarPage() {
         <CardHeader
           title="Faturalar"
           desc="KDV %20 otomatik hesaplanır; tahsilat işlemleri en sağdaki İşlem sütununda — tabloyu sağa kaydırın"
-          action={<FaturaForm firmalar={firmalar.map((f) => ({ id: f.id, ad: f.ad }))} />}
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <FaturaForm firmalar={firmalar.map((f) => ({ id: f.id, ad: f.ad }))} />
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+              <a
+                href="/api/export/faturalar"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-50"
+                title="KDV icmali ve fatura listesi (CSV)"
+              >
+                <Icon name="excel" size={15} />
+                Excel (CSV)
+              </a>
+            </div>
+          }
         />
         <div className="relative overflow-x-auto">
           <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-100/80 to-transparent" />

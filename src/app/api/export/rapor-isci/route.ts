@@ -15,9 +15,10 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url)
-  const bas = url.searchParams.get('bas')
-  const bit = url.searchParams.get('bit')
-  if (!bas || !bit) return NextResponse.json({ error: 'dönem eksik' }, { status: 400 })
+  // Parametresiz çağrıda içinde bulunulan ay kullanılır (boş/0 rapor yerine)
+  const ay = new Date()
+  const bas = url.searchParams.get('bas') ?? `${ay.getFullYear()}-${String(ay.getMonth() + 1).padStart(2, '0')}-01`
+  const bit = url.searchParams.get('bit') ?? new Date(ay.getFullYear(), ay.getMonth() + 1, 0).toISOString().slice(0, 10)
 
   const hakedisler = await prisma.hakedis.findMany({
     where: { donemBitis: { gte: new Date(`${bas}T00:00:00`), lt: new Date(`${bit}T00:00:00`) } },

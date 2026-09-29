@@ -72,7 +72,7 @@ export function IsciDetayModal({ isciId, isciAd }: { isciId: number; isciAd: str
                     <dl className="space-y-1 text-xs text-slate-600">
                       <div className="flex justify-between"><dt className="text-slate-400">TC</dt><dd className="tabular-nums">{d.tcKimlik}</dd></div>
                       <div className="flex justify-between"><dt className="text-slate-400">IBAN</dt><dd className="tabular-nums">{d.iban}</dd></div>
-                      <div className="flex justify-between"><dt className="text-slate-400">Doğum</dt><dd>{d.dogumTarihi}</dd></div>
+                      <div className="flex justify-between"><dt className="text-slate-400">Doğum</dt><dd>{d.dogumTarihi && d.dogumTarihi !== '1990-01-01' ? d.dogumTarihi : '—'}</dd></div>
                       <div className="flex justify-between">
                         <dt className="text-slate-400">Durum</dt>
                         <dd><Badge tone={(DURUM_TONE[d.durum] ?? 'slate') as never}>{d.durum}</Badge></dd>

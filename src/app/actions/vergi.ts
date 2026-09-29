@@ -114,6 +114,46 @@ export async function odendiIsaretle(_prev: VergiState, formData: FormData): Pro
   return { ok: true }
 }
 
+// ---- Kısmi ödenen kayda EK ödeme ekle (üzerine yazmaz, artırır) ----
+export async function vergiEkOdeme(formData: FormData): Promise<void> {
+  const user = await requireRoles([...YAZANLAR])
+  const id = Number(formData.get('id'))
+  const mevcut = await prisma.vergiOdemesi.findUnique({ where: { id } })
+  if (!mevcut || mevcut.silindi) return
+  const ek = Number(formData.get('tutar'))
+  if (Number.isNaN(ek) || ek <= 0) return
+
+  const onceki = Number(mevcut.odenenTutar ?? 0)
+  const yeni = yuvarla(Math.min(onceki + ek, Number(mevcut.tahakkukTutari)))
+  if (yeni <= onceki) return
+
+  await prisma.vergiOdemesi.update({
+    where: { id },
+    data: {
+      odemeTarihi: mevcut.odemeTarihi ?? startOfDay(),
+      odenenTutar: yeni,
+      odemeYontemi: mevcut.odemeYontemi ?? ((String(formData.get('odemeYontemi') ?? 'BANKA') as VergiOdemeYontemi) || 'BANKA'),
+    },
+  })
+  await audit(id, 'ekOdeme', String(onceki), String(yeni), user.id)
+
+  // Dekont yükleme (opsiyonel)
+  const dosyalar = formData.getAll('dekontlar')
+  for (const d of dosyalar) {
+    if (typeof d === 'string' || !(d instanceof File)) continue
+    const hata = dekontGecerli(d)
+    if (hata) return
+    const meta = await dekontKaydet(d)
+    await prisma.vergiDekont.create({
+      data: { vergiOdemeId: id, dosyaUrl: meta.url, dosyaAdi: meta.ad, dosyaTipi: meta.tip, dosyaBoyutu: meta.boyut, yukleyenKullaniciId: user.id },
+    })
+    await audit(id, 'dekont', null, meta.ad, user.id)
+  }
+
+  revalidatePath('/vergi-odemeler')
+  revalidatePath(`/vergi-odemeler/${id}`)
+}
+
 // ---- Ödendi → Ödenmedi (geri alma, ADMIN; dekontlar silinmez) ----
 export async function odenmediyeDon(formData: FormData) {
   const user = await requireRoles([...ADMIN])

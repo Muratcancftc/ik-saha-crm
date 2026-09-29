@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
-import { startOfDay, addDays } from '@/lib/dates'
+import { startOfDay, addDays, daysUntil } from '@/lib/dates'
 import { parseLocalDate } from '@/lib/donem'
 import { hakedisOlustur } from './hakedis'
 import type { PuantajDurum, Vardiya } from '@prisma/client'
@@ -36,12 +36,23 @@ export async function manuelPuantajEkle(_prev: ManuelPuantajState, formData: For
   }
   if (!meslekId) return { error: 'Meslek seçiniz (hakediş fiyatı için gerekli).' }
 
-  const isci = await prisma.isci.findUnique({ where: { id: isciId } })
+  const isci = await prisma.isci.findUnique({ where: { id: isciId }, include: { belgeler: true } })
   if (!isci) return { error: 'İşçi bulunamadı.' }
   if (isci.durum !== 'aktif') return { error: `${isci.ad} aktif değil.` }
 
   const tarih = startOfDay(parseLocalDate(tarihStr))
   const ertesi = addDays(tarih, 1)
+
+  // Gelecek tarihe puantaj girilemez
+  if (tarih > startOfDay()) return { error: 'Gelecek bir tarihe puantaj girilemez.' }
+
+  // Belge kontrolü (normal atama ile aynı kural): süresi dolmuş belgeli işçi çalıştırılamaz
+  const bugun = startOfDay()
+  const dolmus = isci.belgeler.filter((b) => b.bitisTarihi < bugun)
+  if (dolmus.length > 0) {
+    return { error: `${isci.ad} belgesi süresi dolmuş (${dolmus[0].tip}), manuel puantaj girilemez.` }
+  }
+  const yaklasan = isci.belgeler.some((b) => b.bitisTarihi >= bugun && daysUntil(b.bitisTarihi) <= 30)
 
   const mevcut = await prisma.atama.findFirst({
     where: {
@@ -108,5 +119,5 @@ export async function manuelPuantajEkle(_prev: ManuelPuantajState, formData: For
   revalidatePath('/isci-havuzu')
   revalidatePath('/raporlar')
   revalidatePath('/')
-  return { ok: true }
+  return { ok: true, uyari: yaklasan ? 'Belgesi 30 gün içinde doluyor — yenilemeyi unutmayın.' : undefined }
 }

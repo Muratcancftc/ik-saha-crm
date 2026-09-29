@@ -50,7 +50,15 @@ export async function adayAktar(formData: FormData) {
   // Reddedilen aday operasyonel havuza aktarılamaz (backend koruması)
   if (aday.durum === 'reddedildi') return
 
-  // mock TC/IBAN (adayda yoksa üretilir)
+  // Bölge ve meslek atanmadan aktarılamaz (sessiz varsayılan yok)
+  if (!aday.bolge) return
+  if (!aday.meslekId) return
+
+  // Mükerrer işçi koruması: aynı telefonla zaten işçi varsa aktarma
+  const varIsci = await prisma.isci.findFirst({ where: { telefon: aday.telefon } })
+  if (varIsci) return
+
+  // mock TC/IBAN (adayda yoksa üretilir; IBAN bilgisi olmayan kayıt CSV'den çıkarılır)
   const genTC = () => {
     const d = [1, ...Array.from({ length: 8 }, () => Math.floor(Math.random() * 10))]
     const d10 = ((d[0] + d[2] + d[4] + d[6] + d[8]) * 7 - (d[1] + d[3] + d[5] + d[7])) % 10
@@ -59,8 +67,8 @@ export async function adayAktar(formData: FormData) {
   }
   const genIBAN = () => 'TR00' + Array.from({ length: 22 }, () => Math.floor(Math.random() * 10)).join('')
 
-  // Aktarılan işçi adayın bölgesine atanır (atanmamışsa varsayılan Kocaeli)
-  const bolge = aday.bolge ?? 'kocaeli'
+  // Aktarılan işçi adayın bölgesine atanır
+  const bolge = aday.bolge
   const ilce = bolge === 'balikesir' ? 'Karesi' : 'İzmit'
 
   await prisma.isci.create({

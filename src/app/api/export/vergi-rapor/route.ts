@@ -17,8 +17,12 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url)
-  const bas = startOfDay(parseLocalDate(url.searchParams.get('bas') ?? ''))
-  const bit = addDays(parseLocalDate(url.searchParams.get('bit') ?? ''), 1)
+  // Parametresiz çağrıda içinde bulunulan ay kullanılır
+  const ay = new Date()
+  const basParam = url.searchParams.get('bas') ?? `${ay.getFullYear()}-${String(ay.getMonth() + 1).padStart(2, '0')}-01`
+  const bitParam = url.searchParams.get('bit') ?? new Date(ay.getFullYear(), ay.getMonth() + 1, 0).toISOString().slice(0, 10)
+  const bas = startOfDay(parseLocalDate(basParam))
+  const bit = addDays(parseLocalDate(bitParam), 1)
 
   const kayitlar = await prisma.vergiOdemesi.findMany({
     where: { silindi: false, sonOdemeTarihi: { gte: bas, lt: bit } },
@@ -47,7 +51,7 @@ export async function GET(req: Request) {
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="vergi-rapor-${url.searchParams.get('bas')}.csv"`,
+      'Content-Disposition': `attachment; filename="vergi-rapor-${basParam}.csv"`,
     },
   })
 }

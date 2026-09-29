@@ -86,7 +86,7 @@ export function FaturaForm({ firmalar }: { firmalar: FirmaDto[] }) {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">Fatura No</label>
-                  <input name="no" placeholder="Boş bırakılırsa otomatik (IKR-2026-006)" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
+                  <input name="no" placeholder="Boş bırakılırsa otomatik (IKR-2026-NNN)" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">Kesim Tarihi *</label>

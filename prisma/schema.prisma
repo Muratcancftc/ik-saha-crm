@@ -444,6 +444,7 @@ model Atama {
   tarih         DateTime
   durum         AtamaDurum @default(atandi)
   sgkBildirildi Boolean    @default(false)
+  yevmiye       Decimal    @default(0) @db.Decimal(10, 2) // atama anındaki günlük ücret snapshot'ı (hakediş için)
   createdAt     DateTime   @default(now())
 
   talep   Talep    @relation(fields: [talepId], references: [id], onDelete: Cascade)
@@ -451,8 +452,9 @@ model Atama {
   meslek  Meslek?  @relation(fields: [meslekId], references: [id], onDelete: SetNull)
   puantaj Puantaj?
 
-  // İş kuralı 1: aynı işçi aynı güne yalnızca bir atama
-  @@unique([isciId, tarih])
+  // İptal edilen atama aynı gün tek atama kuralını TUTMAZ; çakışma kodda
+  // non-iptal atamalar için kontrol edilir.
+  @@index([isciId, tarih])
   @@index([tarih, durum])
 }
 

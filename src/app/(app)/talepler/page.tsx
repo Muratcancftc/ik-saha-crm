@@ -6,10 +6,10 @@ import { dateLong, num } from '@/lib/format'
 import { sameDay, startOfDay, daysUntil } from '@/lib/dates'
 import { Card, CardHeader, Badge, EmptyState, Button } from '@/components/ui'
 import { TalepBadge, AtamaBadge, PuantajBadge, AciliyetBadge } from '@/components/status-badge'
-import { Icon } from '@/components/icons'
 import { TalepForm } from './talep-form'
 import { AtamaPaneli } from './atama-paneli'
 import { YerineBul } from './yerine-bul'
+import { SilOnayForm } from '@/components/sil-onay'
 import {
   updatePuantaj,
   sgkBildir,
@@ -222,7 +222,7 @@ export default async function TaleplerPage({
                       href={filtreHref(seciliId, firmaId, durum, sp.eksik, sp.sablon, '1', bolge)}
                       className="text-xs font-medium text-slate-500 hover:text-indigo-600"
                     >
-                      Geçmiş ({gecmis.length}) — {GCEMIS_LIMIT} tanesini göster ▾
+                      Geçmiş ({gecmis.length}) — {Math.min(gecmis.length, GCEMIS_LIMIT)} tanesini göster ▾
                     </Link>
                   </div>
                 )
@@ -425,12 +425,15 @@ export default async function TaleplerPage({
                               <input type="hidden" name="atamaId" value={a.id} />
                               {(['geldi', 'gec', 'gelmedi', 'yarim'] as const).map((d) => {
                                 const aktif = a.puantaj?.durum === d
+                                const iptal = a.durum === 'iptal'
                                 return (
                                   <button
                                     key={d}
                                     type="submit"
                                     name="durum"
                                     value={d}
+                                    disabled={iptal}
+                                    title={iptal ? 'İptal edilen atamaya puantaj girilemez' : undefined}
                                     className={`px-2 py-1.5 text-xs font-medium transition ${
                                       aktif
                                         ? d === 'geldi'
@@ -440,7 +443,9 @@ export default async function TaleplerPage({
                                             : d === 'gelmedi'
                                               ? 'bg-red-500 text-white'
                                               : 'bg-sky-500 text-white'
-                                        : 'bg-white text-slate-600 hover:bg-slate-50'
+                                        : iptal
+                                          ? 'cursor-not-allowed bg-slate-100 text-slate-300'
+                                          : 'bg-white text-slate-600 hover:bg-slate-50'
                                     }`}
                                   >
                                     {d === 'geldi' ? 'Geldi' : d === 'gec' ? 'Geç' : d === 'gelmedi' ? 'Gelmedi' : 'Yarım'}
@@ -473,12 +478,14 @@ export default async function TaleplerPage({
                                   </form>
                                 )}
                                 {isOperasyon && (
-                                  <form action={cikarAtama}>
-                                    <input type="hidden" name="id" value={a.id} />
-                                    <Button variant="ghost" size="sm" type="submit" title="Çıkar (iptal eder)">
-                                      <Icon name="x" size={14} />
-                                    </Button>
-                                  </form>
+                                  <SilOnayForm
+                                    action={cikarAtama}
+                                    id={a.id}
+                                    baslik="Atama çıkarılıyor"
+                                    onayMetni="Bu işlem kalıcıdır"
+                                    ikon="x"
+                                    buttonClass="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                                  />
                                 )}
                               </>
                             )}

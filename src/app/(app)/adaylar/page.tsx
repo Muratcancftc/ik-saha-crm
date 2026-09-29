@@ -139,7 +139,11 @@ export default async function AdaylarPage({
                           {a.durum !== 'onaylandi' && a.durum !== 'reddedildi' && (
                             <form action={adayAktar}>
                               <input type="hidden" name="id" value={a.id} />
-                              <button className="rounded-lg bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-500" title="Onayla ve işçi havuzuna aktar">
+                              <button
+                                className={`rounded-lg px-2 py-1 text-xs font-medium ${a.bolge && a.meslekId ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'cursor-not-allowed bg-slate-200 text-slate-500'}`}
+                                title={a.bolge && a.meslekId ? 'Onayla ve işçi havuzuna aktar' : 'Önce bölge ve meslek atayın'}
+                                disabled={!a.bolge || !a.meslekId}
+                              >
                                 Onayla & Havuza Aktar
                               </button>
                             </form>

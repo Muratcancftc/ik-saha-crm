@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireApiAccess } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { decrypt } from '@/lib/crypto'
+import { ibanGecerli } from '@/lib/ik'
 
 const AYIRICI = ';'
 
@@ -21,11 +22,15 @@ export async function GET() {
     orderBy: { createdAt: 'asc' },
   })
 
-  const satirlar = odemeler.map((o) => {
-    const ad = o.tip === 'isci' ? o.isci?.ad ?? '' : o.personel?.ad ?? ''
-    const iban = o.tip === 'isci' && o.isci ? decrypt(o.isci.iban) : o.personel ? decrypt(o.personel.iban) : ''
-    return [ad, iban, Number(o.tutar).toFixed(2), o.donem, o.tip === 'isci' ? 'İşçi' : 'Personel']
-  })
+  const satirlar = odemeler
+    .map((o) => {
+      const ad = o.tip === 'isci' ? o.isci?.ad ?? '' : o.personel?.ad ?? ''
+      const iban = o.tip === 'isci' && o.isci ? decrypt(o.isci.iban) : o.personel ? decrypt(o.personel.iban) : ''
+      return { ad, iban, tutar: Number(o.tutar).toFixed(2), donem: o.donem, tip: o.tip === 'isci' ? 'İşçi' : 'Personel' }
+    })
+    // Mock/sistem üretimi geçersiz IBAN (TR00…) kayıtlar banka dosyasına karışmasın
+    .filter((k) => ibanGecerli(k.iban))
+    .map((k) => [k.ad, k.iban, k.tutar, k.donem, k.tip])
 
   const csv =
     '\uFEFF' +

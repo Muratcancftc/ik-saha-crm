@@ -93,6 +93,14 @@ export async function createAtama(_prev: TalepActionState, formData: FormData): 
   }
   const yaklasan = isci.belgeler.some((b) => b.bitisTarihi >= bugun && daysUntil(b.bitisTarihi) <= 30)
 
+  // Çakışma kontrolü: iptal EDİLMEMİŞ aynı gün ataması olan işçi atanamaz
+  const ertesi = addDays(startOfDay(talep.tarih), 1)
+  const cakisma = await prisma.atama.findFirst({
+    where: { isciId, tarih: { gte: startOfDay(talep.tarih), lt: ertesi }, durum: { not: 'iptal' } },
+    select: { id: true },
+  })
+  if (cakisma) return { error: `${isci.ad} bu güne zaten atanmış (çakışma).` }
+
   let atama
   try {
     atama = await prisma.atama.create({
@@ -103,6 +111,7 @@ export async function createAtama(_prev: TalepActionState, formData: FormData): 
         tarih: talep.tarih,
         durum: 'atandi',
         sgkBildirildi: false,
+        yevmiye: isci.gunlukUcretBeklentisi, // atama anındaki ücret snapshot'ı
       },
     })
   } catch (e: unknown) {
@@ -154,6 +163,11 @@ export async function cikarAtama(formData: FormData) {
   if (!atama) return
   await prisma.atama.update({ where: { id }, data: { durum: 'iptal' } })
   await talepDolulukGuncelle(atama.talepId)
+  // İlgili SMS/WhatsApp bildirim iskeletini iptal et (okundu + kaldırıldı)
+  await prisma.bildirim.updateMany({
+    where: { tur: 'talep', ilgiliId: id, kaldirildi: false },
+    data: { okundu: true, kaldirildi: true },
+  })
   revalidatePath('/talepler')
   revalidatePath('/takvim')
   revalidatePath('/')
@@ -164,7 +178,14 @@ export async function setAtamaDurum(formData: FormData) {
   const id = Number(formData.get('id'))
   const durum = String(formData.get('durum') ?? 'atandi') as AtamaDurum
   const atama = await prisma.atama.update({ where: { id }, data: { durum } })
-  if (durum === 'iptal') await talepDolulukGuncelle(atama.talepId)
+  if (durum === 'iptal') {
+    await talepDolulukGuncelle(atama.talepId)
+    // İptal edilen atamanın SMS/WhatsApp bildirim iskeletini iptal et
+    await prisma.bildirim.updateMany({
+      where: { tur: 'talep', ilgiliId: id, kaldirildi: false },
+      data: { okundu: true, kaldirildi: true },
+    })
+  }
   revalidatePath('/talepler')
   revalidatePath('/puantaj')
 }
@@ -253,6 +274,8 @@ export async function updatePuantaj(formData: FormData) {
   if (!atama) return
 
   if (user.rol === 'saha_sorumlusu' && atama.talep.lokasyonId !== user.lokasyonId) return
+  if (atama.durum === 'iptal') return // iptal edilen atamaya puantaj girilemez
+  if (startOfDay(atama.tarih) > startOfDay()) return // gelecek tarihe puantaj girilemez
 
   const calisilan: Record<PuantajDurum, number> = {
     geldi: 8,
@@ -351,8 +374,11 @@ export async function oneriGetir(talepId: number, meslekId: number, haricId?: nu
       const belgeYaklasan = i.belgeler.some((b) => b.bitisTarihi >= bugun && daysUntil(b.bitisTarihi) <= 30)
       const noShow = noShowMap.get(i.id) ?? 0
       const guvenilirlik = Math.max(0, i.puan - noShow * 5)
-      const skor = guvenilirlik + (bolgeUyum ? 10 : 0) - (belgeYaklasan ? 5 : 0)
-      const uygunluk = Math.max(0, Math.min(100, Math.round((guvenilirlik + (bolgeUyum ? 15 : 0)) / 1.15)))
+      // Hem sıralama skoru hem "uygunluk %" cezaları aynı şekilde uygular:
+      // belge yaklaşıyorsa −10 puan, no-show her biri için −5 puan
+      const ceza = (belgeYaklasan ? 10 : 0) + noShow * 5
+      const skor = Math.max(0, guvenilirlik + (bolgeUyum ? 10 : 0) - ceza)
+      const uygunluk = Math.max(0, Math.min(100, Math.round((guvenilirlik + (bolgeUyum ? 15 : 0) - ceza) / 1.15)))
       return {
         id: i.id,
         ad: i.ad,
