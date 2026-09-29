@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { encrypt, decrypt } from '@/lib/crypto'
 import { bolgeGecerli } from '@/lib/bolge'
+import { normalizeTelefon } from '@/lib/utils'
 import { ibanBaskaIsciVarMi } from '@/lib/ik'
 import { hakedisOlustur } from './hakedis'
 import type { IsciDurum } from '@prisma/client'
@@ -44,7 +45,7 @@ export async function createIsci(_prev: IsciActionState, formData: FormData): Pr
   await prisma.isci.create({
     data: {
       ad,
-      telefon: String(formData.get('telefon') ?? ''),
+      telefon: normalizeTelefon(String(formData.get('telefon') ?? '')),
       tcKimlik: encrypt(tc),
       ilce: String(formData.get('ilce') ?? ''),
       iban: encrypt(iban),
@@ -88,7 +89,7 @@ export async function updateIsci(_prev: IsciActionState, formData: FormData): Pr
       where: { id },
       data: {
         ad: String(formData.get('ad') ?? mevcut.ad).trim() || mevcut.ad,
-        telefon: String(formData.get('telefon') ?? mevcut.telefon),
+        telefon: normalizeTelefon(String(formData.get('telefon') ?? mevcut.telefon)),
         tcKimlik: tc ? encrypt(tc) : mevcut.tcKimlik,
         ilce: String(formData.get('ilce') ?? mevcut.ilce),
         iban: iban ? encrypt(iban) : mevcut.iban,

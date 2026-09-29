@@ -166,3 +166,15 @@ export function canAccessPath(path: string, user: MenuUser): boolean {
   if (!route) return true // bilinmeyen yol → engelleme (defansif)
   return userMenuKeys(user).includes(route)
 }
+
+// Giriş / yetki reddi sonrası yönlendirilecek ilk erişilebilir sayfa.
+// Böylece erişimi olmayan '/' paneline sahip roller (ör. ik) döngüye girmez.
+export function firstAccessiblePath(user: MenuUser): string {
+  if (canAccessPath('/', user)) return '/'
+  for (const grup of NAV_GROUPS) {
+    for (const item of grup.items) {
+      if (canAccessPath(item.href, user)) return item.href
+    }
+  }
+  return '/giris'
+}

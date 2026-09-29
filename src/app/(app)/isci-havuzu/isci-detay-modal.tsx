@@ -5,6 +5,7 @@ import { isciDetay } from '@/app/actions/isci'
 import { Icon } from '@/components/icons'
 import { Badge } from '@/components/ui'
 import { tl, num } from '@/lib/format'
+import { formatTelefon } from '@/lib/utils'
 import type { IsciDetay } from '@/lib/queries'
 
 const DURUM_TONE: Record<string, string> = {
@@ -45,7 +46,7 @@ export function IsciDetayModal({ isciId, isciAd }: { isciId: number; isciAd: str
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-slate-900">{isciAd}</h3>
-                  {d && <div className="text-xs text-slate-500">{d.ilce} · {d.telefon}</div>}
+                  {d && <div className="text-xs text-slate-500">{d.ilce} · {formatTelefon(d.telefon)}</div>}
                 </div>
               </div>
               <button onClick={() => setAcik(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">

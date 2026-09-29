@@ -7,6 +7,7 @@ import { startOfDay, addDays } from '@/lib/dates'
 import { parseLocalDate } from '@/lib/donem'
 import { encrypt } from '@/lib/crypto'
 import { bolgeGecerli } from '@/lib/bolge'
+import { normalizeTelefon } from '@/lib/utils'
 import {
   ucretCozumle,
   puantajTutarHesapla,
@@ -119,7 +120,7 @@ export async function ikPersonelKaydet(_prev: IkState, formData: FormData): Prom
       : null
     const beklenti = Number(mevcut.gunlukUcretBeklentisi ?? 0)
     const refGunluk = aktifFirmaUcret ? Number(aktifFirmaUcret.gunlukUcret) : beklenti > 0 ? beklenti : await varsayilanUcret()
-    const refSaatlik = aktifFirmaUcret ? Number(aktifFirmaUcret.saatlikUcret) : 0
+    const refSaatlik = aktifFirmaUcret ? Number(aktifFirmaUcret.saatlikUcret) : await varsayilanSaatlikUcret()
     const ozel = yuvarla(gunlukUcret) !== yuvarla(refGunluk) || yuvarla(saatlikUcret) !== yuvarla(refSaatlik)
 
     const aktif = await prisma.personelUcret.findFirst({
@@ -159,7 +160,7 @@ export async function ikPersonelKaydet(_prev: IkState, formData: FormData): Prom
   const yeni = await prisma.isci.create({
     data: {
       ad,
-      telefon: String(formData.get('telefon') ?? '').trim(),
+      telefon: normalizeTelefon(String(formData.get('telefon') ?? '')),
       tcKimlik: encrypt(tc || genTC()),
       iban: encrypt(iban || genIBAN()),
       ilce,
@@ -303,17 +304,18 @@ export async function puantajGir(formData: FormData) {
   const uzerineYaz = formData.get('uzerineYaz') === '1'
   const aciklama = String(formData.get('aciklama') ?? '').trim() || null
 
-  if (!isciId || !firmaId || !tarih) return
+  if (!isciId || !firmaId || !tarih) return { error: 'İşçi, firma ve tarih zorunludur.' }
+  if (tarih > startOfDay()) return { error: 'Gelecek bir tarihe puantaj girilemez.' }
 
   // Kilitli (ödendi) bir döneme puantaj girilemez
   const kilitliDonem = await prisma.odemeDonemi.findFirst({
     where: { isciId, firmaId, baslangic: { lte: tarih }, bitis: { gt: tarih }, kilitli: true },
     select: { id: true },
   })
-  if (kilitliDonem) return
+  if (kilitliDonem) return { error: 'Bu tarih kilitli (ödendi) bir döneme ait. Kilidi açmadan puantaj girilemez.' }
 
   const mevcut = await prisma.puantajKayit.findUnique({ where: { isciId_tarih: { isciId, tarih } } })
-  if (mevcut && !uzerineYaz) return
+  if (mevcut && !uzerineYaz) return { error: 'Bu güne zaten kayıt var. "Üzerine yaz" ile tekrar deneyin.' }
 
   // Ücret: elle girilen değerler (override) yoksa otomatik çöz
   const overrideGunluk = formData.get('gunlukUcret') ? Number(formData.get('gunlukUcret')) : null
@@ -346,7 +348,7 @@ export async function puantajGir(formData: FormData) {
 
   revalidatePath('/ik/puantaj')
   revalidatePath(`/ik/personel/${isciId}`)
-  return
+  return { ok: true }
 }
 
 export async function puantajSil(formData: FormData) {
@@ -358,10 +360,10 @@ export async function puantajSil(formData: FormData) {
     where: { isciId: kayit.isciId, firmaId: kayit.firmaId, baslangic: { lte: kayit.tarih }, bitis: { gt: kayit.tarih }, kilitli: true },
     select: { id: true },
   })
-  if (kilitliDonem) return
+  if (kilitliDonem) return { error: 'Kilitli (ödendi) dönemdeki puantaj silinemez.' }
   await prisma.puantajKayit.delete({ where: { id } })
   revalidatePath('/ik/puantaj')
-  return
+  return { ok: true }
 }
 
 // Toplu puantaj: seçili personellere aynı gün/aynı fsi uygula (üzerine yazar)
@@ -371,14 +373,19 @@ export async function puantajToplu(formData: FormData) {
   const tarih = parseTarih(String(formData.get('tarih') ?? ''))
   const fsi = Number(formData.get('fsi') ?? 1)
   const isciIds = formData.getAll('isciIds').map(Number).filter(Boolean)
-  if (!firmaId || !tarih || isciIds.length === 0) return
+  if (!firmaId || !tarih || isciIds.length === 0) return { error: 'Firma, tarih ve en az bir personel seçin.' }
+  if (tarih > startOfDay()) return { error: 'Gelecek bir tarihe puantaj girilemez.' }
 
+  let kilitliSayi = 0
   for (const isciId of isciIds) {
     const kilitliDonem = await prisma.odemeDonemi.findFirst({
       where: { isciId, firmaId, baslangic: { lte: tarih }, bitis: { gt: tarih }, kilitli: true },
       select: { id: true },
     })
-    if (kilitliDonem) continue // kilitli döneme puantaj yazılamaz
+    if (kilitliDonem) {
+      kilitliSayi++
+      continue
+    }
     const cozum = await ucretCozumle(isciId, firmaId, tarih)
     const { tutar } = await puantajTutarHesapla({
       fsi,
@@ -414,7 +421,7 @@ export async function puantajToplu(formData: FormData) {
     })
   }
   revalidatePath('/ik/puantaj')
-  return
+  return kilitliSayi > 0 ? { ok: true, uyari: `${kilitliSayi} personel kilitli (ödendi) dönemde olduğu için atlandı.` } : { ok: true }
 }
 
 // ---- Kesinti ----

@@ -1,6 +1,7 @@
 import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { date, num } from '@/lib/format'
+import { formatTelefon } from '@/lib/utils'
 import { Card, CardHeader, Th, Td, Badge, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { AdayForm } from './aday-form'
@@ -127,7 +128,7 @@ export default async function AdaylarPage({
                         </div>
                       </Td>
                       <Td>
-                        <div>{a.telefon}</div>
+                        <div>{formatTelefon(a.telefon)}</div>
                         {a.email && <div className="text-xs text-slate-400">{a.email}</div>}
                       </Td>
                       <Td>{date(a.createdAt)}</Td>

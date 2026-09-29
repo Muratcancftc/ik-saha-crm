@@ -31,7 +31,7 @@ export default async function MusteriFirmalarPage({
       lokasyonlar: true,
       yetkililer: true,
       fiyatlar: { include: { meslek: true } },
-      faturalar: { include: { tahsilatlar: true } },
+      faturalar: { where: { silindi: false }, include: { tahsilatlar: true } },
     },
     orderBy: { ad: 'asc' },
   })
@@ -56,12 +56,13 @@ export default async function MusteriFirmalarPage({
       ) : (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
           {firmalar.map((f) => {
-            const ciro = f.faturalar.reduce((a, ft) => a + Number(ft.genelToplam), 0)
+            const ciro = f.faturalar.reduce((a, ft) => a + Number(ft.araToplam), 0)
             const tahsilat = f.faturalar.reduce(
               (a, ft) => a + ft.tahsilatlar.reduce((x, t) => x + Number(t.tutar), 0),
               0
             )
-            const alacak = ciro - tahsilat
+            const brutToplam = f.faturalar.reduce((a, ft) => a + Number(ft.genelToplam), 0)
+            const alacak = brutToplam - tahsilat
             const sonFatura = f.faturalar[0]
             return (
               <Card key={f.id} className="flex flex-col overflow-hidden">

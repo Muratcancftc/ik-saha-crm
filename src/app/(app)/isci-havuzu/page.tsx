@@ -2,6 +2,7 @@ import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { maskTC, maskIBAN, decrypt } from '@/lib/crypto'
 import { tl, num } from '@/lib/format'
+import { formatTelefon } from '@/lib/utils'
 import { daysUntil } from '@/lib/dates'
 import { Card, Badge, Select, Input, EmptyState } from '@/components/ui'
 import { IsciBadge } from '@/components/status-badge'
@@ -184,7 +185,7 @@ export default async function IsciHavuzuPage({
                           <Link href={`/isci-havuzu/${i.id}`} className="block max-w-44 truncate text-sm font-medium text-slate-900 hover:text-indigo-600" title={i.ad}>
                             {i.ad}
                           </Link>
-                          <div className="whitespace-nowrap text-xs text-slate-500">{i.telefon}</div>
+                          <div className="whitespace-nowrap text-xs text-slate-500">{formatTelefon(i.telefon)}</div>
                         </div>
                       </div>
                     </td>

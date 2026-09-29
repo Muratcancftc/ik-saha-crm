@@ -35,13 +35,14 @@ export function decrypt(payload: string): string {
 
 // Görüntüleme için maskeleme. TC: son 3 hane + baştaki ilk hane gösterilir.
 export function maskTC(tc: string): string {
-  if (tc.length !== 11) return '•••••••••••'
+  if (!tc || tc.length !== 11) return '—'
   return `${tc[0]}•••••••${tc.slice(-3)}`
 }
 
 // IBAN: TR + son 4 hane gösterilir.
 export function maskIBAN(iban: string): string {
+  if (!iban) return '—'
   const clean = iban.replace(/\s+/g, '')
-  if (clean.length < 8) return '••••••'
+  if (clean.length < 8) return '—'
   return `••••••${clean.slice(-4)}`
 }

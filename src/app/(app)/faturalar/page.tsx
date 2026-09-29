@@ -6,7 +6,7 @@ import { Card, CardHeader, StatCard, Th, Td, EmptyState, Badge } from '@/compone
 import { FaturaBadge } from '@/components/status-badge'
 import { Icon } from '@/components/icons'
 import { FaturaForm } from './fatura-form'
-import { createTahsilat, faturaDurumDegistir, faturaIptal } from '@/app/actions/muhasebe'
+import { createTahsilat, tahsilatSil, faturaDurumDegistir, faturaIptal } from '@/app/actions/muhasebe'
 import { SilOnayForm, OnayForm } from '@/components/sil-onay'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +24,9 @@ export default async function FaturalarPage() {
   const toplamGenel = faturalar.reduce((a, f) => a + Number(f.genelToplam), 0)
   const toplamTahsilat = faturalar.reduce((a, f) => a + f.tahsilatlar.reduce((x, t) => x + Number(t.tutar), 0), 0)
   const alacak = toplamGenel - toplamTahsilat
+  const tahsilatlar = faturalar
+    .flatMap((f) => f.tahsilatlar.map((t) => ({ id: t.id, tarih: t.tarih, tutar: Number(t.tutar), no: f.no, firmaAd: f.firma.ad })))
+    .sort((a, b) => b.tarih.getTime() - a.tarih.getTime())
 
   return (
     <div className="space-y-5">
@@ -160,6 +163,47 @@ export default async function FaturalarPage() {
                     </tr>
                   )
                 })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="Tahsilatlar" desc="Yanlış girilen tahsilatı buradan geri alabilirsiniz (fatura durumu yeniden hesaplanır)" />
+        <div className="overflow-x-auto">
+          {tahsilatlar.length === 0 ? (
+            <p className="px-5 py-6 text-center text-xs text-slate-400">Tahsilat kaydı yok</p>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <Th>Fatura</Th>
+                  <Th>Firma</Th>
+                  <Th>Tarih</Th>
+                  <Th className="text-right">Tutar</Th>
+                  <Th className="text-right">İşlem</Th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {tahsilatlar.map((t) => (
+                  <tr key={t.id} className="hover:bg-slate-50/60">
+                    <Td className="font-medium text-slate-900">{t.no}</Td>
+                    <Td>{t.firmaAd}</Td>
+                    <Td className="text-slate-500">{date(t.tarih)}</Td>
+                    <Td className="text-right font-semibold tabular-nums text-emerald-600">{tl(t.tutar)}</Td>
+                    <Td className="text-right">
+                      <SilOnayForm
+                        action={tahsilatSil}
+                        id={t.id}
+                        baslik={`${t.no} tahsilatı (${tl(t.tutar)})`}
+                        onayMetni="Tahsilatı geri al"
+                        ikon="yenile"
+                        buttonClass="rounded-lg p-1.5 text-slate-300 transition hover:bg-amber-50 hover:text-amber-600"
+                      />
+                    </Td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           )}

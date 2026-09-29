@@ -4,7 +4,7 @@ import { startOfDay, addDays, sameDay } from '@/lib/dates'
 import { parseLocalDate } from '@/lib/donem'
 import { Card, CardHeader, Badge, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
-import { puantajGir, puantajToplu, puantajSil } from '@/app/actions/ik'
+import { PuantajForm } from './puantaj-form'
 import { tl, ucretCozumle, yuvarla } from '@/lib/ik'
 import Link from 'next/link'
 
@@ -113,7 +113,7 @@ export default async function IkPuantajPage({
                       ) : (
                         <Badge tone="slate">Kayıt yok</Badge>
                       )}
-                      <form action={puantajGir} className="flex overflow-hidden rounded-lg border border-slate-200">
+                      <PuantajForm tip="gir" className="flex overflow-hidden rounded-lg border border-slate-200">
                         <input type="hidden" name="isciId" value={i.id} />
                         <input type="hidden" name="firmaId" value={seciliFirmaId} />
                         <input type="hidden" name="tarih" value={iso(tarih)} />
@@ -123,19 +123,19 @@ export default async function IkPuantajPage({
                         <button type="submit" name="fsi" value="1" className="px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50">Tam</button>
                         <button type="submit" name="fsi" value="0.5" className="border-l border-slate-200 px-2.5 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50">Yarım</button>
                         <button type="submit" name="fsi" value="0" className="border-l border-slate-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">Gelmedi</button>
-                      </form>
+                      </PuantajForm>
                       {mevcut && (
-                        <form action={puantajSil}>
+                        <PuantajForm tip="sil">
                           <input type="hidden" name="id" value={mevcut.id} />
                           <button className="rounded-lg p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-600" title="Kaydı sil"><Icon name="x" size={14} /></button>
-                        </form>
+                        </PuantajForm>
                       )}
                     </div>
                   </div>
                   {/* Elle ezme (override) */}
                   <details className="mt-2">
                     <summary className="cursor-pointer text-[11px] font-medium text-slate-400 hover:text-indigo-600">Ücret / saat / mesai elle gir</summary>
-                    <form action={puantajGir} className="mt-2 flex flex-wrap items-end gap-2 rounded-xl bg-slate-50 p-3">
+                    <PuantajForm tip="gir" className="mt-2 flex flex-wrap items-end gap-2 rounded-xl bg-slate-50 p-3">
                       <input type="hidden" name="isciId" value={i.id} />
                       <input type="hidden" name="firmaId" value={seciliFirmaId} />
                       <input type="hidden" name="tarih" value={iso(tarih)} />
@@ -168,7 +168,7 @@ export default async function IkPuantajPage({
                         <input name="saatlikUcret" type="number" step="1" min={0} placeholder={String(cozum.saatlikUcret)} className="w-24 rounded-lg border border-slate-300 px-2 py-1.5 text-xs outline-none focus:border-indigo-500" />
                       </div>
                       <button className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500">Kaydet</button>
-                    </form>
+                    </PuantajForm>
                   </details>
                 </div>
               )
@@ -181,7 +181,7 @@ export default async function IkPuantajPage({
       {personel.length > 0 && (
         <Card>
           <CardHeader title="Toplu İşaretleme" desc="Seçili personellere aynı durumu uygula (üzerine yazar)" />
-          <form action={puantajToplu} className="px-5 py-4">
+          <PuantajForm tip="toplu" className="px-5 py-4">
             <input type="hidden" name="firmaId" value={seciliFirmaId} />
             <input type="hidden" name="tarih" value={iso(tarih)} />
             <div className="mb-3 flex flex-wrap gap-2">
@@ -197,7 +197,7 @@ export default async function IkPuantajPage({
               <button name="fsi" value="0.5" className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-400">Yarım Gün</button>
               <button name="fsi" value="0" className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500">Gelmedi</button>
             </div>
-          </form>
+          </PuantajForm>
         </Card>
       )}
 

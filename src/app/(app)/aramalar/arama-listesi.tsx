@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { aramaKaydet } from '@/app/actions/arama'
 import { Icon } from '@/components/icons'
+import { formatTelefon } from '@/lib/utils'
 
 type AramaDto = { id: number; tarih: string; kullaniciAd: string | null }
 type PersonelDto = {
@@ -119,7 +120,7 @@ export function AramaListesi({ personeller, arayabilir }: { personeller: Persone
                           title="Ara (telefon)"
                         >
                           <Icon name="telefon" size={13} />
-                          {p.telefon}
+                          {formatTelefon(p.telefon)}
                         </a>
                       ) : (
                         <span className="text-xs text-slate-400">Telefon yok</span>

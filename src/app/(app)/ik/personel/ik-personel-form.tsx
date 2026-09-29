@@ -55,22 +55,28 @@ export function IkPersonelForm({
 
   const beklenti = personel?.beklenti ?? 0
 
-  // Seçili firmanın ücreti; yoksa işçinin beklentisi, yoksa sistem varsayılanı
-  const firmaVarsayilan = useMemo(() => {
-    const f = firmalar.find((x) => x.id === Number(firmaId))
-    return {
-      gunluk: f?.gunlukUcret ?? (beklenti > 0 ? beklenti : varsayilanGunluk),
-      saatlik: f?.saatlikUcret ?? varsayilanSaatlik,
+  // Otomatik çözülen (override'sız) değerler: firma ücreti varsa o; yoksa beklenti>sistem ve sistem saatlik.
+  function dogalDegerler(fId: number | '') {
+    const f = firmalar.find((x) => x.id === Number(fId))
+    if (f && f.gunlukUcret != null) {
+      return { gunluk: f.gunlukUcret, saatlik: f.saatlikUcret ?? 0 }
     }
-  }, [firmaId, firmalar, varsayilanGunluk, varsayilanSaatlik, beklenti])
+    return { gunluk: beklenti > 0 ? beklenti : varsayilanGunluk, saatlik: varsayilanSaatlik }
+  }
+
+  const firmaVarsayilan = useMemo(
+    () => dogalDegerler(firmaId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [firmaId, firmalar, varsayilanGunluk, varsayilanSaatlik, beklenti]
+  )
 
   function firmaDegisti(v: string) {
     const id = v ? Number(v) : ''
     setFirmaId(id)
-    // Ücret alanlarını geçerli varsayılanla doldur (firma > beklenti > sistem; kullanıcı üzerine yazabilir)
-    const f = firmalar.find((x) => x.id === Number(id))
-    setGunluk(String(f?.gunlukUcret ?? (beklenti > 0 ? beklenti : varsayilanGunluk)))
-    setSaatlik(f?.saatlikUcret ? String(f.saatlikUcret) : String(varsayilanSaatlik))
+    // Ücret alanlarını doğal değerle doldur (kullanıcı üzerine yazabilir)
+    const d = dogalDegerler(id)
+    setGunluk(String(d.gunluk))
+    setSaatlik(d.saatlik ? String(d.saatlik) : '')
   }
 
   function gunlukBol8() {
@@ -251,7 +257,7 @@ export function IkPersonelForm({
                       </button>
                     </div>
                     <p className="mt-1 text-[11px] text-slate-500">
-                      Ayrı ve bağımsız girilir; mesai hesabında kullanılır. Firma: <b>{tl(firmaVarsayilan.saatlik)}</b>
+                      Ayrı ve bağımsız girilir; mesai hesabında kullanılır. Varsayılan: <b>{firmaVarsayilan.saatlik > 0 ? tl(firmaVarsayilan.saatlik) : '—'}</b>
                     </p>
                   </div>
                 </div>

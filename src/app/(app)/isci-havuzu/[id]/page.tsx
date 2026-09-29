@@ -4,6 +4,7 @@ import { requireRoles } from '@/lib/dal'
 import { getIsciProfil } from '@/lib/profil-queries'
 import { donemAralik, donemEtiket } from '@/lib/donem'
 import { tl, num, date, dateLong } from '@/lib/format'
+import { formatTelefon } from '@/lib/utils'
 import { Card, CardHeader, Badge, Button, Th, Td, EmptyState } from '@/components/ui'
 import { IsciBadge, PuantajBadge } from '@/components/status-badge'
 import { Icon } from '@/components/icons'
@@ -52,7 +53,7 @@ export default async function IsciProfilPage({
               <h2 className="text-lg font-semibold text-slate-900">{isci.ad}</h2>
               <IsciBadge durum={isci.durum} />
             </div>
-            <p className="text-xs text-slate-500">{isci.ilce} · {isci.telefon}</p>
+            <p className="text-xs text-slate-500">{isci.ilce} · {formatTelefon(isci.telefon)}</p>
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -78,7 +79,7 @@ export default async function IsciProfilPage({
             <dl className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
               <Satir label="TC Kimlik" value={<MaskedValue value={isci.tcKimlik} mask={isci.tcMasked} />} />
               <Satir label="IBAN" value={<MaskedValue value={isci.iban} mask={isci.ibanMasked} />} />
-              <Satir label="Telefon" value={isci.telefon} />
+              <Satir label="Telefon" value={formatTelefon(isci.telefon) || '—'} />
               <Satir label="İlçe" value={isci.ilce} />
               <Satir label="Doğum Tarihi" value={dogumTarihiGirildi(isci.dogumTarihi) ? date(isci.dogumTarihi) : '—'} />
               <Satir label="Günlük Beklenti" value={tl(isci.beklenti)} />

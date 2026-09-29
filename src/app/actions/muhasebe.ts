@@ -134,6 +134,27 @@ export async function createTahsilat(formData: FormData) {
   return
 }
 
+// Yanlış girilen tahsilatı geri al; faturanın durumunu kalan bakiyeye göre yeniden hesapla.
+export async function tahsilatSil(formData: FormData) {
+  await requireRoles(['patron', 'muhasebe'])
+  const id = Number(formData.get('id'))
+  if (!id) return
+  const tahsilat = await prisma.tahsilat.findUnique({ where: { id } })
+  if (!tahsilat) return
+  await prisma.tahsilat.delete({ where: { id } })
+
+  const fatura = await prisma.fatura.findUnique({ where: { id: tahsilat.faturaId }, include: { tahsilatlar: true } })
+  if (fatura) {
+    const toplam = fatura.tahsilatlar.reduce((a, t) => a + Number(t.tutar), 0)
+    const genel = Number(fatura.genelToplam)
+    const durum = toplam >= genel ? 'odendi' : toplam > 0 ? 'kismi' : 'vadede'
+    await prisma.fatura.update({ where: { id: fatura.id }, data: { durum } })
+  }
+  revalidatePath('/faturalar')
+  revalidatePath('/')
+  return
+}
+
 export async function faturaDurumDegistir(formData: FormData) {
   await requireRoles(['patron', 'muhasebe'])
   const id = Number(formData.get('id'))

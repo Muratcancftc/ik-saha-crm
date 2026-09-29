@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { decrypt, SESSION_COOKIE } from '@/lib/auth'
-import { canAccessPath } from '@/lib/permissions'
+import { canAccessPath, firstAccessiblePath } from '@/lib/permissions'
 import { prisma } from '@/lib/db'
 
 const PUBLIC_PATHS = ['/giris']
@@ -43,7 +43,9 @@ export async function proxy(request: NextRequest) {
 
   // rota tabanlı koruma (sayfalar + server action POST'ları + gated API'ler)
   if (!canAccessPath(path, user)) {
-    return NextResponse.redirect(new URL('/', request.url))
+    // Erişimi olmayan sayfayı isteyen kullanıcıyı '/' paneline değil, erişebildiği
+    // ilk sayfaya yönlendir (ör. ik rolünde '/' yok → sonsuz döngüyü önler).
+    return NextResponse.redirect(new URL(firstAccessiblePath(user), request.url))
   }
 
   return NextResponse.next()

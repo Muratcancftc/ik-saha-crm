@@ -103,7 +103,7 @@ export default async function IkPersonelPage({
                   // Öncelik: elle Personel ücreti > Firma ücreti > işçinin günlük beklentisi > sistem
                   const beklenti = Number(i.gunlukUcretBeklentisi ?? 0)
                   const gunluk = pUcret ? pUcret.gunluk : fUcret ? fUcret.gunluk : beklenti > 0 ? beklenti : sistemGunluk
-                  const saatlik = pUcret ? pUcret.saatlik : fUcret ? fUcret.saatlik : 0
+                  const saatlik = pUcret ? pUcret.saatlik : fUcret ? fUcret.saatlik : sistemSaatlik
                   const kaynak = pUcret ? 'personel' : fUcret ? 'firma' : beklenti > 0 ? 'beklenti' : 'sistem'
                   return (
                     <tr key={i.id} className="hover:bg-slate-50/60">

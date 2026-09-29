@@ -4,6 +4,7 @@ import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { decrypt, maskTC, maskIBAN } from '@/lib/crypto'
 import { date } from '@/lib/format'
+import { formatTelefon } from '@/lib/utils'
 import { Card, CardHeader, Badge, Th, Td, EmptyState } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { IkPersonelForm } from '../ik-personel-form'
@@ -123,7 +124,7 @@ export default async function IkPersonelDetayPage({ params }: { params: Promise<
           <CardHeader title="Bilgiler" desc="Kimlik ve iletişim (TC/IBAN yetkiye göre maskeli)" />
           <div className="px-5 py-4">
             <dl className="grid grid-cols-1 gap-x-6 gap-y-2.5 text-sm sm:grid-cols-2">
-              <Satir label="Telefon" value={isci.telefon || '—'} />
+              <Satir label="Telefon" value={formatTelefon(isci.telefon) || '—'} />
               <Satir label="Çalışma Tipi" value={isci.calismaTipi === 'SAATLIK' ? 'Saatlik' : 'Günlük'} />
               <Satir label="TC Kimlik" value={tamGorur ? decrypt(isci.tcKimlik) : maskTC(decrypt(isci.tcKimlik))} />
               <Satir label="IBAN" value={tamGorur ? decrypt(isci.iban) : maskIBAN(decrypt(isci.iban))} />

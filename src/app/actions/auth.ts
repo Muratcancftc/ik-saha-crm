@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/db'
 import { createSession, deleteSession, decrypt, SESSION_COOKIE } from '@/lib/auth'
+import { firstAccessiblePath } from '@/lib/permissions'
 import { startOfDay } from '@/lib/dates'
 
 export type LoginState = { error?: string } | undefined
@@ -33,7 +34,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   }
   await prisma.etkinlikKayit.create({ data: { kullaniciId: user.id, islem: 'Giriş yaptı' } })
 
-  redirect('/')
+  redirect(firstAccessiblePath({ rol: user.rol, menuler: user.menuler }))
 }
 
 export async function logout() {
