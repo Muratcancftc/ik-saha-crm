@@ -15,6 +15,14 @@ export async function createAday(_prev: AdayState, formData: FormData): Promise<
   const telefon = String(formData.get('telefon') ?? '').trim()
   if (!ad || !telefon) return { error: 'Ad ve telefon zorunludur.' }
 
+  // Mükerrer telefon kontrolü: aynı numarayla aday veya işçi varsa engelle
+  const [varAday, varIsci] = await Promise.all([
+    prisma.aday.findFirst({ where: { telefon } }),
+    prisma.isci.findFirst({ where: { telefon } }),
+  ])
+  if (varAday) return { error: `${telefon} numarasıyla zaten bir aday kayıtlı (${varAday.ad}).` }
+  if (varIsci) return { error: `${telefon} numarası zaten işçi havuzunda (${varIsci.ad}).` }
+
   const meslekId = Number(formData.get('meslekId')) || null
   await prisma.aday.create({
     data: {

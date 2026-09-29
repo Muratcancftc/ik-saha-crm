@@ -48,7 +48,9 @@ export default async function PersonelPage({
   }))
 
   const aylikMaas = personel.filter((p) => p.durum === 'aktif').reduce((a, p) => a + Number(p.maas), 0)
-  const isverenPayi = Math.round(aylikMaas * 0.205) // SGK işveren ~%20,5
+  // Maaş NET'tir; işveren SGK payı BRÜT üzerinden hesaplanır (net→brüt tahmini)
+  const aylikBrut = aylikMaas / 0.71491
+  const isverenPayi = Math.round(aylikBrut * 0.205) // SGK işveren ~%20,5
   const aylikToplamMaliyet = aylikMaas + isverenPayi
   const yillik = aylikToplamMaliyet * 12
 

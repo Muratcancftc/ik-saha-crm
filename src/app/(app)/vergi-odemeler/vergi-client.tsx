@@ -196,7 +196,7 @@ export function TopluOde({ secili }: { secili: VergiKayit[] }) {
   return (
     <>
       <button onClick={() => setOpen(true)} disabled={secili.length === 0} className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 disabled:opacity-40">
-        Seçilenleri Ödendi Yap ({secili.length})
+        Ödenmemişleri Toplu Öde ({secili.length})
       </button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 pt-16 backdrop-blur-sm">

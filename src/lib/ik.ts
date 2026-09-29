@@ -102,7 +102,9 @@ export function ibanGrup(iban: string): string {
   return iban.replace(/\s+/g, '').toUpperCase().slice(0, 26).replace(/(.{4})/g, '$1 ').trim()
 }
 
-// ---- Ücret çözümleme: personel > firma > sistem (o tarihteki geçerli kayıt) ----
+// ---- Ücret çözümleme: işçinin günlük beklentisi > personel > firma > sistem ----
+// İK zinciri, klasik zincirle tutarlı olması için işçinin "gunlukUcretBeklentisi"ni
+// temel alır; PersonelUcret/FirmaUcret bu değer üzerine bindirilmiş ek kayıtlardır.
 export async function ucretCozumle(isciId: number, firmaId: number, tarih: Date): Promise<{
   gunlukUcret: number
   saatlikUcret: number
@@ -134,9 +136,12 @@ export async function ucretCozumle(isciId: number, firmaId: number, tarih: Date)
     prisma.isci.findUnique({ where: { id: isciId } }),
   ])
 
+  // İşçinin günlük beklentisi (klasik zincirle aynı kaynak) temel değerdir
+  const beklenti = Number(isci?.gunlukUcretBeklentisi ?? 0)
+
   if (personel) {
     return {
-      gunlukUcret: yuvarla(Number(personel.gunlukUcret)),
+      gunlukUcret: yuvarla(beklenti > 0 ? beklenti : Number(personel.gunlukUcret)),
       saatlikUcret: yuvarla(Number(personel.saatlikUcret)),
       kaynak: 'personel',
       calismaTipi: isci?.calismaTipi ?? 'GUNLUK',
@@ -145,7 +150,7 @@ export async function ucretCozumle(isciId: number, firmaId: number, tarih: Date)
   }
   if (firmaUcret) {
     return {
-      gunlukUcret: yuvarla(Number(firmaUcret.gunlukUcret)),
+      gunlukUcret: yuvarla(beklenti > 0 ? beklenti : Number(firmaUcret.gunlukUcret)),
       saatlikUcret: yuvarla(Number(firmaUcret.saatlikUcret)),
       kaynak: 'firma',
       calismaTipi: isci?.calismaTipi ?? 'GUNLUK',
@@ -153,7 +158,7 @@ export async function ucretCozumle(isciId: number, firmaId: number, tarih: Date)
     }
   }
   return {
-    gunlukUcret: yuvarla(sistemGunluk),
+    gunlukUcret: yuvarla(beklenti > 0 ? beklenti : sistemGunluk),
     saatlikUcret: yuvarla(sistemSaatlik),
     kaynak: 'sistem',
     calismaTipi: isci?.calismaTipi ?? 'GUNLUK',

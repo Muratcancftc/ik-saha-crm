@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { startOfDay } from '@/lib/dates'
 import { parseLocalDate } from '@/lib/donem'
-import { yuvarla, tarihTr } from '@/lib/vergi'
+import { yuvarla } from '@/lib/vergi'
 import { dekontKaydet, dekontGecerli } from '@/lib/dekont'
 import { ucretLog } from '@/lib/ik'
 import type { VergiTuru, VergiOdemeYontemi } from '@prisma/client'
@@ -317,5 +317,3 @@ export async function sablonSil(formData: FormData) {
   revalidatePath('/vergi-odemeler')
   return
 }
-
-export { tarihTr }

@@ -61,8 +61,8 @@ export default async function VergiOdemelerPage({
 
   // Özet
   const buAyOdenecek = kayitlar
-    .filter((k) => k.sonOdemeTarihi >= ayBas && k.sonOdemeTarihi < ayBit && Number(k.odenenTutar ?? 0) === 0)
-    .reduce((a, k) => a + Number(k.tahakkukTutari), 0)
+    .filter((k) => k.sonOdemeTarihi >= ayBas && k.sonOdemeTarihi < ayBit && Number(k.odenenTutar ?? 0) < Number(k.tahakkukTutari))
+    .reduce((a, k) => a + (Number(k.tahakkukTutari) - Number(k.odenenTutar ?? 0)), 0)
   const odenenToplam = kayitlar.filter((k) => Number(k.odenenTutar ?? 0) > 0).reduce((a, k) => a + Number(k.odenenTutar), 0)
   // Bekleyen: ödenmemiş + KISMI ödenen kayıtların KALAN tutarları (tahakkuk − ödenen)
   const bekleyenToplam = kayitlar
