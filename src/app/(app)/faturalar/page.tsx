@@ -128,11 +128,11 @@ export default async function FaturalarPage() {
                               <Icon name="check" size={15} />
                             </OnayForm>
                           )}
-                          {f.durum === 'odendi' && odenen === 0 && (
+                          {f.durum === 'odendi' && odenen < Number(f.genelToplam) && (
                             <OnayForm
                               action={faturaDurumDegistir}
                               gizli={{ id: f.id, durum: 'vadede' }}
-                              onayMetni={`${f.no} faturasının "Ödendi" işareti geri alınsın mı?`}
+                              onayMetni={`${f.no} faturasının "Ödendi" işareti geri alınsın mı? Tahsilata göre yeniden hesaplanır.`}
                               title="Ödendi işaretini geri al"
                               className="rounded-lg p-1.5 text-slate-400 transition hover:bg-amber-50 hover:text-amber-600"
                             >

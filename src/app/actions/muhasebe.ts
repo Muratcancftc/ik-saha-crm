@@ -139,16 +139,14 @@ export async function faturaDurumDegistir(formData: FormData) {
   const id = Number(formData.get('id'))
   const durum = String(formData.get('durum') ?? 'vadede') as 'vadede' | 'kismi' | 'odendi' | 'gecikti'
   if (!id) return
-  if (durum === 'odendi') {
-    const fatura = await prisma.fatura.findUnique({ where: { id }, include: { tahsilatlar: true } })
-    if (!fatura) return
-    const toplam = fatura.tahsilatlar.reduce((a, t) => a + Number(t.tutar), 0)
-    // Kalan bakiye varken "ödendi" işaretlenemez; önce tahsilat kaydedilmeli.
-    const hedefDurum = toplam >= Number(fatura.genelToplam) ? 'odendi' : toplam > 0 ? 'kismi' : 'vadede'
-    await prisma.fatura.update({ where: { id }, data: { durum: hedefDurum } })
-  } else {
-    await prisma.fatura.update({ where: { id }, data: { durum } })
-  }
+  const fatura = await prisma.fatura.findUnique({ where: { id }, include: { tahsilatlar: true } })
+  if (!fatura) return
+  const toplam = fatura.tahsilatlar.reduce((a, t) => a + Number(t.tutar), 0)
+  const genel = Number(fatura.genelToplam)
+  // Tahsilata göre doğal durum: kalan varsa "ödendi" olamaz (önce tahsilat gerekir).
+  const otomatik = toplam >= genel ? 'odendi' : toplam > 0 ? 'kismi' : 'vadede'
+  const hedefDurum = durum === 'odendi' || durum === 'vadede' ? otomatik : durum
+  await prisma.fatura.update({ where: { id }, data: { durum: hedefDurum } })
   revalidatePath('/faturalar')
   revalidatePath('/')
   return

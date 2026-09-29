@@ -129,7 +129,11 @@ export default async function IkHakedisPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {satirlar.map((s) => (
+                {satirlar.map((s) => {
+                  // Durumu kayıtlı değer yerine gerçek ödemeye göre türet (eski hatalı kayıtları da düzeltir).
+                  const dNet = Number(s.donem?.netOdenecek ?? 0)
+                  const dDurum: 'ODENDI' | 'KISMI_ODENDI' | 'BEKLIYOR' = s.odenen >= dNet && dNet > 0 ? 'ODENDI' : s.odenen > 0 ? 'KISMI_ODENDI' : 'BEKLIYOR'
+                  return (
                   <tr key={s.isci.id} className="hover:bg-slate-50/60">
                     <Td>
                       <Link href={`/ik/personel/${s.isci.id}`} className="font-medium text-slate-900 hover:text-indigo-600">{s.isci.ad}</Link>
@@ -142,8 +146,8 @@ export default async function IkHakedisPage({
                     <Td className="text-right tabular-nums">{tl(s.odenen)}</Td>
                     <Td>
                       {s.donem ? (
-                        <Badge tone={s.donem.durum === 'ODENDI' ? 'green' : s.donem.durum === 'KISMI_ODENDI' ? 'amber' : 'slate'}>
-                          {s.donem.durum === 'ODENDI' ? 'Ödendi' : s.donem.durum === 'KISMI_ODENDI' ? 'Kısmi' : 'Bekliyor'}
+                        <Badge tone={dDurum === 'ODENDI' ? 'green' : dDurum === 'KISMI_ODENDI' ? 'amber' : 'slate'}>
+                          {dDurum === 'ODENDI' ? 'Ödendi' : dDurum === 'KISMI_ODENDI' ? 'Kısmi' : 'Bekliyor'}
                         </Badge>
                       ) : (
                         <Badge tone="slate">Hesaplanmadı</Badge>
@@ -199,7 +203,8 @@ export default async function IkHakedisPage({
                       </div>
                     </Td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           )}
