@@ -100,9 +100,11 @@ export default async function IkPersonelPage({
                 {isciler.map((i) => {
                   const pUcret = personelUcretMap.get(i.id)
                   const fUcret = i.firmaId ? firmaUcretMap.get(i.firmaId) : null
-                  const gunluk = pUcret ? pUcret.gunluk : fUcret ? fUcret.gunluk : sistemGunluk
+                  // Öncelik: elle Personel ücreti > Firma ücreti > işçinin günlük beklentisi > sistem
+                  const beklenti = Number(i.gunlukUcretBeklentisi ?? 0)
+                  const gunluk = pUcret ? pUcret.gunluk : fUcret ? fUcret.gunluk : beklenti > 0 ? beklenti : sistemGunluk
                   const saatlik = pUcret ? pUcret.saatlik : fUcret ? fUcret.saatlik : 0
-                  const kaynak = pUcret ? 'personel' : fUcret ? 'firma' : 'sistem'
+                  const kaynak = pUcret ? 'personel' : fUcret ? 'firma' : beklenti > 0 ? 'beklenti' : 'sistem'
                   return (
                     <tr key={i.id} className="hover:bg-slate-50/60">
                       <Td>
@@ -124,8 +126,8 @@ export default async function IkPersonelPage({
                       <Td className="text-right font-semibold tabular-nums text-slate-900">{tl(yuvarla(gunluk))}</Td>
                       <Td className="text-right tabular-nums text-slate-500">{saatlik > 0 ? tl(saatlik) : '—'}</Td>
                       <Td>
-                        <Badge tone={kaynak === 'personel' ? 'green' : kaynak === 'firma' ? 'amber' : 'slate'}>
-                          {kaynak === 'personel' ? 'Personel' : kaynak === 'firma' ? 'Firma' : 'Sistem'}
+                        <Badge tone={kaynak === 'beklenti' ? 'green' : kaynak === 'personel' ? 'green' : kaynak === 'firma' ? 'amber' : 'slate'}>
+                          {kaynak === 'beklenti' ? 'Beklenti' : kaynak === 'personel' ? 'Personel' : kaynak === 'firma' ? 'Firma' : 'Sistem'}
                         </Badge>
                       </Td>
                       <Td>

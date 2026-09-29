@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireApiAccess } from '@/lib/dal'
 import { prisma } from '@/lib/db'
+import { istanbulBugun } from '@/lib/dates'
 
 const AYIRICI = ';'
 
@@ -15,8 +16,8 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url)
-  // Parametresiz çağrıda içinde bulunulan ay kullanılır (boş/0 rapor yerine)
-  const ay = new Date()
+  // Parametresiz çağrıda İstanbul'daki içinde bulunulan ay kullanılır (boş/0 rapor yerine)
+  const ay = istanbulBugun()
   const bas = url.searchParams.get('bas') ?? `${ay.getFullYear()}-${String(ay.getMonth() + 1).padStart(2, '0')}-01`
   const bit = url.searchParams.get('bit') ?? new Date(ay.getFullYear(), ay.getMonth() + 1, 0).toISOString().slice(0, 10)
 

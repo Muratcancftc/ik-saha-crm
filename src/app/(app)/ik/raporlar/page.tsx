@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { parseLocalDate } from '@/lib/donem'
+import { istanbulBugun } from '@/lib/dates'
 import { Card, CardHeader, Th, Td, EmptyState } from '@/components/ui'
 import { tl, yuvarla } from '@/lib/ik'
 import { PrintButton } from '../hakedis/yazdir/print-button'
@@ -18,7 +19,8 @@ export default async function IkRaporlarPage({
 }) {
   await requireRoles(['patron', 'muhasebe', 'ik', 'operasyon'])
   const sp = await searchParams
-  const ayBas = sp.ay ? parseLocalDate(`${sp.ay}-01`) : new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  const bugun = istanbulBugun()
+  const ayBas = sp.ay ? parseLocalDate(`${sp.ay}-01`) : new Date(bugun.getFullYear(), bugun.getMonth(), 1)
   const ayBit = new Date(ayBas.getFullYear(), ayBas.getMonth() + 1, 1)
   const ayEtiket = `${AYLAR[ayBas.getMonth()]} ${ayBas.getFullYear()}`
 

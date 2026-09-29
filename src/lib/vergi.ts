@@ -1,4 +1,5 @@
 import type { VergiTuru, VergiOdemeYontemi } from '@prisma/client'
+import { startOfDay } from './dates'
 
 // Durum computed — DB'de tutulmaz: sonOdemeTarihi + odenenTutar'dan türetilir
 export type VergiDurum = 'ODENMEDI' | 'ODENDI' | 'KISMI_ODENDI' | 'GECIKMIS'
@@ -10,10 +11,8 @@ export function vergiDurum(v: {
 }): VergiDurum {
   const odenen = Number(v.odenenTutar ?? 0)
   const tahakkuk = Number(v.tahakkukTutari)
-  const bugun = new Date()
-  bugun.setHours(0, 0, 0, 0)
-  const son = new Date(v.sonOdemeTarihi)
-  son.setHours(0, 0, 0, 0)
+  const bugun = startOfDay()
+  const son = startOfDay(v.sonOdemeTarihi)
 
   if (odenen <= 0) return son < bugun ? 'GECIKMIS' : 'ODENMEDI'
   if (odenen >= tahakkuk) return 'ODENDI'

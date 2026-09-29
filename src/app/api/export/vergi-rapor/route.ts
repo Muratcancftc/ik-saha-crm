@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { startOfDay, addDays } from '@/lib/dates'
 import { parseLocalDate } from '@/lib/donem'
 import { vergiDurum, VERGI_TUR_ETIKET, VERGI_DURUM_ETIKET, tarihTr } from '@/lib/vergi'
+import { istanbulBugun } from '@/lib/dates'
 
 const AYIRICI = ';'
 function csvSatir(hucreler: Array<string | number>): string {
@@ -17,8 +18,8 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url)
-  // Parametresiz çağrıda içinde bulunulan ay kullanılır
-  const ay = new Date()
+  // Parametresiz çağrıda İstanbul'daki içinde bulunulan ay kullanılır
+  const ay = istanbulBugun()
   const basParam = url.searchParams.get('bas') ?? `${ay.getFullYear()}-${String(ay.getMonth() + 1).padStart(2, '0')}-01`
   const bitParam = url.searchParams.get('bit') ?? new Date(ay.getFullYear(), ay.getMonth() + 1, 0).toISOString().slice(0, 10)
   const bas = startOfDay(parseLocalDate(basParam))

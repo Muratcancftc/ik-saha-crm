@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { encrypt } from '@/lib/crypto'
 import { bolgeGecerli } from '@/lib/bolge'
+import { normalizeTelefon } from '@/lib/utils'
 import type { AdayDurum } from '@prisma/client'
 
 export type AdayState = { error?: string; ok?: boolean } | undefined
@@ -12,16 +13,23 @@ export type AdayState = { error?: string; ok?: boolean } | undefined
 export async function createAday(_prev: AdayState, formData: FormData): Promise<AdayState> {
   await requireRoles(['patron', 'operasyon'])
   const ad = String(formData.get('ad') ?? '').trim()
-  const telefon = String(formData.get('telefon') ?? '').trim()
-  if (!ad || !telefon) return { error: 'Ad ve telefon zorunludur.' }
+  const telefonRaw = String(formData.get('telefon') ?? '').trim()
+  if (!ad || !telefonRaw) return { error: 'Ad ve telefon zorunludur.' }
+
+  // Telefon normalize edilerek saklanır (rakam dışı temizlenir) — mükerrer kontrol
+  // ve kıyas aynı formatta çalışsın.
+  const telefon = normalizeTelefon(telefonRaw)
+  if (!telefon) return { error: 'Geçerli bir telefon numarası girin.' }
 
   // Mükerrer telefon kontrolü: aynı numarayla aday veya işçi varsa engelle
   const [varAday, varIsci] = await Promise.all([
-    prisma.aday.findFirst({ where: { telefon } }),
-    prisma.isci.findFirst({ where: { telefon } }),
+    prisma.aday.findMany({ select: { id: true, ad: true, telefon: true } }),
+    prisma.isci.findMany({ select: { id: true, ad: true, telefon: true } }),
   ])
-  if (varAday) return { error: `${telefon} numarasıyla zaten bir aday kayıtlı (${varAday.ad}).` }
-  if (varIsci) return { error: `${telefon} numarası zaten işçi havuzunda (${varIsci.ad}).` }
+  const eslesenAday = varAday.find((a) => normalizeTelefon(a.telefon) === telefon)
+  const eslesenIsci = varIsci.find((i) => normalizeTelefon(i.telefon) === telefon)
+  if (eslesenAday) return { error: `${telefon} numarasıyla zaten bir aday kayıtlı (${eslesenAday.ad}).` }
+  if (eslesenIsci) return { error: `${telefon} numarası zaten işçi havuzunda (${eslesenIsci.ad}).` }
 
   const meslekId = Number(formData.get('meslekId')) || null
   await prisma.aday.create({
@@ -62,9 +70,10 @@ export async function adayAktar(formData: FormData) {
   if (!aday.bolge) return
   if (!aday.meslekId) return
 
-  // Mükerrer işçi koruması: aynı telefonla zaten işçi varsa aktarma
-  const varIsci = await prisma.isci.findFirst({ where: { telefon: aday.telefon } })
-  if (varIsci) return
+  // Mükerrer işçi koruması: aynı (normalize) telefonla zaten işçi varsa aktarma
+  const telefonNorm = normalizeTelefon(aday.telefon)
+  const isciler = await prisma.isci.findMany({ select: { id: true, ad: true, telefon: true } })
+  if (isciler.some((i) => normalizeTelefon(i.telefon) === telefonNorm)) return
 
   // mock TC/IBAN (adayda yoksa üretilir; IBAN bilgisi olmayan kayıt CSV'den çıkarılır)
   const genTC = () => {
@@ -82,7 +91,7 @@ export async function adayAktar(formData: FormData) {
   await prisma.isci.create({
     data: {
       ad: aday.ad,
-      telefon: aday.telefon,
+      telefon: normalizeTelefon(aday.telefon),
       tcKimlik: encrypt(genTC()),
       ilce,
       iban: encrypt(genIBAN()),

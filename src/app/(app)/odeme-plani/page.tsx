@@ -74,7 +74,9 @@ export default async function OdemePlaniPage({
 
     const pUcret = personelUcretMap.get(p.id)
     const fUcret = p.firmaId ? firmaUcretMap.get(p.firmaId) : null
-    const gunluk = pUcret ? pUcret.gunluk : fUcret ? fUcret.gunluk : sistemGunluk
+    const beklenti = Number(p.gunlukUcretBeklentisi ?? 0)
+    // Öncelik: elle Personel ücreti > Firma ücreti > işçinin günlük beklentisi > sistem
+    const gunluk = pUcret ? pUcret.gunluk : fUcret ? fUcret.gunluk : beklenti > 0 ? beklenti : sistemGunluk
 
     const durum = kalan <= 0 && odenen > 0 ? 'ODENDI' : kalan <= 0 ? 'BOS' : odenen > 0 ? 'KISMI' : 'BEKLIYOR'
 

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { getAyarSayi } from '@/lib/ayar'
+import { istanbulBugun } from '@/lib/dates'
 import type { GiderKategori, OdemeTip, ResmiOdemeDurum } from '@prisma/client'
 
 export type MuhasebeState = { error?: string; ok?: boolean } | undefined
@@ -36,7 +37,7 @@ export async function silGider(formData: FormData) {
 
 // ---- Fatura ----
 async function siradakiFaturaNo(): Promise<string> {
-  const yil = new Date().getFullYear()
+  const yil = istanbulBugun().getFullYear()
   const prefix = `IKR-${yil}-`
   const mevcut = await prisma.fatura.findMany({ where: { no: { startsWith: prefix }, silindi: false }, select: { no: true } })
   let max = 0

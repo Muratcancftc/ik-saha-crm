@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { requireRoles } from '@/lib/dal'
 import { slugify } from '@/lib/slugify'
+import { gunSonuIstanbul } from '@/lib/dates'
 
 export async function createJob(formData: FormData) {
   await requireRoles(['patron', 'operasyon'])
@@ -29,7 +30,7 @@ export async function createJob(formData: FormData) {
       calismaTipi: String(formData.get('calismaTipi') ?? '').trim() || null,
       aciklama: String(formData.get('aciklama') ?? '').trim() || null,
       gereksinimler,
-      gecerlilikTarihi: gecerlilik ? new Date(`${gecerlilik}T23:59:00`) : null,
+      gecerlilikTarihi: gecerlilik ? gunSonuIstanbul(gecerlilik) : null,
     },
   })
   revalidatePath('/is-ilanlari')

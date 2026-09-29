@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireRoles } from '@/lib/dal'
 import { prisma } from '@/lib/db'
 import { parseLocalDate } from '@/lib/donem'
+import { istanbulBugun } from '@/lib/dates'
 import { Card, CardHeader, Badge, EmptyState, Th, Td } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { OdemeForm } from './odeme-form'
@@ -22,7 +23,8 @@ export default async function IkHakedisPage({
   const user = await requireRoles(['patron', 'muhasebe', 'operasyon', 'ik'])
   const sp = await searchParams
 
-  const ayBas = sp.ay ? parseLocalDate(`${sp.ay}-01`) : new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  const bugun = istanbulBugun()
+  const ayBas = sp.ay ? parseLocalDate(`${sp.ay}-01`) : new Date(bugun.getFullYear(), bugun.getMonth(), 1)
   const ayBit = new Date(ayBas.getFullYear(), ayBas.getMonth() + 1, 1)
   const ayEtiket = `${AYLAR[ayBas.getMonth()]} ${ayBas.getFullYear()}`
 
@@ -53,12 +55,23 @@ export default async function IkHakedisPage({
 
   const satirlar = await Promise.all(
     personel.map(async (i) => {
+      const donem = donemMap.get(i.id)
+      const odenen = donem ? yuvarla(donem.odemeler.reduce((a, o) => a + Number(o.tutar), 0)) : 0
+
+      // Kilitli (ödendi) dönem: ödeme anındaki SABİT snapshot değerleri gösterilir —
+      // canlı yeniden hesaplanmaz (sonradan yevmiye/puantaj değişse bile rakamlar korunur).
+      if (donem && donem.kilitli) {
+        const brut = yuvarla(Number(donem.brutHakedis))
+        const avans = yuvarla(Number(donem.toplamAvans))
+        const kesinti = yuvarla(Number(donem.toplamKesinti))
+        const net = yuvarla(Number(donem.netOdenecek))
+        return { isci: i, brut, adet: 0, avans, kesinti, net, donem, odenen }
+      }
+
       const brut = yuvarla(brutMap.get(i.id)?.brut ?? 0)
       const adet = brutMap.get(i.id)?.adet ?? 0
       const { avans, kesinti } = await donemAvansKesinti(i.id, ayBas, ayBit)
       const net = yuvarla(brut - avans - kesinti)
-      const donem = donemMap.get(i.id)
-      const odenen = donem ? yuvarla(donem.odemeler.reduce((a, o) => a + Number(o.tutar), 0)) : 0
       return { isci: i, brut, adet, avans, kesinti, net, donem, odenen }
     })
   )
