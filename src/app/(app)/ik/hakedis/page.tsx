@@ -41,8 +41,7 @@ export default async function IkHakedisPage({
     prisma.puantajKayit.groupBy({
       by: ['isciId'],
       where: { firmaId: seciliFirmaId, tarih: { gte: ayBas, lt: ayBit } },
-      _sum: { hesaplananTutar: true },
-      _count: true,
+      _sum: { hesaplananTutar: true, fsi: true },
     }),
     prisma.odemeDonemi.findMany({
       where: { firmaId: seciliFirmaId, baslangic: ayBas, bitis: ayBit },
@@ -50,7 +49,7 @@ export default async function IkHakedisPage({
     }),
   ])
 
-  const brutMap = new Map(puantajlar.map((p) => [p.isciId, { brut: Number(p._sum.hesaplananTutar ?? 0), adet: p._count }]))
+  const brutMap = new Map(puantajlar.map((p) => [p.isciId, { brut: Number(p._sum.hesaplananTutar ?? 0), adet: Number(p._sum.fsi ?? 0) }]))
   const donemMap = new Map(donemler.map((d) => [d.isciId, d]))
 
   const satirlar = await Promise.all(
@@ -65,7 +64,7 @@ export default async function IkHakedisPage({
         const avans = yuvarla(Number(donem.toplamAvans))
         const kesinti = yuvarla(Number(donem.toplamKesinti))
         const net = yuvarla(Number(donem.netOdenecek))
-        return { isci: i, brut, adet: 0, avans, kesinti, net, donem, odenen }
+        return { isci: i, brut, adet: Number(donem.gun), avans, kesinti, net, donem, odenen }
       }
 
       const brut = yuvarla(brutMap.get(i.id)?.brut ?? 0)

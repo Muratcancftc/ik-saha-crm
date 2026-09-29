@@ -6,7 +6,7 @@ import { decrypt, maskIBAN } from '@/lib/crypto'
 import { Card, CardHeader, Th, Td, Badge, EmptyState } from '@/components/ui'
 import { BolgeFiltre } from '@/components/bolge-filtre'
 import { bolgeGecerli, bolgeEtiket, BOLGE_TONE } from '@/lib/bolge'
-import { tl, yuvarla, guncelDonem, periyotEtiket, varsayilanUcret } from '@/lib/ik'
+import { tl, yuvarla, guncelDonem, periyotEtiket, varsayilanUcret, ibanGecerli } from '@/lib/ik'
 import type { OdemePeriyot } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
@@ -63,13 +63,23 @@ export default async function OdemePlaniPage({
     const periyot: OdemePeriyot = p.odemePeriyot ?? p.firma?.odemePeriyot ?? 'AYLIK'
     const gunAraligi = p.gunAraligi ?? p.firma?.gunAraligi ?? 30
     const donem = guncelDonem(periyot, gunAraligi, bugun)
-
-    const brut = yuvarla(puantajList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih < donem.bitis).reduce((a, x) => a + Number(x.hesaplananTutar), 0))
-    const avans = yuvarla(avansList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih < donem.bitis).reduce((a, x) => a + Number(x.tutar), 0))
-    const kesinti = yuvarla(kesintiList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih < donem.bitis).reduce((a, x) => a + Number(x.tutar), 0))
-    const net = yuvarla(brut - avans - kesinti)
     const donemKayit = donemler.find((d) => d.isciId === p.id && d.baslangic.getTime() === donem.baslangic.getTime() && d.bitis.getTime() === donem.bitis.getTime())
     const odenen = donemKayit ? yuvarla(donemKayit.odemeler.reduce((a, o) => a + Number(o.tutar), 0)) : 0
+
+    // Kilitli (ödendi) dönem: ödeme anındaki SABİT snapshot değerleri kullanılır —
+    // canlı puantaj/avans değişse bile rakamlar korunur.
+    let brut: number, avans: number, kesinti: number, net: number
+    if (donemKayit && donemKayit.kilitli) {
+      brut = yuvarla(Number(donemKayit.brutHakedis))
+      avans = yuvarla(Number(donemKayit.toplamAvans))
+      kesinti = yuvarla(Number(donemKayit.toplamKesinti))
+      net = yuvarla(Number(donemKayit.netOdenecek))
+    } else {
+      brut = yuvarla(puantajList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih < donem.bitis).reduce((a, x) => a + Number(x.hesaplananTutar), 0))
+      avans = yuvarla(avansList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih < donem.bitis).reduce((a, x) => a + Number(x.tutar), 0))
+      kesinti = yuvarla(kesintiList.filter((x) => x.isciId === p.id && x.tarih >= donem.baslangic && x.tarih < donem.bitis).reduce((a, x) => a + Number(x.tutar), 0))
+      net = yuvarla(brut - avans - kesinti)
+    }
     const kalan = yuvarla(net - odenen)
 
     const pUcret = personelUcretMap.get(p.id)
@@ -181,7 +191,13 @@ export default async function OdemePlaniPage({
                     <Td>
                       <Badge tone={s.p.varsayilanOdemeYontemi === 'IBAN' ? 'blue' : 'amber'}>{s.p.varsayilanOdemeYontemi === 'IBAN' ? 'IBAN' : 'Zarf'}</Badge>
                     </Td>
-                    <Td className="tabular-nums text-slate-500">{tamGorur ? decrypt(s.p.iban) : maskIBAN(decrypt(s.p.iban))}</Td>
+                    <Td className="tabular-nums text-slate-500">
+                      {ibanGecerli(decrypt(s.p.iban)) ? (
+                        tamGorur ? decrypt(s.p.iban) : maskIBAN(decrypt(s.p.iban))
+                      ) : (
+                        <Badge tone="red">IBAN eksik</Badge>
+                      )}
+                    </Td>
                     <Td className="text-xs text-slate-500">{periyotEtiket(s.periyot, s.gunAraligi)}</Td>
                     <Td className="tabular-nums">
                       {new Date(s.donem.bitis.getTime() - 86400000).toLocaleDateString('tr-TR')}

@@ -751,6 +751,7 @@ model OdemeDonemi {
   firmaId       Int
   baslangic     DateTime
   bitis         DateTime
+  gun           Decimal           @default(0) @db.Decimal(10, 2) // ödeme anındaki puantaj gün katsayısı (tam=1, yarım=0.5; Gelmedi sayılmaz)
   brutHakedis   Decimal           @db.Decimal(12, 2)
   toplamAvans   Decimal           @default(0) @db.Decimal(12, 2)
   toplamKesinti Decimal           @default(0) @db.Decimal(12, 2)

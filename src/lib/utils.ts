@@ -2,8 +2,10 @@ export function cn(...classes: Array<string | false | null | undefined>): string
   return classes.filter(Boolean).join(' ')
 }
 
-// Telefon karşılaştırması için: rakam dışındaki tüm karakterler temizlenir.
-// "0555 000 00 11" ile "+90 555 000 00 11" veya "05550000011" aynı kabul edilir.
+// Telefon karşılaştırması için tek biçim: rakam dışını sil, baştaki ülke kodu
+// (+90 / 90) ya da 0'ı at, son 10 hane kalsın.
+// "0555 000 00 11", "+90 555 000 00 11", "905550000011" hepsi "5550000011" olur.
 export function normalizeTelefon(telefon: string): string {
-  return telefon.replace(/\D/g, '')
+  const rakami = telefon.replace(/\D/g, '')
+  return rakami.slice(-10)
 }

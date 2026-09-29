@@ -436,13 +436,15 @@ export async function donemHesapla(formData: FormData) {
     where: { isciId, firmaId, tarih: { gte: bas, lt: bit } },
   })
   const brut = yuvarla(puantajlar.reduce((a, p) => a + Number(p.hesaplananTutar), 0))
+  // Gün katsayısı: tam=1, yarım=0.5; "Gelmedi" (fsi=0) sayılmaz — ödeme anındaki snapshot
+  const gun = yuvarla(puantajlar.reduce((a, p) => a + Number(p.fsi), 0))
   const { avans, kesinti } = await donemAvansKesinti(isciId, bas, bit)
   const net = yuvarla(brut - avans - kesinti)
 
   await prisma.odemeDonemi.upsert({
     where: { isciId_firmaId_baslangic_bitis: { isciId, firmaId, baslangic: bas, bitis: bit } },
-    update: { brutHakedis: brut, toplamAvans: avans, toplamKesinti: kesinti, netOdenecek: net },
-    create: { isciId, firmaId, baslangic: bas, bitis: bit, brutHakedis: brut, toplamAvans: avans, toplamKesinti: kesinti, netOdenecek: net },
+    update: { gun, brutHakedis: brut, toplamAvans: avans, toplamKesinti: kesinti, netOdenecek: net },
+    create: { isciId, firmaId, baslangic: bas, bitis: bit, gun, brutHakedis: brut, toplamAvans: avans, toplamKesinti: kesinti, netOdenecek: net },
   })
   revalidatePath('/ik/hakedis')
   return
