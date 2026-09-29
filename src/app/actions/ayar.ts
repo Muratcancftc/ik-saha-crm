@@ -86,6 +86,19 @@ export async function kullaniciMenulerGuncelle(formData: FormData) {
   return
 }
 
+// Patron: kullanıcının (kendi dahil) şifresini sıfırlar.
+export async function kullaniciSifreSifirla(_prev: AyarState, formData: FormData): Promise<AyarState> {
+  await requireRoles(['patron'])
+  const id = Number(formData.get('id'))
+  const sifre = String(formData.get('sifre') ?? '')
+  if (!id || sifre.length < 6) return { error: 'Yeni şifre en az 6 karakter olmalı.' }
+  const mevcut = await prisma.kullanici.findUnique({ where: { id }, select: { id: true } })
+  if (!mevcut) return { error: 'Kullanıcı bulunamadı.' }
+  await prisma.kullanici.update({ where: { id }, data: { sifreHash: await bcrypt.hash(sifre, 10) } })
+  revalidatePath('/kullanicilar')
+  return { ok: true }
+}
+
 export async function kullaniciSil(formData: FormData) {
   await requireRoles(['patron'])
   const id = Number(formData.get('id'))

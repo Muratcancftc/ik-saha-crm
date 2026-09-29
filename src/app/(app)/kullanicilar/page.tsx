@@ -4,6 +4,7 @@ import { Card, CardHeader, Th, Td, Badge } from '@/components/ui'
 import { Icon } from '@/components/icons'
 import { KullaniciForm } from './kullanici-form'
 import { MenuEditor } from './menu-editor'
+import { SifreSifirlaForm } from './sifre-sifirla'
 import { kullaniciRolDegistir, kullaniciSil } from '@/app/actions/ayar'
 
 export const dynamic = 'force-dynamic'
@@ -122,14 +123,17 @@ export default async function KullanicilarPage() {
                       <MenuEditor id={u.id} ad={u.ad} rol={u.rol} menuler={u.menuler} />
                     </Td>
                     <Td className="text-right">
-                      {u.rol !== 'patron' && (
-                        <form action={kullaniciSil}>
-                          <input type="hidden" name="id" value={u.id} />
-                          <button className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Sil">
-                            <Icon name="x" size={14} />
-                          </button>
-                        </form>
-                      )}
+                      <div className="flex justify-end gap-1">
+                        <SifreSifirlaForm id={u.id} ad={u.ad} />
+                        {u.rol !== 'patron' && (
+                          <form action={kullaniciSil}>
+                            <input type="hidden" name="id" value={u.id} />
+                            <button className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Sil">
+                              <Icon name="x" size={14} />
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     </Td>
                   </tr>
                 )
