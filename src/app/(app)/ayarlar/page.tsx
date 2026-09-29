@@ -77,6 +77,20 @@ export default async function AyarlarPage() {
         </div>
       </Card>
 
+      {/* Maliyet Parametreleri (Teklif & Paylaşım) */}
+      <Card>
+        <CardHeader title="Maliyet Parametreleri" desc="Teklif maliyet tablosunda kullanılan oranlar (ondalık: 0.14 = %14)" />
+        <div className="grid grid-cols-1 gap-3 px-5 py-4 sm:grid-cols-3">
+          <AyarRow anahtar="MALIYET_SGK_ISCI" label="SGK İşçi Oranı" deger={ayarGet('MALIYET_SGK_ISCI', '0.14')} />
+          <AyarRow anahtar="MALIYET_ISSIZLIK_ISCI" label="İşsizlik İşçi Oranı" deger={ayarGet('MALIYET_ISSIZLIK_ISCI', '0.01')} />
+          <AyarRow anahtar="MALIYET_SGK_ISVEREN" label="SGK İşveren Oranı" deger={ayarGet('MALIYET_SGK_ISVEREN', '0.155')} />
+          <AyarRow anahtar="MALIYET_ISSIZLIK_ISVEREN" label="İşsizlik İşveren Oranı" deger={ayarGet('MALIYET_ISSIZLIK_ISVEREN', '0.02')} />
+          <AyarRow anahtar="MALIYET_GELIR_VERGISI" label="Gelir Vergisi Oranı" deger={ayarGet('MALIYET_GELIR_VERGISI', '0.15')} />
+          <AyarRow anahtar="MALIYET_DAMGA_VERGISI" label="Damga Vergisi Oranı (binde 7,59)" deger={ayarGet('MALIYET_DAMGA_VERGISI', '0.00759')} />
+          <AyarRow anahtar="PAYLASIM_LINK_GUN" label="Paylaşım Linki Varsayılan Süresi (gün)" deger={ayarGet('PAYLASIM_LINK_GUN', '30')} />
+        </div>
+      </Card>
+
       {/* Kullanıcı yönetimine yönlendirme */}
       <Link
         href="/kullanicilar"

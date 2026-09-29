@@ -11,11 +11,13 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value
   const session = await decrypt(token)
 
-  const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p))
+  const isPaylasim = path === '/p' || path.startsWith('/p/')
+  const isPublic = isPaylasim || PUBLIC_PATHS.some((p) => path.startsWith(p))
   const isStatic =
     path.startsWith('/_next') ||
     path.startsWith('/api/integrations') ||
     path.startsWith('/api/public') ||
+    path.startsWith('/api/cron') || // CRON_SECRET ile korunur (handler içinde)
     path.startsWith('/static') ||
     path.includes('.')
 

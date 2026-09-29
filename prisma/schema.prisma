@@ -153,6 +153,28 @@ enum ServisciDurum {
   pasif
 }
 
+// Teklif & Paylaşım modülü
+enum PaylasimTur {
+  SUNUM
+  MALIYET
+}
+
+enum PaylasimDurum {
+  AKTIF
+  IPTAL
+  SURESI_DOLDU
+}
+
+enum MaliyetGorunum {
+  TAM
+  KAR_GIZLI
+}
+
+enum KarModu {
+  YUZDE
+  HEDEF
+}
+
 // İK & Puantaj/Ödeme modülü
 enum CalismaTipi {
   GUNLUK
@@ -355,6 +377,7 @@ model MusteriFirma {
   odemeDonemleri  OdemeDonemi[]
   vergiOdemeleri  VergiOdemesi[]
   vergiSablonlari  VergiSablon[]
+  maliyetTablolari MaliyetTablosu[]
 }
 
 model Yetkili {
@@ -993,5 +1016,168 @@ model EtkinlikKayit {
   kullanici Kullanici @relation(fields: [kullaniciId], references: [id], onDelete: Cascade)
 
   @@index([kullaniciId, tarih])
+  @@index([tarih])
+}
+
+// ============================================================
+// TEKLİF & PAYLAŞIM MODÜLÜ
+// (sunum arşivi, yevmiyeci maliyet tabloları, müşteriye özel
+//  token'lı paylaşım linkleri ve erişim kayıtları)
+// ============================================================
+
+// Tanıtım sunumu (PDF görüntüleme + opsiyonel PPTX indirme).
+// Yeni sürüm yüklenince eskiler arşivde (aktif=false) kalır.
+model Sunum {
+  id                   Int      @id @default(autoincrement())
+  baslik               String
+  aciklama             String?
+  olusturanKullaniciId Int?
+  createdAt            DateTime @default(now())
+
+  versiyonlar SunumVersiyon[]
+}
+
+model SunumVersiyon {
+  id           Int      @id @default(autoincrement())
+  sunumId      Int
+  versiyonNo   Int
+  versiyonNotu String?
+  pdfUrl       String
+  pdfAdi       String
+  pdfBoyut     Int?
+  pptxUrl      String?
+  pptxAdi      String?
+  pptxBoyut    Int?
+  aktif        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  sunum       Sunum         @relation(fields: [sunumId], references: [id], onDelete: Cascade)
+  paylasimlar PaylasimLink[]
+
+  @@unique([sunumId, versiyonNo])
+  @@index([sunumId])
+}
+
+// Yevmiyeci maliyet tablosu. Oranlar oluşturulma anında Ayarlar'dan
+// kopyalanır (snapshot) → sonradan ayar değişse bile geçmiş tablo bozulmaz.
+model MaliyetTablosu {
+  id                   Int       @id @default(autoincrement())
+  ad                   String?
+  firmaId              Int
+  tarih                DateTime  @default(now())
+  gecerlilikTarihi     DateTime?
+  sgkIsci              Decimal   @db.Decimal(6, 4)
+  issizlikIsci         Decimal   @db.Decimal(6, 4)
+  sgkIsveren           Decimal   @db.Decimal(6, 4)
+  issizlikIsveren      Decimal   @db.Decimal(6, 4)
+  gelirVergisi         Decimal   @db.Decimal(6, 4)
+  damgaVergisi         Decimal   @db.Decimal(8, 5)
+  olusturanKullaniciId Int?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  firma       MusteriFirma      @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+  pozisyonlar MaliyetPozisyon[]
+  paylasimlar PaylasimLink[]
+
+  @@index([firmaId])
+}
+
+// Tek pozisyon sütunu (ör. "Depo Personeli Günlük"): tüm kalemler burada.
+// Hesaplanan alanlar sunucu tarafında yazılır, elle girilmez.
+model MaliyetPozisyon {
+  id                Int     @id @default(autoincrement())
+  tabloId           Int
+  ad                String
+  sira              Int     @default(0)
+  // --- Kullanıcı girdileri ---
+  brutUcret         Decimal @db.Decimal(12, 2)
+  gvMatrahIstisnasi Decimal @default(0) @db.Decimal(12, 2)
+  dvIstisnasi       Decimal @default(0) @db.Decimal(12, 2)
+  kidem             Decimal @default(0) @db.Decimal(12, 2)
+  ihbar             Decimal @default(0) @db.Decimal(12, 2)
+  yillikIzin        Decimal @default(0) @db.Decimal(12, 2)
+  yemek             Decimal @default(0) @db.Decimal(12, 2)
+  yol               Decimal @default(0) @db.Decimal(12, 2)
+  saglikOsgb        Decimal @default(0) @db.Decimal(12, 2)
+  kiyafet           Decimal @default(0) @db.Decimal(12, 2)
+  maliMesuliyet     Decimal @default(0) @db.Decimal(12, 2)
+  // --- Kâr payı ---
+  karModu           KarModu @default(YUZDE)
+  karOran           Decimal @default(0) @db.Decimal(8, 4)
+  hedefTeklif       Decimal? @db.Decimal(12, 2)
+  // --- Sunucu hesabı ---
+  sgkIsci            Decimal @default(0) @db.Decimal(12, 2)
+  issizlikIsci       Decimal @default(0) @db.Decimal(12, 2)
+  gvMatrahi          Decimal @default(0) @db.Decimal(12, 2)
+  gvMatrahiIndirimli Decimal @default(0) @db.Decimal(12, 2)
+  gelirVergisi       Decimal @default(0) @db.Decimal(12, 2)
+  dvMatrahi          Decimal @default(0) @db.Decimal(12, 2)
+  dvMatrahiIndirimli Decimal @default(0) @db.Decimal(12, 2)
+  damgaVergisi       Decimal @default(0) @db.Decimal(12, 2)
+  kesintilerToplami  Decimal @default(0) @db.Decimal(12, 2)
+  netUcret           Decimal @default(0) @db.Decimal(12, 2)
+  sgkIsveren         Decimal @default(0) @db.Decimal(12, 2)
+  issizlikIsveren    Decimal @default(0) @db.Decimal(12, 2)
+  yasalMaliyet       Decimal @default(0) @db.Decimal(12, 2)
+  toplamYasalMaliyet Decimal @default(0) @db.Decimal(12, 2)
+  personelMaliyeti   Decimal @default(0) @db.Decimal(12, 2)
+  karPayi            Decimal @default(0) @db.Decimal(12, 2)
+  teklifBedeli       Decimal @default(0) @db.Decimal(12, 2)
+
+  tablo MaliyetTablosu @relation(fields: [tabloId], references: [id], onDelete: Cascade)
+
+  @@unique([tabloId, ad])
+  @@index([tabloId])
+}
+
+// Token'lı paylaşım linki. URL'de yalnızca rastgele token bulunur;
+// DB'de token'ın SHA-256 hash'i saklanır (token düz metin tutulmaz).
+model PaylasimLink {
+  id                   Int             @id @default(autoincrement())
+  tokenHash            String          @unique
+  tokenSifreli         String? // AES-256-GCM; admin "linki kopyala" için (hash lookup'ta kullanılır)
+  tur                  PaylasimTur
+  durum                PaylasimDurum   @default(AKTIF)
+  firmaAd              String
+  aliciAd              String
+  aliciEmail           String
+  olusturanKullaniciId Int?
+  createdAt            DateTime        @default(now())
+  gecerlilikBitis      DateTime
+  gorunum              MaliyetGorunum? // maliyet linklerinde: TAM | KAR_GIZLI
+  sunumVersiyonId      Int?
+  maliyetTablosuId     Int?
+  snapshot             Json?           // dondurulmuş maliyet tablosu (link oluşturulduğu an)
+  sifreHash            String?
+  kilitliDeneme        Int             @default(0)
+  kilitBitis           DateTime?
+  ilkAcilma            DateTime?
+  sonAcilma            DateTime?
+  acilmaSayisi         Int             @default(0)
+  iptalTarihi          DateTime?
+  iptalEdenKullaniciId Int?
+
+  sunumVersiyon  SunumVersiyon?  @relation(fields: [sunumVersiyonId], references: [id], onDelete: SetNull)
+  maliyetTablosu MaliyetTablosu? @relation(fields: [maliyetTablosuId], references: [id], onDelete: SetNull)
+  erisimler      PaylasimErisim[]
+
+  @@index([durum])
+  @@index([createdAt])
+}
+
+// Her erişim/açılış kaydı (KVKK: 1 yıl sonra cron ile silinir).
+model PaylasimErisim {
+  id        Int      @id @default(autoincrement())
+  linkId    Int
+  tarih     DateTime @default(now())
+  ip        String?
+  userAgent String?
+  basarili  Boolean  @default(true)
+  tip       String // goruntuleme | sifre_denemesi | sifre_basarili | icerik
+
+  link PaylasimLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId, tarih])
   @@index([tarih])
 }

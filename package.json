@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "check": "tsc --noEmit && eslint && next build",
+    "test:maliyet": "tsx scripts/maliyet-test.ts",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx --env-file=.env prisma/seed.ts",

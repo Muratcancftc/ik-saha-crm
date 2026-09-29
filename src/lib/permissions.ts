@@ -32,6 +32,10 @@ export const ROUTES: Record<string, { title: string; roles: Rol[]; desc?: string
   '/etkinlik': { title: 'Etkinlik Logu', roles: ['patron'] },
   '/kullanicilar': { title: 'Kullanıcılar & Yetkiler', roles: ['patron'] },
   '/bildirimler': { title: 'Bildirimler', roles: ['patron', 'operasyon', 'muhasebe', 'saha_sorumlusu'] },
+  // Teklif & Paylaşım modülü
+  '/paylasim/sunumlar': { title: 'Sunumlar', roles: ['patron', 'operasyon'] },
+  '/paylasim/maliyet': { title: 'Maliyet Tabloları', roles: ['patron', 'operasyon'] },
+  '/paylasim/linkler': { title: 'Paylaşılan Linkler', roles: ['patron', 'operasyon'] },
 }
 
 export const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; icon: string; label: string; roles: Rol[] }> }> = [
@@ -84,6 +88,14 @@ export const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; ico
       { href: '/gelir-gider', icon: 'gider', label: 'Gelir – Gider', roles: ['patron', 'muhasebe'] },
       { href: '/vergi-odemeler', icon: 'vergi', label: 'Vergi & Ödemeler', roles: ['patron', 'muhasebe', 'ik', 'operasyon', 'izleyici'] },
       { href: '/personel', icon: 'personel', label: 'Personel & Bordro', roles: ['patron', 'muhasebe'] },
+    ],
+  },
+  {
+    label: 'Teklif & Paylaşım',
+    items: [
+      { href: '/paylasim/sunumlar', icon: 'sunum', label: 'Sunumlar', roles: ['patron', 'operasyon'] },
+      { href: '/paylasim/maliyet', icon: 'vergi', label: 'Maliyet Tabloları', roles: ['patron', 'operasyon'] },
+      { href: '/paylasim/linkler', icon: 'link', label: 'Paylaşılan Linkler', roles: ['patron', 'operasyon'] },
     ],
   },
   {
