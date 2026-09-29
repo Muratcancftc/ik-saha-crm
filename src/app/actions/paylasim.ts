@@ -246,12 +246,11 @@ function pozisyonlariCoz(ham: string): PozlamaGirdi[] {
 export async function maliyetTablosuKaydet(_prev: PaylasimState, formData: FormData): Promise<PaylasimState> {
   await requireRoles(['patron', 'operasyon'])
   const id = Number(formData.get('id')) || null
-  const firmaId = Number(formData.get('firmaId'))
+  const firmaId = Number(formData.get('firmaId')) || null
   const ad = String(formData.get('ad') ?? '').trim() || null
   const tarihStr = String(formData.get('tarih') ?? '').trim()
   const gecerlilikStr = String(formData.get('gecerlilikTarihi') ?? '').trim()
 
-  if (!firmaId) return { error: 'Müşteri firma seçilmelidir.' }
   const pozisyonlar = pozisyonlariCoz(String(formData.get('pozisyonlar') ?? '[]'))
   if (pozisyonlar.length === 0) return { error: 'En az bir pozisyon girin.' }
   const adlar = new Set(pozisyonlar.map((p) => p.ad))

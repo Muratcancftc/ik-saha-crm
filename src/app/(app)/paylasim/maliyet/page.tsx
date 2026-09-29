@@ -16,13 +16,13 @@ export default async function MaliyetTablolariPage() {
 
   const [tablolar, linkGun] = await Promise.all([
     prisma.maliyetTablosu.findMany({
-      include: { firma: true, _count: { select: { pozisyonlar: true } } },
+      include: { _count: { select: { pozisyonlar: true } } },
       orderBy: { createdAt: 'desc' },
     }),
     paylasimLinkGunOku(),
   ])
 
-  const secenekler = tablolar.map((t) => ({ id: t.id, ad: t.ad ?? `Tablo #${t.id}`, firmaAd: t.firma.ad }))
+  const secenekler = tablolar.map((t) => ({ id: t.id, ad: t.ad ?? `Tablo #${t.id}` }))
 
   return (
     <div className="space-y-5">
@@ -51,7 +51,6 @@ export default async function MaliyetTablolariPage() {
               <thead className="border-b border-slate-100 bg-slate-50/60">
                 <tr>
                   <Th>Tablo</Th>
-                  <Th>Müşteri</Th>
                   <Th>Tarih</Th>
                   <Th>Geçerlilik</Th>
                   <Th>Pozisyon</Th>
@@ -62,7 +61,6 @@ export default async function MaliyetTablolariPage() {
                 {tablolar.map((t) => (
                   <tr key={t.id}>
                     <Td className="font-medium text-slate-900">{t.ad ?? `Tablo #${t.id}`}</Td>
-                    <Td>{t.firma.ad}</Td>
                     <Td className="text-xs text-slate-500">{date(t.tarih)}</Td>
                     <Td className="text-xs text-slate-500">{t.gecerlilikTarihi ? date(t.gecerlilikTarihi) : '—'}</Td>
                     <Td>

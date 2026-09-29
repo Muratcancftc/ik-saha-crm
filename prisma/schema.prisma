@@ -1063,7 +1063,7 @@ model SunumVersiyon {
 model MaliyetTablosu {
   id                   Int       @id @default(autoincrement())
   ad                   String?
-  firmaId              Int
+  firmaId              Int? // opsiyonel: tablo müşteri seçilmeden de hazırlanabilir
   tarih                DateTime  @default(now())
   gecerlilikTarihi     DateTime?
   sgkIsci              Decimal   @db.Decimal(6, 4)
@@ -1076,7 +1076,7 @@ model MaliyetTablosu {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  firma       MusteriFirma      @relation(fields: [firmaId], references: [id], onDelete: Cascade)
+  firma       MusteriFirma?     @relation(fields: [firmaId], references: [id], onDelete: SetNull)
   pozisyonlar MaliyetPozisyon[]
   paylasimlar PaylasimLink[]
 

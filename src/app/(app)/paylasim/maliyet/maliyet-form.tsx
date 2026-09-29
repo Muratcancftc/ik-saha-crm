@@ -7,8 +7,6 @@ import { maliyetHesapla, type MaliyetGirdi, type MaliyetOranlar } from '@/lib/ma
 import { MaliyetTablo } from '@/components/paylasim/maliyet-tablo'
 import { Icon } from '@/components/icons'
 
-type Firma = { id: number; ad: string }
-
 type Poz = {
   ad: string
   brutUcret: string
@@ -83,7 +81,6 @@ function girdiye(poz: Poz): MaliyetGirdi {
 export type MaliyetTabloDto = {
   id: number
   ad: string | null
-  firmaId: number
   tarih: string
   gecerlilikTarihi: string | null
   oranlar: MaliyetOranlar
@@ -91,19 +88,16 @@ export type MaliyetTabloDto = {
 }
 
 export function MaliyetForm({
-  firmalar,
   tablo,
   guncelOranlar,
   varsayilanGun,
 }: {
-  firmalar: Firma[]
   tablo?: MaliyetTabloDto
   guncelOranlar: MaliyetOranlar
   varsayilanGun: number
 }) {
   const router = useRouter()
   const [state, formAction, pending] = useActionState<PaylasimState, FormData>(maliyetTablosuKaydet, undefined)
-  const [firmaId, setFirmaId] = useState<number | null>(tablo?.firmaId ?? firmalar[0]?.id ?? null)
   const [ad, setAd] = useState(tablo?.ad ?? '')
   const [tarih, setTarih] = useState(tablo?.tarih?.slice(0, 10) ?? new Date().toISOString().slice(0, 10))
   const [gecerlilik, setGecerlilik] = useState(tablo?.gecerlilikTarihi?.slice(0, 10) ?? '')
@@ -136,17 +130,7 @@ export function MaliyetForm({
       <input type="hidden" name="pozisyonlar" value={JSON.stringify(pozisyonlar)} />
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-600">Müşteri firma *</label>
-            <select name="firmaId" value={firmaId ?? ''} onChange={(e) => setFirmaId(Number(e.target.value) || null)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-              {firmalar.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.ad}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-slate-600">Tablo adı</label>
             <input name="ad" value={ad} onChange={(e) => setAd(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="ör. 2026 Yevmiyeci Maliyet Tablosu" />

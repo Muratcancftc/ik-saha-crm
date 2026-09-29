@@ -13,12 +13,11 @@ export default async function MaliyetDuzenlePage({ params }: { params: Promise<{
   const tabloId = Number(id)
   if (!tabloId) notFound()
 
-  const [tablo, firmalar, varsayilanGun] = await Promise.all([
+  const [tablo, varsayilanGun] = await Promise.all([
     prisma.maliyetTablosu.findUnique({
       where: { id: tabloId },
       include: { pozisyonlar: { orderBy: { sira: 'asc' } } },
     }),
-    prisma.musteriFirma.findMany({ orderBy: { ad: 'asc' } }),
     paylasimLinkGunOku(),
   ])
   if (!tablo) notFound()
@@ -26,7 +25,6 @@ export default async function MaliyetDuzenlePage({ params }: { params: Promise<{
   const dto: MaliyetTabloDto = {
     id: tablo.id,
     ad: tablo.ad,
-    firmaId: tablo.firmaId,
     tarih: tablo.tarih.toISOString(),
     gecerlilikTarihi: tablo.gecerlilikTarihi?.toISOString() ?? null,
     oranlar: {
@@ -65,7 +63,6 @@ export default async function MaliyetDuzenlePage({ params }: { params: Promise<{
         <h1 className="mt-1 text-lg font-semibold text-slate-900">{tablo.ad ?? `Tablo #${tablo.id}`}</h1>
       </div>
       <MaliyetForm
-        firmalar={firmalar.map((f) => ({ id: f.id, ad: f.ad }))}
         tablo={dto}
         guncelOranlar={dto.oranlar}
         varsayilanGun={varsayilanGun}
